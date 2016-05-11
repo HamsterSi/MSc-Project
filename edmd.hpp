@@ -1,19 +1,15 @@
-//
-//  parameters.hpp
-//  
-//
-//  Created by Zhuowei Si on 06/04/2016.
-//
-//
 
 #ifndef parameters_hpp
 #define parameters_hpp
 
 #include <iostream>
-#include <string>
-#include <ctime>
+#include <cmath>
+
+#include "tetrad.hpp"
 
 using namespace std;
+
+extern "C" void subroutine_sum_(long *fsize, double* fvec, double *fsum);
 
 /*
  * Constants used in the DNA simulations.
@@ -30,36 +26,10 @@ using namespace std;
 typedef struct _Constants {
     
     float Boltzmann; // Boltzmann constant in internal units
+    
     float timefac;   // Factor to convert time-realted parameter to internal units
 
 }Constants;
-
-typedef struct _Energies {
-    float eed; // ED energy
-    float evdw;
-    float eel;
-    float ke;  // Current kinetic energy
-    float ke0; // Target KE for Berendsen
-}Energies;
-
-/*
- * Parameters used in EDMD simulations.
- */
-typedef struct _Parameters {
-    
-    bool  circular;    // Whether the sistem has a circular or linear topology
-    float dt;          // Timestep, in ps
-    float gamma;       // The friction coefficient, in ps⁻¹
-    float tautp;       // Berendsen temperature coupling parameter
-    float RNG_Seed;    // Seed for the random number generator
-    float temperature; // Temperature, in Kelvin
-    float scaled;      // Scale factor to scale ED forces
-    float gamfac;      // Velocity scale factor
-    float mole_Cutoff; // Molecular cutoffs
-    float atom_Cutoff; // Atomic cutoffs
-    float NB_Cutoff;   // Molecules less than NB_Cutoff won't have NB ints.
-    
-}Parameters;
 
 
 /*
@@ -69,22 +39,35 @@ class EDMD {
     
 public:
     
-    Constants  DNA_Constants;
+    Constants  constants;
     
-    Energies   EDMD_Energies;
+    bool  circular;    // Whether the sistem has a circular or linear topology
     
-    Parameters EDMD_Parameters;
+    float RNG_Seed;    // Seed for the random number generator
+    
+    float dt;          // Timestep, in ps
+    float gamma;       // The friction coefficient, in ps⁻¹
+    float tautp;       // Berendsen temperature coupling parameter
+    
+    float temperature; // Temperature, in Kelvin
+    float scaled;      // Scale factor to scale ED forces
     
 public:
     
     EDMD(void);
     
-    ~EDMD(void);
+    void calculate_ED_Forces(Tetrad tetrad, float* forces, float scaled, float* potential_Energy);
     
-    void generate_Stochastic_Term(void);
+    void calculate_NB_Forces(Tetrad tetrad[], float** NB_Forces, float* NB_Energy, float* Electrostatic_Energy);
     
-    void parameters_Setting(void);
-
+    float generate_Stochastic_Term(float tetrad_ID);
+    
+    void generate_Pair_Lists(int** pair_List, int num_Tetrads, Tetrad* tetrad);
+    
+    void update_Velocities(float* velocities, float* ED_Forces, float* NB_Forces, float* masses, int total_Atoms);
+    
+    void update_Coordinates(float* coordinates, float* velocities, int total_Atoms);
+    
 };
 
 
