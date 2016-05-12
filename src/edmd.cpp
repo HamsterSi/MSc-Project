@@ -32,24 +32,6 @@ EDMD::EDMD(void) {
 }
 
 
-/*************C++ & Fortran mixed programming testing**************/
-void test() {
-    long i,size = 100; double sum = 0.0, *vec;
-    vec = new double[size]; for(i=0;i<size;i++) vec[i]=i;
-    cout << "Calling a Fortran function" << endl;
-    cout << "============================" << endl;
-    cout << "size = " << size << "  sum = " << sum << endl << endl;
-    
-    subroutine_sum_(&size,vec,&sum);
-    
-    cout << "Calling a Fortran subroutine" << endl;
-    cout << "===============================" << endl;
-    cout << "size = " << size << "  sum = " << sum << endl << endl;
-}
-
-extern "C" void MATFIT(int* num_Atoms_In_Tetrad, float** avg_Structure, float** coordinates, float** rotation, float* translation, float* rmsd, int* find_Move);
-/******************************************************************/
-
 /*
  * Function:  Calculate Ed forces
  *
