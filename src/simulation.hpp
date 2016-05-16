@@ -8,7 +8,6 @@
 #include <string>
 #include "mpi.h"
 
-#include "pool/pool.h"
 #include "mpilibrary.hpp"
 #include "master.hpp"
 #include "worker.hpp"

@@ -19,21 +19,24 @@ void master_Code(void) {
     
     clock_t begin_Time = clock();
     
-    master.master_ED_Forces();
+    master.data_Sending();
     
-    master.master_NB_Forces();
+    master.tetrad_Sending();
     
-    master.master_LV_Forces();
+    master.force_Passing();
     
-    master.master_Total_Forces();
+    //master.LV_Forces();
     
-    master.master_Velocities();
+    master.total_Forces();
     
-    master.master_Coordinates();
+    master.velocities();
+    
+    master.coordinates();
     
     clock_t end_Time = clock();
     double time_Usage = double(end_Time - begin_Time) / CLOCKS_PER_SEC;
     cout << "Time usage for the simualtion: " << time_Usage << endl;
+    
 }
 
 /*
@@ -41,27 +44,46 @@ void master_Code(void) {
  */
 void worker_Code()
 {
-    MPI_Comm comm = MPI_COMM_WORLD;
-    int rank, size, signal, worker_Status = 1;
-    
+    int rank, flag, signal = 1;
     Worker_Management worker;
     
-    while (worker_Status)
+    MPI_Comm comm = MPI_COMM_WORLD;
+    MPI_Status status;
+    MPI_Comm_rank(comm, &rank);
+    
+    while (signal)
     {
-        MPI_Comm_rank(comm, &rank);
-        MPI_Comm_size(comm, &size);
-        
-        if (rank <= ((size+1)/2)) {
-            cout << "Rank " << rank << "simulates ED forces" << endl;
-            signal = worker.worker_ED_Forces();
-            if (signal == 1) worker_Status = 1;//workerSleep();
-            
-        } else {
-            cout << "Rank " << rank << "simulates NB forces" << endl;
-            signal = worker.worker_NB_Forces();
-            if (signal == 1) worker_Status = 1;//workerSleep();
-            
+        MPI_Iprobe(0, MPI_ANY_TAG, comm, &flag, &status);
+        if (flag)
+        {
+            switch (status.MPI_TAG) {
+                case TAG_DATA:
+                    cout << "Rank " << rank << "receives data" << endl;
+                    worker.data_Receiving();
+                    break;
+                    
+                case TAG_TETRAD:
+                    cout << "Rank " << rank << "receives tetrads" << endl;
+                    worker.tetrad_Receiving();
+                    break;
+                    
+                case TAG_ED:
+                    cout << "Rank " << rank << "computes ED forces" << endl;
+                    worker.ED_Calculation();
+                    break;
+                    
+                case TAG_NB:
+                    cout << "Rank " << rank << "computes NB forces" << endl;
+                    worker.NB_Calculation();
+                    break;
+                    
+                case TAG_DEATH:
+                    signal = 0;
+                    break;
+            }
         }
     }
 }
+
+
 

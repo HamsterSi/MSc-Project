@@ -8,23 +8,6 @@
 
 #include "mpilibrary.hpp"
 
-/* Initialise the MPI library */
-void MPI_Library::initialize(int* argc, char **argv[]){
-    MPI_Init(argc, argv);
-}
-
-int MPI_Library::get_Size(int* size){
-    
-    MPI_Comm_size(MPI_COMM_WORLD, size);
-    return *size;
-}
-
-int MPI_Library::get_Rank(int* rank){
-    
-    MPI_Comm_rank(MPI_COMM_WORLD, rank);
-    return *rank;
-}
-
 void MPI_Library::create_MPI_Tetrad(MPI_Datatype MPI_Tetrad, int num_Atoms_In_Tetrad, int num_Evecs) {
     int num_Atoms = 3 * num_Atoms_In_Tetrad;
     
@@ -39,7 +22,8 @@ void MPI_Library::create_MPI_Tetrad(MPI_Datatype MPI_Tetrad, int num_Atoms_In_Te
         offsetof(Tetrad, num_Evecs),    offsetof(Tetrad, avg_Structure),
         offsetof(Tetrad, masses),       offsetof(Tetrad, abq),
         offsetof(Tetrad, eigenvalues),  offsetof(Tetrad, eigenvectors),
-        offsetof(Tetrad, coordinates),  offsetof(Tetrad, velocities) };
+        offsetof(Tetrad, coordinates),  offsetof(Tetrad, velocities)
+    };
     
     MPI_Type_create_struct(9, counts, displs, types, &MPI_Tetrad);
     MPI_Type_commit(&MPI_Tetrad);
@@ -49,9 +33,4 @@ void MPI_Library::create_MPI_Tetrad(MPI_Datatype MPI_Tetrad, int num_Atoms_In_Te
 
 void MPI_Library::free_MPI_Tetrad(MPI_Datatype MPI_Tetrad) {
     MPI_Type_free(&MPI_Tetrad);
-}
-
-/* Finalize the MPI library */
-void MPI_Library::finalize(void) {
-    MPI_Finalize();
 }

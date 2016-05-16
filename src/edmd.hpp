@@ -56,13 +56,13 @@ public:
     
     EDMD(void);
     
-    void calculate_ED_Forces(Tetrad tetrad, float* forces, float scaled, float* potential_Energy);
+    void calculate_ED_Forces(Tetrad tetrad, float* forces, float scaled, int ED_Energy);
     
-    void calculate_NB_Forces(Tetrad tetrad[], float** NB_Forces, float* NB_Energy, float* Electrostatic_Energy);
+    void calculate_NB_Forces(Tetrad tetrad[], float** NB_Forces, int NB_Energy, int Electrostatic_Energy);
     
     float generate_Stochastic_Term(float tetrad_ID);
     
-    void generate_Pair_Lists(int** pair_List, int num_Tetrads, Tetrad* tetrad);
+    void generate_Pair_Lists(int pair_List[][2], int num_Tetrads, Tetrad* tetrad);
     
     void update_Velocities(float* velocities, float* ED_Forces, float* NB_Forces, float* masses, int total_Atoms);
     

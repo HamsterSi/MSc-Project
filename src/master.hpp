@@ -8,7 +8,6 @@
 #include <string>
 #include "mpi.h"
 
-#include "pool/pool.h"
 #include "mpilibrary.hpp"
 #include "edmd.hpp"
 #include "tetrad.hpp"
@@ -32,12 +31,10 @@ public:
     
     MPI_Comm comm;
     
+    int size;
+    
     float *masses;
-    
-    int start_Index, end_Index;
     float *displacement;
-    
-    int max_Atoms;
     
     float *ED_Forces;
     float *total_ED_Forces;
@@ -58,17 +55,25 @@ public:
     
     ~Master_Management(void);
     
-    void master_ED_Forces(void);
+    void data_Sending(void);
     
-    void master_NB_Forces(void);
+    void tetrad_Sending(void);
     
-    void master_LV_Forces(void);
+    void force_Passing(void);
     
-    void master_Total_Forces(void);
+    //void ED_Forces(void);
     
-    void master_Velocities(void);
+    //void NB_Forces(void);
     
-    void master_Coordinates(void);
+    void LV_Forces(void);
+    
+    void total_Forces(void);
+    
+    void velocities(void);
+    
+    void coordinates(void);
+    
+    void finalise(void);
     
 };
 

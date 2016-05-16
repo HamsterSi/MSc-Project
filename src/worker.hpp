@@ -8,7 +8,6 @@
 #include <string>
 #include "mpi.h"
 
-#include "pool/pool.h"
 #include "mpilibrary.hpp"
 #include "edmd.hpp"
 #include "tetrad.hpp"
@@ -20,9 +19,27 @@ class Worker_Management {
     
 public:
     
-    int worker_ED_Forces(void);
+    int data[3]; // io.prm.num_Tetrads, io.prm.max_Atoms, io.prm.max_Evecs
     
-    int worker_NB_Forces(void);
+    Tetrad *tetrad;
+    
+    EDMD edmd;
+    
+    MPI_Status status;
+    
+    MPI_Comm comm;
+    
+public:
+    
+    Worker_Management(void);
+    
+    void data_Receiving(void);
+    
+    void tetrad_Receiving(void);
+    
+    void ED_Calculation(void);
+    
+    void NB_Calculation(void);
     
 };
 

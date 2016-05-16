@@ -39,10 +39,8 @@ EDMD::EDMD(void) {
  *
  * Return:    None
  */
-void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, float* ED_Energy) {
-    
-    test();
-    
+void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, int ED_Energy) {
+
     int i, j, find_Move = 1;
     float temp = 0.0, rmsd = 0.0;
     float *temp_Crds, *temp_Forces, *projections;
@@ -109,9 +107,11 @@ void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, fl
     
     // Step 7: calculate the 'potential energy' (in units of kT)
     for (i = 0; i < tetrad.num_Evecs; i++) {
-        temp += projections[i]*projections[i]/tetrad.eigenvalues[i];
+        temp += projections[i]*projections[i] / tetrad.eigenvalues[i];
     }
-    *ED_Energy = scaled * 0.5 * temp;
+    
+    ED_Forces[ED_Energy] = scaled * 0.5 * temp; // ED Energy
+    // *ED_Energy = scaled * 0.5 * temp;
     
     delete []temp_Crds;
     delete []temp_Forces;
@@ -126,13 +126,13 @@ void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, fl
  *
  * Return:    None
  */
-void EDMD::calculate_NB_Forces(Tetrad tetrad[], float** NB_Forces, float* NB_Energy, float* Electrostatic_Energy) {
+void EDMD::calculate_NB_Forces(Tetrad tetrad[], float** NB_Forces, int NB_Energy, int Electrostatic_Energy) {
     
     int i, j;
     float dx, dy, dz, sqdist;
     float a, pair_Force;
-    float krep = 100.0; // krep: soft repulsion constant
-    float q;            // q: num_atoms vectors of charges
+    float krep = 100.0;   // krep: soft repulsion constant
+    float q;              // q: num_atoms vectors of charges
     float qfac = 332.064; //qfac: electrostatics factor
     float max_Forces = 1.0;
     
@@ -148,14 +148,17 @@ void EDMD::calculate_NB_Forces(Tetrad tetrad[], float** NB_Forces, float* NB_Ene
             a = max(0.0, 2.0-sqdist);
             q = tetrad[0].abq[3*i+2] * tetrad[1].abq[3*j+2];
             
-            *NB_Energy += 0.25 * krep * a * a;
-            *Electrostatic_Energy += 0.5 * qfac * q * sqdist;
+            NB_Forces[0][NB_Energy] += 0.25 * krep * a * a;
+            NB_Forces[1][Electrostatic_Energy] += 0.5 * qfac * q * sqdist;
+            // *NB_Energy += 0.25 * krep * a * a;
+            // *Electrostatic_Energy += 0.5 * qfac * q * sqdist;
             
             // NB forces
             pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
             NB_Forces[0][3*i]   -= dx * pair_Force;
             NB_Forces[0][3*i+1] -= dy * pair_Force;
             NB_Forces[0][3*i+2] -= dz * pair_Force;
+            
             NB_Forces[1][3*j]   += dx * pair_Force;
             NB_Forces[1][3*j+1] += dy * pair_Force;
             NB_Forces[1][3*j+2] += dz * pair_Force;
@@ -196,7 +199,7 @@ float EDMD::generate_Stochastic_Term(float tetrad_ID) {
  *
  * Return:    None
  */
-void EDMD::generate_Pair_Lists(int** pair_List, int num_Tetrads, Tetrad* tetrad) {
+void EDMD::generate_Pair_Lists(int pair_List[][2], int num_Tetrads, Tetrad* tetrad) {
     
     float mole_Cutoff = 40.0; // Molecular cutoffs
     float atom_Cutoff = 10.0; // Atomic cutoffs
@@ -235,13 +238,15 @@ void EDMD::generate_Pair_Lists(int** pair_List, int num_Tetrads, Tetrad* tetrad)
             if ((r < mole_Cutoff * mole_Cutoff) && (abs(i-j) > mole_Least) &&
                 (abs(i-j) < num_Tetrads - mole_Least)) {
                 
-                pair_List[++num_Pairs][0] = i;
-                pair_List[++num_Pairs][1] = j;
+                pair_List[num_Pairs][0] = i;
+                pair_List[num_Pairs][1] = j;
                 
             } else {
                 pair_List[num_Pairs][0] = -1;
                 pair_List[num_Pairs][1] = -1;
             }
+            
+            num_Pairs++;
         }
     }
 }

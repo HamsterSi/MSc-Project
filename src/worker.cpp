@@ -1,6 +1,35 @@
 
 #include "worker.hpp"
 
+Worker_Management::Worker_Management(void) {
+    comm = MPI_COMM_WORLD;
+}
+
+/*
+ *
+ */
+void Worker_Management::data_Receiving(void) {
+    
+    MPI_Recv(data, 3, MPI_INT, 0, TAG_DATA, comm, &status);
+}
+
+/*
+ *
+ */
+void Worker_Management::tetrad_Receiving(void) {
+
+    MPI_Datatype MPI_Tetrad;
+    
+    tetrad = new Tetrad[data[0]];
+    
+    MPI_Library::create_MPI_Tetrad(MPI_Tetrad, data[1], data[2]);
+
+    MPI_Recv(tetrad, data[0], MPI_Tetrad, 0, TAG_TETRAD, comm, &status);
+    
+    MPI_Library::free_MPI_Tetrad(MPI_Tetrad);
+    
+}
+
 /*
  * Function:  Receive tetrad parameters, Compute ED forces of tetrad &
  *            Send the calculated ED forces back to the master.
@@ -9,29 +38,20 @@
  *
  * Return:    None
  */
-int Worker_Management::worker_ED_Forces(void) {
+void Worker_Management::ED_Calculation(void) {
     
-    Tetrad tetrad;
-    EDMD edmd;
-    float *ED_Forces, scaled, ED_Energy;
+    int index;
     
-    MPI_Datatype MPI_Tetrad;
-    MPI_Comm comm = MPI_COMM_WORLD;
-    MPI_Status *status;
+    MPI_Recv(&index, 1, MPI_INT, 0, TAG_ED, comm, &status);
     
-    MPI_Library::create_MPI_Tetrad(MPI_Tetrad, tetrad.num_Atoms_In_Tetrad, tetrad.num_Evecs);
-    MPI_Recv(&tetrad, 1, MPI_Tetrad, 0, TAG_ED, comm, status);
+    float* ED_Forces = new float[3 * data[1] + 1];
     
-    ED_Forces = new float[3 * tetrad.num_Atoms_In_Tetrad];
-    edmd.calculate_ED_Forces(tetrad, ED_Forces, edmd.scaled, &ED_Energy);
+    edmd.calculate_ED_Forces(tetrad[index], ED_Forces, edmd.scaled, 3*data[1]);
     
-    MPI_Send(ED_Forces, 3 * tetrad.num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_ED, comm);
-    MPI_Send(&ED_Energy, 1, MPI_FLOAT, 0, TAG_ED, comm);
+    MPI_Send(ED_Forces, 3 * data[1] + 1, MPI_FLOAT, 0, TAG_ED, comm);
     
     delete []ED_Forces;
-    MPI_Library::free_MPI_Tetrad(MPI_Tetrad);
     
-    return 1;
 }
 
 
@@ -43,33 +63,26 @@ int Worker_Management::worker_ED_Forces(void) {
  *
  * Return:    None
  */
-int Worker_Management::worker_NB_Forces(void) {
+void Worker_Management::NB_Calculation(void) {
     
-    Tetrad tetrad[2];
-    EDMD edmd;
-    int source, dest;
-    float **NB_Forces, Energies[2]; //NB_Energy, Electrostatic_Energy;
+    int index[2];
     
-    MPI_Datatype MPI_Tetrad;
-    MPI_Comm comm = MPI_COMM_WORLD;
-    MPI_Status *status;
+    MPI_Recv(index, 2, MPI_INT, 0, TAG_NB, comm, &status);
     
-    MPI_Recv(tetrad, 2, MPI_Tetrad, 0, TAG_NB, comm, status);
+    Tetrad te[2] = {tetrad[index[0]], tetrad[index[1]]};
     
-    NB_Forces = new float*[2];
-    int num_Atoms = max(tetrad[0].num_Atoms_In_Tetrad, tetrad[1].num_Atoms_In_Tetrad);
-    NB_Forces[0] = new float [3 * num_Atoms];
-    NB_Forces[1] = new float [3 * num_Atoms];
+    float** NB_Forces = new float*[2];
+    NB_Forces[0] = new float [3 * data[1] + 2];
+    NB_Forces[1] = new float [3 * data[1] + 2];
     
-    //edmd.calculate_NB_Forces(tetrad, NB_Forces, &NB_Energy, &Electrostatic_Energy);
-    edmd.calculate_NB_Forces(tetrad, NB_Forces, &Energies[0], &Energies[1]);
-    
-    MPI_Send(NB_Forces, 3 * num_Atoms, MPI_FLOAT, 0, TAG_NB, comm);
-    MPI_Send(Energies, 2, MPI_FLOAT, 0, TAG_NB, comm);
+    edmd.calculate_NB_Forces(te, NB_Forces, 3*data[1], 3*data[1]);
+    NB_Forces[0][3*data[1]+1] = index[0];
+    NB_Forces[1][3*data[1]+1] = index[1];
+     
+    MPI_Send(NB_Forces, 2 * 3 * data[1] + 4, MPI_FLOAT, 0, TAG_NB, comm);
     
     delete[] NB_Forces[0];
     delete[] NB_Forces[1];
     delete[] NB_Forces;
-    
-    return 1;
+
 }

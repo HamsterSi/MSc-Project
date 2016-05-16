@@ -12,35 +12,31 @@
 #include <iostream>
 #include "mpi.h"
 
-#include "pool/pool.h"
 #include "simulation.hpp"
-#include "mpilibrary.hpp"
 
 using namespace std;
 
 int main(int argc, char *argv[]){
     
-    MPI_Comm comm = MPI_COMM_WORLD;
-    int rank, size, status_Code, buffer_Size = 40960;
+    int rank, size, buffer_Size = 40960;
     
-    // Initialise the parallel environment
+    // Initialise the MPI environment
     MPI_Init(&argc, &argv);
-    MPI_Comm_size(comm, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
     
     MPI_Buffer_attach(malloc(buffer_Size), buffer_Size);
-    //status_Code = processPoolInit();
     
     if (size < 2) {
         cout << "Requires at least two processes." << endl;
         exit(1);
     }
 
-    // Start the processes
-    if (status_Code == 2) master_Code(); // The master initialises the simulation
-    if (status_Code == 1) worker_Code(); // Force calculation workers
+    // Start processes
+    if (rank == 0) master_Code(); // The master initialises the simulation
+    if (rank != 0) worker_Code(); // Force calculation workers
     
-    // Finalise the environemnt
-    //processPoolFinalise();
+    // Finalise the MPI environemnt
     MPI_Finalize();
     
     return 0;

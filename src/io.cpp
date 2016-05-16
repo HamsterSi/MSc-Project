@@ -5,6 +5,74 @@
 #include "io.hpp"
 
 /*
+ *
+ */
+IO::IO(void) {
+    
+    int i, j, k, temp, *data;
+    
+    ifstream fin;
+    fin.open("./data//GC90c12.prm", ios_base::in);
+    if (fin.is_open()) {
+        
+        fin >> prm.num_Tetrads; // Number of (overlapping) tetrads
+        data = new int[2 * prm.num_Tetrads];
+        
+        for (i = 0; i < prm.num_Tetrads; i++) {
+            
+            fin >> data[2*i];   // Number of atoms in tetrad
+            fin >> data[2*i+1]; // Number of eigenvectors
+            
+            for (j = 0; j < 3 * data[2*i]; j++) fin >> temp;
+            for (j = 0; j <     data[2*i]; j++) fin >> temp;
+            for (j = 0; j < 3 * data[2*i]; j++) fin >> temp;
+            for (j = 0; j < data[2*i+1]; j++) { fin >> temp;
+                for (k = 0; k < 3 * data[2*i]; k++) fin >> temp;
+            }
+        }
+        fin.close();
+        
+    } else {
+        cout << ">>> ERROR: Can not open prm file!" << endl;
+        exit(1);
+    }
+    
+    prm.max_Atoms = 0;
+    prm.max_Evecs = 0;
+    for (i = 0; i < prm.num_Tetrads; i++) {
+        prm.max_Atoms = prm.max_Atoms > data[2*i]   ? prm.max_Atoms : data[2*i];
+        prm.max_Evecs = prm.max_Evecs > data[2*i+1] ? prm.max_Evecs : data[2*i+1];
+    }
+    
+    tetrad = new Tetrad[prm.num_Tetrads];
+    for (i = 0; i < prm.num_Tetrads; i++) {  // Allocate memory
+       
+        tetrad[i].avg_Structure = new float[3 * prm.max_Atoms];
+        tetrad[i].masses        = new float[3 * prm.max_Atoms];
+        tetrad[i].abq           = new float[3 * prm.max_Atoms];
+        
+        tetrad[i].eigenvalues   = new float[prm.max_Evecs];
+        tetrad[i].eigenvectors  = new float* [prm.max_Evecs];
+        for (j = 0; j < tetrad[i].num_Evecs; j++) {
+            tetrad[i].eigenvectors[j] = new float[3 * prm.max_Atoms];
+        }
+        
+        tetrad[i].coordinates   = new float[3 * prm.max_Atoms];
+        tetrad[i].velocities    = new float[3 * prm.max_Atoms];
+    }
+    
+    delete []data;
+}
+
+/*
+ *
+ */
+IO::~IO(void) {
+    //
+}
+
+
+/*
  * Function:   Read-in the prm file.
  *
  * Parameters: prm_File  -> path to the file to read the prm from.
@@ -33,6 +101,7 @@ void IO::read_Prm(string prm_File) {
             fin >> tetrad[i].num_Evecs;
             
             // Allocate memory for arrays in tetrads
+            /*
             tetrad[i].avg_Structure = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
             tetrad[i].masses        = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
             tetrad[i].abq           = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
@@ -45,7 +114,7 @@ void IO::read_Prm(string prm_File) {
             
             tetrad[i].coordinates   = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
             tetrad[i].velocities    = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-            
+            */
             // Line 3 onwards: Reference (average) structure for the tetrad (x1,y1,z1,x2,y2,z2, etc as in .crd file)
             for (j = 0; j < 3 * tetrad[i].num_Atoms_In_Tetrad; j++) {
                 fin >> tetrad[i].avg_Structure[j];

@@ -35,7 +35,12 @@ public:
     float *coordinates;      // The coordinates of tetrads
     
     float *velocities;       // The velocities of tetrads
-
+    
+public:
+    
+    Tetrad(void);
+    
+    ~Tetrad(void);
 };
 
 
