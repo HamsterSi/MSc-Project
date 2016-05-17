@@ -19,27 +19,27 @@ void master_Code(void) {
     
     master.initialise();
     
-    /*
     clock_t begin_Time = clock();
     
-    master.data_Sending();
+    master.parameters_Sending();
     
-    master.tetrad_Sending();
+    master.tetrads_Sending();
     
+    /*
     master.force_Passing();
     
-    //master.LV_Forces();
+    master.LV_Forces();
     
     master.total_Forces();
     
     master.velocities();
     
     master.coordinates();
+     */
     
     clock_t end_Time = clock();
     double time_Usage = double(end_Time - begin_Time) / CLOCKS_PER_SEC;
     cout << "Time usage for the simualtion: " << time_Usage << endl;
-     */
     
 }
 
@@ -56,35 +56,52 @@ void worker_Code()
     MPI_Comm_rank(comm, &rank);
     
     //cout << "Rank " << rank << endl;
+    //while (1) flag = 1;
     
-    while (1) {
-        flag = 1;
-    }
-    
-    /*
     while (signal)
     {
         MPI_Iprobe(0, MPI_ANY_TAG, comm, &flag, &status);
         if (flag)
         {
+            if (status.MPI_TAG == TAG_DATA) {
+                cout << "Rank " << setw(3) << rank << " received parameters" << endl;
+                worker.parameters_Receiving();
+                
+            } else if (status.MPI_TAG >= TAG_TETRAD && status.MPI_TAG < TAG_ED) {
+                cout << "Rank " << setw(3) << rank << " received tetrads" << endl;
+                worker.tetrads_Receiving();
+                
+            } else if (status.MPI_TAG == TAG_ED) {
+                cout << "Rank " << setw(3) << rank << " computes ED forces" << endl;
+                worker.ED_Calculation();
+                
+            } else if (status.MPI_TAG == TAG_NB) {
+                cout << "Rank " << setw(3) << rank << " computes NB forces" << endl;
+                worker.NB_Calculation();
+                
+            } else {
+                signal = 0;
+                
+            }
+            /*
             switch (status.MPI_TAG) {
                 case TAG_DATA:
-                    cout << "Rank " << rank << "receives data" << endl;
-                    worker.data_Receiving();
+                    cout << "Rank " << setw(3) << rank << " received parameters" << endl;
+                    worker.parameters_Receiving();
                     break;
                     
                 case TAG_TETRAD:
-                    cout << "Rank " << rank << "receives tetrads" << endl;
-                    worker.tetrad_Receiving();
+                    cout << "Rank " << setw(3) << rank << " received tetrads" << endl;
+                    worker.tetrads_Receiving();
                     break;
                     
                 case TAG_ED:
-                    cout << "Rank " << rank << "computes ED forces" << endl;
+                    cout << "Rank " << setw(3) << rank << " computes ED forces" << endl;
                     worker.ED_Calculation();
                     break;
                     
                 case TAG_NB:
-                    cout << "Rank " << rank << "computes NB forces" << endl;
+                    cout << "Rank " << setw(3) << rank << " computes NB forces" << endl;
                     worker.NB_Calculation();
                     break;
                     
@@ -92,9 +109,10 @@ void worker_Code()
                     signal = 0;
                     break;
             }
+             */
         }
     }
-     */
+    
 }
 
 

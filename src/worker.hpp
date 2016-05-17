@@ -19,7 +19,9 @@ class Worker_Management {
     
 public:
     
-    int data[3]; // io.prm.num_Tetrads, io.prm.max_Atoms, io.prm.max_Evecs
+    int parameters[2]; // num_Tetrads, max_Atoms_In_Tetrad
+    
+    int *num_Atoms_N_Evecs;
     
     Tetrad *tetrad;
     
@@ -33,9 +35,11 @@ public:
     
     Worker_Management(void);
     
-    void data_Receiving(void);
+    ~Worker_Management(void);
     
-    void tetrad_Receiving(void);
+    void parameters_Receiving(void);
+    
+    void tetrads_Receiving(void);
     
     void ED_Calculation(void);
     

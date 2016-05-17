@@ -27,9 +27,9 @@ class MPI_Library{
     
 public:
     
-    static void create_MPI_Tetrad(MPI_Datatype MPI_Tetrad, int num_Atoms_In_Tetrad, int num_Evecs);
+    static void create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, Tetrad* tetrad);
     
-    static void free_MPI_Tetrad(MPI_Datatype MPI_Tetrad);
+    static void free_MPI_Tetrad(MPI_Datatype* MPI_Tetrad);
     
 };
 

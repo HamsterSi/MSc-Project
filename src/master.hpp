@@ -32,6 +32,7 @@ public:
     MPI_Comm comm;
     
     int size;
+    int max_Atoms;
     
     float *masses;
     float *displacement;
@@ -57,9 +58,9 @@ public:
     
     void initialise(void);
     
-    void data_Sending(void);
+    void parameters_Sending(void);
     
-    void tetrad_Sending(void);
+    void tetrads_Sending(void);
     
     void force_Passing(void);
     

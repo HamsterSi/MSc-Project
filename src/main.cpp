@@ -18,14 +18,12 @@ using namespace std;
 
 int main(int argc, char *argv[]){
     
-    int rank, size, buffer_Size = 40960;
+    int rank, size;
     
     // Initialise the MPI environment
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    
-    MPI_Buffer_attach(malloc(buffer_Size), buffer_Size);
     
     if (size < 2) {
         cout << "Requires at least two processes." << endl;

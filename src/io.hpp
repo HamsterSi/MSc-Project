@@ -37,10 +37,6 @@ typedef struct _Prm {
     
     int num_Tetrads; // Total numbers of overlapped tetrads
     
-    int max_Atoms;
-    
-    int max_Evecs;
-    
 }Prm;
 
 
@@ -63,8 +59,6 @@ public:
     IO(void);
     
     ~IO(void);
-    
-    void io_Initialise(void);
     
     void read_Prm(string prm_File);
     

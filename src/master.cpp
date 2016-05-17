@@ -48,10 +48,7 @@ void Master_Management::initialise(void) {
     prm_File = "./data//GC90c12.prm";
     crd_File = "./data//GC90_6c.crd";
     
-    cout << ">>> Initialising IO..." << endl;
-    io.io_Initialise();
-    cout << ">>> Initialise IO finished" << endl;
-    
+    cout << "Data reading..." << endl;
     cout << ">>> Reading prm file..." << endl;
     io.read_Prm(prm_File);
     cout << ">>> Read prm file finished" << endl;
@@ -61,19 +58,22 @@ void Master_Management::initialise(void) {
     cout << ">>> Read crd file finished" << endl;
     
     io.read_Initial_Crds();
-    cout << "Data read completed." << endl;
+    cout << "Data read completed.\n" << endl;
     
     // Allocate memory for arrays
-    ED_Forces    = new float[3 * io.prm.max_Atoms];
+    for (max_Atoms = 0, i = 0; i < io.prm.num_Tetrads; i++) {
+        max_Atoms = max_Atoms > io.tetrad[i].num_Atoms_In_Tetrad ? max_Atoms : io.tetrad[i].num_Atoms_In_Tetrad;
+    }
+    ED_Forces    = new float[3 * max_Atoms];
     NB_Forces    = new float*[2];
-    NB_Forces[0] = new float[3 * io.prm.max_Atoms];
-    NB_Forces[1] = new float[3 * io.prm.max_Atoms];
+    NB_Forces[0] = new float[3 * max_Atoms];
+    NB_Forces[1] = new float[3 * max_Atoms];
     
     noise_Factor    = new float[3 * io.crd.total_Atoms];
     langevin_Forces = new float[3 * io.crd.total_Atoms];
+    masses          = new float[3 * io.crd.total_Atoms];
+    displacement    = new float[io.crd.num_BP];
     
-    masses       = new float[3 * io.crd.total_Atoms];
-    displacement = new float[io.crd.num_BP];
     total_ED_Forces   = new float[3 * io.crd.total_Atoms];
     total_NB_Forces   = new float[3 * io.crd.total_Atoms];
     total_Velocities  = new float[3 * io.crd.total_Atoms];
@@ -96,30 +96,58 @@ void Master_Management::initialise(void) {
 /*
  *
  */
-void Master_Management::data_Sending(void) {
+void Master_Management::parameters_Sending(void) {
     
-    int data[3] = {io.prm.num_Tetrads, io.prm.max_Atoms, io.prm.max_Evecs};
+    int parameters[2] = {io.prm.num_Tetrads, max_Atoms};
+    int i, *num_Atoms_N_Evecs;
     
-    for (int i = 0; i < size-1; i++) {
-        MPI_Send(data, 3, MPI_INT, i+1, TAG_DATA, comm);
+    num_Atoms_N_Evecs = new int[2 * io.prm.num_Tetrads];
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        num_Atoms_N_Evecs[2 * i] = io.tetrad[i].num_Atoms_In_Tetrad;
+        num_Atoms_N_Evecs[2*i+1] = io.tetrad[i].num_Evecs;
     }
     
+    for (i = 0; i < size-1; i++) {
+        MPI_Send(parameters, 2, MPI_INT, i+1, TAG_DATA, comm);
+        MPI_Send(num_Atoms_N_Evecs, 2*io.prm.num_Tetrads, MPI_INT, i+1, TAG_DATA, comm);
+    }
+    
+    delete []num_Atoms_N_Evecs;
 }
 
 /*
  *
  */
-void Master_Management::tetrad_Sending(void) {
+void Master_Management::tetrads_Sending(void) {
     
+    int signal, flag;
     MPI_Datatype MPI_Tetrad;
-
-    MPI_Library::create_MPI_Tetrad(MPI_Tetrad, io.prm.max_Atoms, io.prm.max_Evecs);
+    MPI_Status status;
     
     for (int i = 0; i < size-1; i++) {
-        MPI_Send(io.tetrad, io.prm.num_Tetrads, MPI_Tetrad, i+1, TAG_TETRAD, comm);
+        MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
+        
+        for (int j = 0; j < io.prm.num_Tetrads; j++) {
+            
+            MPI_Send(io.tetrad[j].avg_Structure, 3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+1, comm);
+            
+            MPI_Send(io.tetrad[j].masses,        3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+2, comm);
+            
+            MPI_Send(io.tetrad[j].abq,           3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+3, comm);
+            
+            MPI_Send(io.tetrad[j].eigenvalues,   io.tetrad[j].num_Evecs,             MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+4, comm);
+            
+            MPI_Send(&(io.tetrad[j].eigenvectors[0][0]),  io.tetrad[j].num_Evecs*3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+5, comm);
+            
+            MPI_Send(io.tetrad[j].coordinates,   3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+6, comm);
+            
+            MPI_Send(io.tetrad[j].velocities,    3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+7, comm);
+            
+            //MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &io.tetrad[j]);
+            //MPI_Send(&io.tetrad[j], 1, MPI_Tetrad, status.MPI_SOURCE, TAG_TETRAD+j, comm);
+            //MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);
+        }
     }
-    
-    MPI_Library::free_MPI_Tetrad(MPI_Tetrad);
 }
 
 
@@ -164,7 +192,7 @@ void Master_Management::force_Passing(void) {
         {
             switch (status.MPI_TAG) {
                 case TAG_ED: // Add ED forces into the total_ED_Forces;
-                    MPI_Recv(ED_Forces, 3*io.prm.max_Atoms+1, MPI_FLOAT, MPI_ANY_SOURCE, TAG_ED, comm, &status);
+                    MPI_Recv(ED_Forces, 3*max_Atoms+1, MPI_FLOAT, MPI_ANY_SOURCE, TAG_ED, comm, &status);
                     index = displacement[i];
                     for (k = 0; k < 3 * io.tetrad[i].num_Atoms_In_Tetrad; k++) {
                         total_ED_Forces[k] = ED_Forces[index++];
@@ -172,13 +200,13 @@ void Master_Management::force_Passing(void) {
                     break;
                     
                 case TAG_NB: // Add NB forces into the total_ED_Forces;
-                    MPI_Recv(NB_Forces, 2*3*io.prm.max_Atoms+4, MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
-                    temp = NB_Forces[0][3*io.prm.max_Atoms+1];
+                    MPI_Recv(NB_Forces, 2*3*max_Atoms+4, MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
+                    temp = NB_Forces[0][3*max_Atoms+1];
                     index = displacement[pair_List[temp][0]];
                     for (k = 0; k < 3 * io.tetrad[pair_List[i][0]].num_Atoms_In_Tetrad; k++) {
                         total_NB_Forces[k] += NB_Forces[0][index++];
                     }
-                    temp = NB_Forces[1][3*io.prm.max_Atoms+1];
+                    temp = NB_Forces[1][3*max_Atoms+1];
                     index = displacement[pair_List[temp][1]];
                     for (k = 0; k < 3 * io.tetrad[pair_List[i][1]].num_Atoms_In_Tetrad; k++) {
                         total_NB_Forces[k] += NB_Forces[1][index++];
