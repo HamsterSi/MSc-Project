@@ -1,16 +1,40 @@
 
 #include "worker.hpp"
 
+/*
+ * The constructor of Master_Management class
+ * Function:  Construct Worker Management class
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
 Worker_Management::Worker_Management(void) {
     comm = MPI_COMM_WORLD;
 }
 
+
+/*
+ * The destructor of Master_Management class
+ * Function:  Deallocate memory etc.
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
 Worker_Management::~Worker_Management(void) {
     delete []num_Atoms_N_Evecs;
 }
 
+
 /*
+ * Receive parameters
+ * Function:  Workers receive the number of tetrads, number of atoms in every tetrad
+ *            and number of evecs from the master process
  *
+ * Parameter: None
+ *
+ * Return:    None
  */
 void Worker_Management::parameters_Receiving(void) {
     int signal = -1;
@@ -25,8 +49,14 @@ void Worker_Management::parameters_Receiving(void) {
     
 }
 
+
 /*
+ * Receive tetrads
+ * Function:  Workers receive tetrads from the master process
  *
+ * Parameter: None
+ *
+ * Return:    None
  */
 void Worker_Management::tetrads_Receiving(void) {
     int signal = -1;
@@ -70,6 +100,7 @@ void Worker_Management::tetrads_Receiving(void) {
         //MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);
     }
 }
+
 
 /*
  * Function:  Receive tetrad parameters, Compute ED forces of tetrad &

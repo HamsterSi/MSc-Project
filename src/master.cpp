@@ -19,7 +19,7 @@ Master_Management::Master_Management(void) {
 
 /*
  * The destructor of Master_Management class
- * Function:  Write out final result and deallocate arrays
+ * Function:  Deallocate memory etc.
  *
  * Parameter: None
  *
@@ -42,6 +42,14 @@ Master_Management::~Master_Management(void) {
 }
 
 
+/*
+ * Initialise the simulation
+ * Function:  Master reads data from files and allocate memory for arrays;
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
 void Master_Management::initialise(void) {
     int i, j;
     
@@ -94,7 +102,13 @@ void Master_Management::initialise(void) {
 
 
 /*
+ * Send parameters
+ * Function:  Master send the number of tetrads, number of atoms in every tetrad 
+ *            and number of evecs to worker processes
  *
+ * Parameter: None
+ *
+ * Return:    None
  */
 void Master_Management::parameters_Sending(void) {
     
@@ -115,8 +129,14 @@ void Master_Management::parameters_Sending(void) {
     delete []num_Atoms_N_Evecs;
 }
 
+
 /*
+ * Send tetrads
+ * Function:  Master send tetrads to worker processes
  *
+ * Parameter: None
+ *
+ * Return:    None
  */
 void Master_Management::tetrads_Sending(void) {
     
@@ -128,7 +148,6 @@ void Master_Management::tetrads_Sending(void) {
         MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
         
         for (int j = 0; j < io.prm.num_Tetrads; j++) {
-            
             MPI_Send(io.tetrad[j].avg_Structure, 3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+1, comm);
             
             MPI_Send(io.tetrad[j].masses,        3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+2, comm);
