@@ -11,21 +11,55 @@
  */
 Master_Management::Master_Management(void) {
     
-    int i, j;
     comm = MPI_COMM_WORLD;
-    
     MPI_Comm_size(comm, &size);
+
+}
+
+
+/*
+ * The destructor of Master_Management class
+ * Function:  Write out final result and deallocate arrays
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
+Master_Management::~Master_Management(void) {
+    
+    delete []masses;
+    delete []displacement;
+    delete []ED_Forces;
+    delete []total_ED_Forces;
+    delete []NB_Forces[0];
+    delete []NB_Forces[1];
+    delete []NB_Forces;
+    delete []total_NB_Forces;
+    delete []total_Velocities;
+    delete []total_Coordinates;
+    delete []noise_Factor;
+    delete []langevin_Forces;
+}
+
+
+void Master_Management::initialise(void) {
+    int i, j;
     
     prm_File = "./data//GC90c12.prm";
     crd_File = "./data//GC90_6c.crd";
     
-    // Read prm file (Initialise tetrads)
+    cout << ">>> Initialising IO..." << endl;
+    io.io_Initialise();
+    cout << ">>> Initialise IO finished" << endl;
+    
+    cout << ">>> Reading prm file..." << endl;
     io.read_Prm(prm_File);
+    cout << ">>> Read prm file finished" << endl;
     
-    // Read crd file ("true" is for circular DNA and "flase" is for linar DNA)
-    io.read_Crd(crd_File, true);
+    cout << ">>> Reading crd file..." << endl;
+    io.read_Crd(crd_File, true); // "true" for circular, "flase" for linar
+    cout << ">>> Read crd file finished" << endl;
     
-    // Read in initial coordinates
     io.read_Initial_Crds();
     cout << "Data read completed." << endl;
     
@@ -58,30 +92,6 @@ Master_Management::Master_Management(void) {
     }
 }
 
-
-/*
- * The destructor of Master_Management class
- * Function:  Write out final result and deallocate arrays
- *
- * Parameter: None
- *
- * Return:    None
- */
-Master_Management::~Master_Management(void) {
-    
-    delete []masses;
-    delete []displacement;
-    delete []ED_Forces;
-    delete []total_ED_Forces;
-    delete []NB_Forces[0];
-    delete []NB_Forces[1];
-    delete []NB_Forces;
-    delete []total_NB_Forces;
-    delete []total_Velocities;
-    delete []total_Coordinates;
-    delete []noise_Factor;
-    delete []langevin_Forces;
-}
 
 /*
  *

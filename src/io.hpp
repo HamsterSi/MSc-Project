@@ -64,6 +64,8 @@ public:
     
     ~IO(void);
     
+    void io_Initialise(void);
+    
     void read_Prm(string prm_File);
     
     void read_Crd(string crd_File, bool redundant);

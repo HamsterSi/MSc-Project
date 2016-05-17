@@ -12,11 +12,14 @@ void master_Code(void) {
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &size);
     
-    cout << "Master rank initialising MPI program..." << endl;
-    cout << "Size of MPI processes: " << size << endl;
+    cout << endl << "Initialising the MPI program..." << endl;
+    cout << "Size of MPI processes: " << size << endl << endl;
     
     Master_Management master;
     
+    master.initialise();
+    
+    /*
     clock_t begin_Time = clock();
     
     master.data_Sending();
@@ -36,6 +39,7 @@ void master_Code(void) {
     clock_t end_Time = clock();
     double time_Usage = double(end_Time - begin_Time) / CLOCKS_PER_SEC;
     cout << "Time usage for the simualtion: " << time_Usage << endl;
+     */
     
 }
 
@@ -51,6 +55,13 @@ void worker_Code()
     MPI_Status status;
     MPI_Comm_rank(comm, &rank);
     
+    //cout << "Rank " << rank << endl;
+    
+    while (1) {
+        flag = 1;
+    }
+    
+    /*
     while (signal)
     {
         MPI_Iprobe(0, MPI_ANY_TAG, comm, &flag, &status);
@@ -83,6 +94,7 @@ void worker_Code()
             }
         }
     }
+     */
 }
 
 

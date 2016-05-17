@@ -1,4 +1,4 @@
-EXE = main
+EXE = edmddna
 
 CXX = mpicxx
 CFLAGS = #-g -O3

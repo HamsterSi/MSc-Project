@@ -55,6 +55,8 @@ public:
     
     ~Master_Management(void);
     
+    void initialise(void);
+    
     void data_Sending(void);
     
     void tetrad_Sending(void);

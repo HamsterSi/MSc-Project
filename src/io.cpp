@@ -9,7 +9,18 @@
  */
 IO::IO(void) {
     
-    int i, j, k, temp, *data;
+}
+
+/*
+ *
+ */
+IO::~IO(void) {
+    //
+}
+
+void IO::io_Initialise(void) {
+    int i, j, k, *data;
+    float temp;
     
     ifstream fin;
     fin.open("./data//GC90c12.prm", ios_base::in);
@@ -22,6 +33,7 @@ IO::IO(void) {
             
             fin >> data[2*i];   // Number of atoms in tetrad
             fin >> data[2*i+1]; // Number of eigenvectors
+            //cout << i << " " << data[2*i] << " " << data[2*i+1] << endl;
             
             for (j = 0; j < 3 * data[2*i]; j++) fin >> temp;
             for (j = 0; j <     data[2*i]; j++) fin >> temp;
@@ -44,16 +56,20 @@ IO::IO(void) {
         prm.max_Evecs = prm.max_Evecs > data[2*i+1] ? prm.max_Evecs : data[2*i+1];
     }
     
+    delete []data;
+    
+    cout << ">>> Max atoms & evecs of tetrads: " << prm.max_Atoms << " " << prm.max_Evecs << endl;
+    
     tetrad = new Tetrad[prm.num_Tetrads];
     for (i = 0; i < prm.num_Tetrads; i++) {  // Allocate memory
-       
+        
         tetrad[i].avg_Structure = new float[3 * prm.max_Atoms];
         tetrad[i].masses        = new float[3 * prm.max_Atoms];
         tetrad[i].abq           = new float[3 * prm.max_Atoms];
         
         tetrad[i].eigenvalues   = new float[prm.max_Evecs];
         tetrad[i].eigenvectors  = new float* [prm.max_Evecs];
-        for (j = 0; j < tetrad[i].num_Evecs; j++) {
+        for (j = 0; j < prm.max_Evecs; j++) {
             tetrad[i].eigenvectors[j] = new float[3 * prm.max_Atoms];
         }
         
@@ -61,16 +77,7 @@ IO::IO(void) {
         tetrad[i].velocities    = new float[3 * prm.max_Atoms];
     }
     
-    delete []data;
 }
-
-/*
- *
- */
-IO::~IO(void) {
-    //
-}
-
 
 /*
  * Function:   Read-in the prm file.
@@ -83,15 +90,14 @@ IO::~IO(void) {
 void IO::read_Prm(string prm_File) {
     
     int i, j, k;
-    
+
     ifstream fin;
     fin.open(prm_File, ios_base::in);
+    
     if (fin.is_open()) {
         
         // Line 1:  Number of (overlapping) tetrads in system (= number of base pairs in a circle)
         fin >> prm.num_Tetrads;
-
-        tetrad = new Tetrad[prm.num_Tetrads];
         
         // Rest of file has data for each tetrad as follows:
         for (i = 0; i < prm.num_Tetrads; i++) {
@@ -100,21 +106,6 @@ void IO::read_Prm(string prm_File) {
             fin >> tetrad[i].num_Atoms_In_Tetrad;
             fin >> tetrad[i].num_Evecs;
             
-            // Allocate memory for arrays in tetrads
-            /*
-            tetrad[i].avg_Structure = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-            tetrad[i].masses        = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-            tetrad[i].abq           = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-            
-            tetrad[i].eigenvalues   = new float[tetrad[i].num_Evecs];
-            tetrad[i].eigenvectors  = new float* [tetrad[i].num_Evecs];
-            for (j = 0; j < tetrad[i].num_Evecs; j++) {
-                tetrad[i].eigenvectors[j] = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-            }
-            
-            tetrad[i].coordinates   = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-            tetrad[i].velocities    = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-            */
             // Line 3 onwards: Reference (average) structure for the tetrad (x1,y1,z1,x2,y2,z2, etc as in .crd file)
             for (j = 0; j < 3 * tetrad[i].num_Atoms_In_Tetrad; j++) {
                 fin >> tetrad[i].avg_Structure[j];
@@ -167,8 +158,6 @@ void IO::read_Prm(string prm_File) {
  */
 void IO::read_Crd(string crd_File, bool redundant) {
     
-    int i;
-    
     ifstream fin;
     fin.open(crd_File, ios_base::in);
     
@@ -181,14 +170,14 @@ void IO::read_Crd(string crd_File, bool redundant) {
         crd.num_Atoms_In_BP = new int[crd.num_BP];
         crd.total_Atoms = 0;
         
-        for (i = 0; i < crd.num_BP; i++) {
+        for (int i = 0; i < crd.num_BP; i++) {
             fin >> crd.num_Atoms_In_BP[i];
             crd.total_Atoms += crd.num_Atoms_In_BP[i];
         }
         
         // Lines 65 - : Initial coordinates for each base pair (x1,y1,z1,x2,y2,z2...x63,y63,z63) 10 floats per line, new line before the start of each subsequent base pair, values in angstroms
         crd.ini_BP_Crds = new float[3 * crd.total_Atoms];
-        for (i = 0; i < 3 * crd.total_Atoms; i++) {
+        for (int i = 0; i < 3 * crd.total_Atoms; i++) {
             fin >> crd.ini_BP_Crds[i];
         }
         
@@ -218,9 +207,7 @@ void IO::read_Initial_Crds(void) {
     /* next section sets up some book-keeping stuff and does some sanity checking
      * displacement stores the displacement of base pairs. If the 1st pair is 1, then the
      * 2nd pair displacement is 1 + (3 * the number of atoms in pair 1) */
-    displacement[0] = 0;
-    cout << displacement[0] << "\t";
-    for (i = 1; i < crd.num_BP+1; i++) {
+    for (displacement[0] = 0, i = 1; i < crd.num_BP+1; i++) {
         displacement[i] = displacement[i-1] + 3 * crd.num_Atoms_In_BP[i-1];
         //cout << displacement[i] << "\t";
     }
@@ -248,6 +235,7 @@ void IO::read_Initial_Crds(void) {
         // Read in the initial coordinates
         for (j = 0; j < 3 * tetrad[i].num_Atoms_In_Tetrad; j++) {
             tetrad[i].coordinates[j] = crd.ini_BP_Crds[start_Index++];
+            tetrad[i].velocities[j]  = 0.0;
             //if (i == prm.num_Tetrads-1) cout << crd.ini_BP_Crds[start_Index-1] << "\t";
         }
     }
