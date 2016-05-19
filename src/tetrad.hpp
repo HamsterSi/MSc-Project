@@ -22,19 +22,19 @@ public:
     
     int num_Evecs;           // The number of eigenvectors & eigenvalues
     
-    float *avg_Structure;    // The average structure (coordinates) of tetrad
+    float *avg_Structure;   // The average structure (coordinates) of tetrad
     
-    float *masses;           // The masses of atoms of tetrads
+    float *masses;          // The masses of atoms of tetrads
     
-    float *abq;              // The abq
+    float *abq;             // The abq
     
-    float *eigenvalues;      // The eigenvalues
+    float *eigenvalues;     // The eigenvalues
     
-    float **eigenvectors;    // The eigenvectors
+    float **eigenvectors;   // The eigenvectors
     
-    float *coordinates;      // The coordinates of tetrads
+    float *coordinates;     // The coordinates of tetrads
     
-    float *velocities;       // The velocities of tetrads
+    float *velocities;      // The velocities of tetrads
     
 public:
     

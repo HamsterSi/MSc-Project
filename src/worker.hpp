@@ -19,7 +19,9 @@ class Worker_Management {
     
 public:
     
-    int parameters[2]; // num_Tetrads, max_Atoms_In_Tetrad
+    int num_Tetrads;
+    
+    int max_Atoms;
     
     int *num_Atoms_N_Evecs;
     

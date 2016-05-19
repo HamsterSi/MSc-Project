@@ -29,11 +29,13 @@ Master_Management::~Master_Management(void) {
     
     delete []masses;
     delete []displacement;
+    
     delete []ED_Forces;
-    delete []total_ED_Forces;
     delete []NB_Forces[0];
     delete []NB_Forces[1];
     delete []NB_Forces;
+    
+    delete []total_ED_Forces;
     delete []total_NB_Forces;
     delete []total_Velocities;
     delete []total_Coordinates;
@@ -56,16 +58,15 @@ void Master_Management::initialise(void) {
     prm_File = "./data//GC90c12.prm";
     crd_File = "./data//GC90_6c.crd";
     
-    cout << "Data reading..." << endl;
-    cout << ">>> Reading prm file..." << endl;
+    cout << "Data reading...\n>>> Reading prm file..." << endl;
     io.read_Prm(prm_File);
-    cout << ">>> Read prm file finished" << endl;
     
-    cout << ">>> Reading crd file..." << endl;
+    cout << ">>> Read prm file finished\n>>> Reading crd file..." << endl;
     io.read_Crd(crd_File, true); // "true" for circular, "flase" for linar
-    cout << ">>> Read crd file finished" << endl;
     
+    cout << ">>> Read crd file finished" << endl;
     io.read_Initial_Crds();
+    
     cout << "Data read completed.\n" << endl;
     
     // Allocate memory for arrays
@@ -73,9 +74,11 @@ void Master_Management::initialise(void) {
         max_Atoms = max_Atoms > io.tetrad[i].num_Atoms_In_Tetrad ? max_Atoms : io.tetrad[i].num_Atoms_In_Tetrad;
     }
     ED_Forces    = new float[3 * max_Atoms];
+    /*
     NB_Forces    = new float*[2];
     NB_Forces[0] = new float[3 * max_Atoms];
     NB_Forces[1] = new float[3 * max_Atoms];
+     */
     
     noise_Factor    = new float[3 * io.crd.total_Atoms];
     langevin_Forces = new float[3 * io.crd.total_Atoms];
@@ -127,6 +130,7 @@ void Master_Management::parameters_Sending(void) {
     }
     
     delete []num_Atoms_N_Evecs;
+    cout << "Data sending...\n>>> Master sending parameters..." << endl;
 }
 
 
@@ -145,9 +149,10 @@ void Master_Management::tetrads_Sending(void) {
     MPI_Status status;
     
     for (int i = 0; i < size-1; i++) {
-        MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
         
+        MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
         for (int j = 0; j < io.prm.num_Tetrads; j++) {
+            
             MPI_Send(io.tetrad[j].avg_Structure, 3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+1, comm);
             
             MPI_Send(io.tetrad[j].masses,        3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+2, comm);
@@ -162,11 +167,14 @@ void Master_Management::tetrads_Sending(void) {
             
             MPI_Send(io.tetrad[j].velocities,    3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+7, comm);
             
-            //MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &io.tetrad[j]);
-            //MPI_Send(&io.tetrad[j], 1, MPI_Tetrad, status.MPI_SOURCE, TAG_TETRAD+j, comm);
-            //MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);
+            /*
+            MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &io.tetrad[j]);
+            MPI_Send(&io.tetrad[j], 1, MPI_Tetrad, status.MPI_SOURCE, TAG_TETRAD+j, comm);
+            MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);*/
         }
     }
+    
+    cout << ">>> All workers have received parameters\n>>> Master sending tetrads..." << endl;
 }
 
 
@@ -179,13 +187,16 @@ void Master_Management::tetrads_Sending(void) {
  *
  * Return:    None
  */
-//void Master_Management::ED_Forces(void)
-
-
 void Master_Management::force_Passing(void) {
     
-    int i, j, k, index, temp, flag, signal = 1;
+    int i, j, k, index, temp, flag, signal;
     MPI_Status status;
+    
+    for (int i = 0; i < size-1; i++) {
+        MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
+    }
+    cout << ">>> All workers have received tetrads\nData sending completed.\n" << endl;
+    cout << "Forces caculation starting..." << endl;
     
     // Generate pair lists of tetrads for NB forces
     int pair_List[(io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2)][2];
@@ -195,6 +206,7 @@ void Master_Management::force_Passing(void) {
         
         if (i < io.prm.num_Tetrads) { // Send tetrad index for ED calculation
             MPI_Send(&i, 1, MPI_INT, i+1, TAG_ED, comm);
+            
         } else { // i >= num_Tetrads, send tetrad indexes for NB calculation
             if (j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2 && pair_List[j][0] + pair_List[j][1] != -2) {
                 int indexes[2] = {pair_List[j][0], pair_List[j][1]};
@@ -238,11 +250,12 @@ void Master_Management::force_Passing(void) {
         
         if (i < io.prm.num_Tetrads + io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
             if (i < io.prm.num_Tetrads) { // receive and send ED forces parameters
-                MPI_Send(&i, 1, MPI_INT, i+1, TAG_ED, comm);
+                MPI_Send(&i, 1, MPI_INT, status.MPI_SOURCE, TAG_ED, comm);
+                
             } else if (i >= io.prm.num_Tetrads && j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
                 if (pair_List[j][0] + pair_List[j][1] != -2) {
                     int indexes[2] = {pair_List[j][0], pair_List[j][1]};
-                    MPI_Send(indexes, 2, MPI_INT, i+1, TAG_NB, comm);
+                    MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
                 }
                 j++;
             }
@@ -250,6 +263,19 @@ void Master_Management::force_Passing(void) {
         i++;
     }
 }
+
+
+/*
+ * Master ED forces management
+ * Function:  Distrubute ED force calculation among workers,
+ *            Main job is to send tetrad parameters to workers to compute ED forces.
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
+//void Master_Management::ED_Forces(void)
+
 
 /*
  * Master NB forces management

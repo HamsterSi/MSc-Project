@@ -12,22 +12,22 @@ void master_Code(void) {
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &size);
     
-    cout << endl << "Initialising the MPI program..." << endl;
+    cout << endl << "Initialising program..." << endl;
     cout << "Size of MPI processes: " << size << endl << endl;
     
     Master_Management master;
     
-    master.initialise();
-    
     clock_t begin_Time = clock();
+    
+    master.initialise();
     
     master.parameters_Sending();
     
     master.tetrads_Sending();
     
-    /*
     master.force_Passing();
     
+    /*
     master.LV_Forces();
     
     master.total_Forces();
@@ -55,9 +55,6 @@ void worker_Code()
     MPI_Status status;
     MPI_Comm_rank(comm, &rank);
     
-    //cout << "Rank " << rank << endl;
-    //while (1) flag = 1;
-    
     while (signal)
     {
         MPI_Iprobe(0, MPI_ANY_TAG, comm, &flag, &status);
@@ -83,33 +80,6 @@ void worker_Code()
                 signal = 0;
                 
             }
-            /*
-            switch (status.MPI_TAG) {
-                case TAG_DATA:
-                    cout << "Rank " << setw(3) << rank << " received parameters" << endl;
-                    worker.parameters_Receiving();
-                    break;
-                    
-                case TAG_TETRAD:
-                    cout << "Rank " << setw(3) << rank << " received tetrads" << endl;
-                    worker.tetrads_Receiving();
-                    break;
-                    
-                case TAG_ED:
-                    cout << "Rank " << setw(3) << rank << " computes ED forces" << endl;
-                    worker.ED_Calculation();
-                    break;
-                    
-                case TAG_NB:
-                    cout << "Rank " << setw(3) << rank << " computes NB forces" << endl;
-                    worker.NB_Calculation();
-                    break;
-                    
-                case TAG_DEATH:
-                    signal = 0;
-                    break;
-            }
-             */
         }
     }
     

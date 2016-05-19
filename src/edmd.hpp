@@ -6,10 +6,9 @@
 #include <cmath>
 
 #include "tetrad.hpp"
+//#include "./qcprot/qcprot.h"
 
 using namespace std;
-
-extern "C" void subroutine_sum_(long *fsize, double* fvec, double *fsum);
 
 /*
  * Constants used in the DNA simulations.
@@ -41,7 +40,7 @@ public:
     
     Constants  constants;
     
-    bool  circular;    // Whether the sistem has a circular or linear topology
+    bool  circular;     // Whether the sistem has a circular or linear topology
     
     float RNG_Seed;    // Seed for the random number generator
     
