@@ -210,14 +210,10 @@ void Master_Management::force_Passing(void) {
         } else { // i >= num_Tetrads, send tetrad indexes for NB calculation
             while (j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
                 if (pair_List[j][0] + pair_List[j][1] != -2) {
-                    indexes[0] = pair_List[j][0];
-                    indexes[1] = pair_List[j][1];
+                    indexes[0] = pair_List[j][0]; indexes[1] = pair_List[j][1];
                     MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
-                    j++;
-                    break;
-                } else {
-                    j++;
-                }
+                    j++; break;
+                } else { j++; }
             }
         }
     }
@@ -238,12 +234,7 @@ void Master_Management::force_Passing(void) {
                     break;
                     
                 case TAG_NB: // Add NB forces into total_ED_Forces;
-                    int fff;
-                    //float *NB_Forces1 = new float[2 * 3 * max_Atoms + 4];
-                    //MPI_Recv(&(NB_Forces[0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
-                    MPI_Recv(&fff, 1, MPI_INT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
-                    //delete []NB_Forces1;
-                    //MPI_Recv(&(NB_Forces[0][0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
+                    MPI_Recv(&(NB_Forces[0][0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
                     /*
                     temp = NB_Forces[0][3*max_Atoms+1];
                     index = displacement[pair_List[temp][0]];
@@ -264,17 +255,12 @@ void Master_Management::force_Passing(void) {
             MPI_Send(&i, 1, MPI_INT, status.MPI_SOURCE, TAG_ED, comm);
             
         } else {
-            //cout << "j = " << j << endl;
             while (j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
                 if (pair_List[j][0] + pair_List[j][1] != -2) {
-                    indexes[0] = pair_List[j][0];
-                    indexes[1] = pair_List[j][1];
+                    indexes[0] = pair_List[j][0]; indexes[1] = pair_List[j][1];
                     MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
-                    j++;//cout << j << endl;
-                    break;
-                } else {
-                    j++;
-                }
+                    j++; break;
+                } else { j++; }
             }
         }
         i++;

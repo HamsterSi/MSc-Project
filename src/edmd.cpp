@@ -41,7 +41,7 @@ EDMD::EDMD(void) {
 void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, int ED_Energy) {
     
     int i, j;
-    double rotmat[9], rmsd, temp;
+    double rotmat[9], rmsd, temp = 0;
     
     // Allocate memory for temp arrays
     double *temp_Crds   = new double[3 * tetrad.num_Atoms_In_Tetrad];
@@ -57,48 +57,46 @@ void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, in
     }
     
     // Copy data from tetrads
-    for (j = 0; j < tetrad.num_Atoms_In_Tetrad; ) {
-        avg_Crds[0][j] = (double) tetrad.avg_Structure[j];
-        avg_Crds[1][j] = (double) tetrad.avg_Structure[j+1];
-        avg_Crds[2][j] = (double) tetrad.avg_Structure[j+2];
+    for (i = 0, j = 0; i < 3 * tetrad.num_Atoms_In_Tetrad && j < tetrad.num_Atoms_In_Tetrad; j++) {
+        avg_Crds[0][j] = (double) tetrad.avg_Structure[i];
+        avg_Crds[1][j] = (double) tetrad.avg_Structure[i+1];
+        avg_Crds[2][j] = (double) tetrad.avg_Structure[i+2];
         
-        crds[0][j]     = (double) tetrad.coordinates[j];
-        crds[1][j]     = (double) tetrad.coordinates[j+1];
-        crds[2][j]     = (double) tetrad.coordinates[j+2];
+        crds[0][j]     = (double) tetrad.coordinates[i];
+        crds[1][j]     = (double) tetrad.coordinates[i+1];
+        crds[2][j]     = (double) tetrad.coordinates[i+2];
         
-        j += 3;
+        i += 3;
     }
     
     // Call QCP functions
     rmsd = CalcRMSDRotationalMatrix((double **) avg_Crds, (double **) crds, tetrad.num_Atoms_In_Tetrad, rotmat, NULL);
     
     // Transfer data to tetrads
-    for (j = 0; j < tetrad.num_Atoms_In_Tetrad; ) {
-        tetrad.avg_Structure[j]   = (float) avg_Crds[0][j];
-        tetrad.avg_Structure[j+1] = (float) avg_Crds[1][j];
-        tetrad.avg_Structure[j+2] = (float) avg_Crds[2][j];
+    for (i = 0, j = 0; i < 3 * tetrad.num_Atoms_In_Tetrad && j < tetrad.num_Atoms_In_Tetrad; j++) {
+        tetrad.avg_Structure[i]   = (float) avg_Crds[0][j];
+        tetrad.avg_Structure[i+1] = (float) avg_Crds[1][j];
+        tetrad.avg_Structure[i+2] = (float) avg_Crds[2][j];
         
-        tetrad.coordinates[j]   = (float) crds[0][j];
-        tetrad.coordinates[j+1] = (float) crds[1][j];
-        tetrad.coordinates[j+2] = (float) crds[2][j];
-        
-        j += 3;
-    }
-    
-    // Step 1: rotate x into the pcz frame of reference
-    for (i = 0; i < 3 * tetrad.num_Atoms_In_Tetrad;) {
-        temp_Crds[i]   = rotmat[0]*tetrad.coordinates[i] + rotmat[1]*tetrad.coordinates[i+1] + rotmat[2]*tetrad.coordinates[i+2];
-        temp_Crds[i+1] = rotmat[3]*tetrad.coordinates[i] + rotmat[4]*tetrad.coordinates[i+1] + rotmat[5]*tetrad.coordinates[i+2];
-        temp_Crds[i+2] = rotmat[6]*tetrad.coordinates[i] + rotmat[7]*tetrad.coordinates[i+1] + rotmat[8]*tetrad.coordinates[i+2];
+        tetrad.coordinates[i]   = (float) crds[0][j];
+        tetrad.coordinates[i+1] = (float) crds[1][j];
+        tetrad.coordinates[i+2] = (float) crds[2][j];
         
         i += 3;
     }
     
-    // Step 2: remove average structure, then calculate projections
-    for (i = 0; i < 3 * tetrad.num_Atoms_In_Tetrad; i++) {
-        temp_Crds[i] -= tetrad.avg_Structure[i];
+    // Step 1: rotate x into the pcz frame of reference & remove average structure
+    for (i = 0; i < 3 * tetrad.num_Atoms_In_Tetrad;) {
+        temp_Crds[i]   = rotmat[0]*tetrad.coordinates[i] + rotmat[1]*tetrad.coordinates[i+1] + rotmat[2]*tetrad.coordinates[i+2] - tetrad.avg_Structure[i]   - tetrad.avg_Structure[i];
+        temp_Crds[i+1] = rotmat[3]*tetrad.coordinates[i] + rotmat[4]*tetrad.coordinates[i+1] + rotmat[5]*tetrad.coordinates[i+2] - tetrad.avg_Structure[i+1] - tetrad.avg_Structure[i+1];
+        temp_Crds[i+2] = rotmat[6]*tetrad.coordinates[i] + rotmat[7]*tetrad.coordinates[i+1] + rotmat[8]*tetrad.coordinates[i+2] - tetrad.avg_Structure[i+2] - tetrad.avg_Structure[i+1];
+        
+        i += 3;
     }
+    
+    // Step 2: calculate projections
     for(i = 0; i < tetrad.num_Evecs; i++) {
+        proj[i] = 0.0;
         for(j = 0; j < 3 * tetrad.num_Atoms_In_Tetrad; j++) {
             proj[i] += tetrad.eigenvectors[i][j] * temp_Crds[j];
         }
@@ -107,6 +105,7 @@ void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, in
     // Step 3 & Step 4
     for (i = 0; i < 3 * tetrad.num_Atoms_In_Tetrad; i++) {
         temp_Crds[i] = tetrad.avg_Structure[i];
+        ED_Forces[i] = 0.0;
     }
     for (i = 0; i < tetrad.num_Evecs; i++) {
         for (j = 0; j < 3 * tetrad.num_Atoms_In_Tetrad; j++) {
@@ -120,7 +119,7 @@ void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, in
     }
     
     // Step 5 & Step 6
-    for (i = 0; i < 3 * tetrad.num_Atoms_In_Tetrad; i++) {
+    for (i = 0; i < 3 * tetrad.num_Atoms_In_Tetrad;) {
         // Step 5: rotate 'shaken' coordinates back into right frame
         tetrad.coordinates[i]   = rotmat[0]*temp_Crds[i] + rotmat[1]*temp_Crds[i+1] + rotmat[2]*temp_Crds[i+2];
         tetrad.coordinates[i+1] = rotmat[3]*temp_Crds[i] + rotmat[4]*temp_Crds[i+1] + rotmat[5]*temp_Crds[i+2];
@@ -143,6 +142,15 @@ void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, in
         temp += proj[i]*proj[i] / tetrad.eigenvalues[i];
     }
     ED_Forces[ED_Energy] = scaled * 0.5 * temp; // ED Energy
+    
+    /*
+    int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    cout << "Rank " << rank << ": " << endl;
+    for (int i = 0; i < 3*tetrad.num_Atoms_In_Tetrad; i++) {
+        cout << setw(11) << ED_Forces[i] << " ";
+        if ((i+1)%10 == 0) cout << endl;
+    }
+    cout << endl << endl;*/
     
     // Deallocate memory
     for (i = 0; i < 3; i++) {

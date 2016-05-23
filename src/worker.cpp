@@ -142,7 +142,7 @@ void Worker_Management::ED_Calculation(void) {
     
     MPI_Recv(&index, 1, MPI_INT, 0, TAG_ED, comm, &status);
     
-    //edmd.calculate_ED_Forces(tetrad[index], ED_Forces, edmd.scaled, 3*max_Atoms);
+    edmd.calculate_ED_Forces(tetrad[index], ED_Forces, edmd.scaled, 3*max_Atoms);
     
     /*
     int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -181,13 +181,9 @@ void Worker_Management::NB_Calculation(void) {
     
     NB_Forces[0][3*max_Atoms+1] = indexes[0];
     NB_Forces[1][3*max_Atoms+1] = indexes[1];
+    cout << NB_Forces[0][3*max_Atoms+1] << endl;
     
-    //float *NB_Forces1 = new float[2 * 3 * max_Atoms + 4];
-    
-    //MPI_Send(&(NB_Forces[0][0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, 0, TAG_NB, comm);
-    //MPI_Send(&(NB_Forces[0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, 0, TAG_NB, comm);
-    MPI_Send(&indexes[0], 1, MPI_INT, 0, TAG_NB, comm);
+    MPI_Send(&(NB_Forces[0][0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, 0, TAG_NB, comm);
     
     cout << "Rank " << setw(3) << rank << " computed NB forces on Tetrad " << setw(3) << indexes[0] << " and " << setw(3) << indexes[1] << endl;
-    //delete []NB_Forces1;
 }
