@@ -61,19 +61,19 @@ void worker_Code()
         if (flag)
         {
             if (status.MPI_TAG == TAG_DATA) {
-                cout << "Rank " << setw(3) << rank << " received parameters" << endl;
+                //cout << "Rank " << setw(3) << rank << " received parameters" << endl;
                 worker.parameters_Receiving();
                 
             } else if (status.MPI_TAG >= TAG_TETRAD && status.MPI_TAG < TAG_ED) {
-                cout << "Rank " << setw(3) << rank << " received tetrads" << endl;
+                //cout << "Rank " << setw(3) << rank << " received tetrads" << endl;
                 worker.tetrads_Receiving();
                 
             } else if (status.MPI_TAG == TAG_ED) {
-                cout << "Rank " << setw(3) << rank << " computes ED forces" << endl;
+                //cout << "Rank " << setw(3) << rank << " computing ED forces" << endl;
                 worker.ED_Calculation();
                 
             } else if (status.MPI_TAG == TAG_NB) {
-                cout << "Rank " << setw(3) << rank << " computes NB forces" << endl;
+                //cout << "Rank " << setw(3) << rank << " computing NB forces" << endl;
                 worker.NB_Calculation();
                 
             } else {

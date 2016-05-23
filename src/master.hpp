@@ -3,6 +3,7 @@
 #define master_hpp
 
 #include <iostream>
+#include <iomanip>
 #include <ctime>
 #include <cmath>
 #include <string>

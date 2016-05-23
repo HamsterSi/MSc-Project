@@ -19,11 +19,17 @@ class Worker_Management {
     
 public:
     
+    int rank;
+    
     int num_Tetrads;
     
     int max_Atoms;
     
     int *num_Atoms_N_Evecs;
+    
+    float  *ED_Forces;
+    
+    float **NB_Forces;
     
     Tetrad *tetrad;
     

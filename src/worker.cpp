@@ -11,6 +11,7 @@
  */
 Worker_Management::Worker_Management(void) {
     comm = MPI_COMM_WORLD;
+    MPI_Comm_rank(comm, &rank);
 }
 
 
@@ -23,7 +24,13 @@ Worker_Management::Worker_Management(void) {
  * Return:    None
  */
 Worker_Management::~Worker_Management(void) {
+    
+    delete []ED_Forces;
+    delete []NB_Forces[0];
+    delete []NB_Forces[1];
+    delete []NB_Forces;
     delete []num_Atoms_N_Evecs;
+     
 }
 
 
@@ -44,6 +51,11 @@ void Worker_Management::parameters_Receiving(void) {
     num_Tetrads = parameters[0];
     max_Atoms   = parameters[1];
     num_Atoms_N_Evecs = new int[2 * num_Tetrads];
+    
+    ED_Forces    = new float [3 * max_Atoms + 2];
+    NB_Forces    = new float*[2];
+    NB_Forces[0] = new float [3 * max_Atoms + 2];
+    NB_Forces[1] = new float [3 * max_Atoms + 2];
     
     MPI_Recv(num_Atoms_N_Evecs, 2 * num_Tetrads, MPI_INT, 0, TAG_DATA, comm, &status);
     
@@ -101,9 +113,14 @@ void Worker_Management::tetrads_Receiving(void) {
     /*
     int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     cout << rank << ": ";
-    for (i = 0; i < 3 * tetrad[0].num_Atoms_In_Tetrad;) {
-        cout << tetrad[0].masses[i] << "  ";
-        i = i + 3;
+    for (int j = 0; j < num_Tetrads; j++) {
+        cout << rank << ": ";
+        cout << "index: " << j << endl;
+        for (int i = 0; i < tetrad[j].num_Atoms_In_Tetrad; i++) {
+            cout << tetrad[j].coordinates[i] << " ";
+            if ((i+1)%10 == 0) cout << endl;
+        }
+        cout << endl << endl;
     }
     cout << endl << endl;*/
     
@@ -125,13 +142,21 @@ void Worker_Management::ED_Calculation(void) {
     
     MPI_Recv(&index, 1, MPI_INT, 0, TAG_ED, comm, &status);
     
-    float* ED_Forces = new float[3 * max_Atoms + 1];
-    
     //edmd.calculate_ED_Forces(tetrad[index], ED_Forces, edmd.scaled, 3*max_Atoms);
     
-    MPI_Send(ED_Forces, 3 * max_Atoms + 1, MPI_FLOAT, 0, TAG_ED, comm);
+    /*
+    int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    cout << "Rank" << rank << ", index" << index << endl;
+    for (int i = 0; i < 3*max_Atoms+1; i++) {
+        cout << ED_Forces[i] << " ";
+        if ((i+1)%10 == 0) cout << endl;
+    }*/
+
+    ED_Forces[3 * max_Atoms + 1] = index;
     
-    delete []ED_Forces;
+    MPI_Send(&(ED_Forces[0]), 3 * max_Atoms + 2, MPI_FLOAT, 0, TAG_ED, comm);
+    
+    cout << "Rank " << setw(3) << rank << " computed ED forces on Tetrad " << setw(3) << index << endl;
     
 }
 
@@ -146,25 +171,23 @@ void Worker_Management::ED_Calculation(void) {
  */
 void Worker_Management::NB_Calculation(void) {
     
-    int index[2];
+    int indexes[2];
     
-    MPI_Recv(index, 2, MPI_INT, 0, TAG_NB, comm, &status);
+    MPI_Recv(indexes, 2, MPI_INT, 0, TAG_NB, comm, &status);
     
-    Tetrad te[2] = {tetrad[index[0]], tetrad[index[1]]};
-
-    float** NB_Forces = new float*[2];
-    NB_Forces[0] = new float [3 * max_Atoms + 2];
-    NB_Forces[1] = new float [3 * max_Atoms + 2];
+    Tetrad te[2] = {tetrad[indexes[0]], tetrad[indexes[1]]};
     
     //edmd.calculate_NB_Forces(te, NB_Forces, 3*max_Atoms, 3*max_Atoms);
     
-    NB_Forces[0][3*max_Atoms+1] = index[0];
-    NB_Forces[1][3*max_Atoms+1] = index[1];
-     
-    MPI_Send(&(NB_Forces[0][0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, 0, TAG_NB, comm);
+    NB_Forces[0][3*max_Atoms+1] = indexes[0];
+    NB_Forces[1][3*max_Atoms+1] = indexes[1];
     
-    delete[] NB_Forces[0];
-    delete[] NB_Forces[1];
-    delete[] NB_Forces;
-
+    //float *NB_Forces1 = new float[2 * 3 * max_Atoms + 4];
+    
+    //MPI_Send(&(NB_Forces[0][0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, 0, TAG_NB, comm);
+    //MPI_Send(&(NB_Forces[0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, 0, TAG_NB, comm);
+    MPI_Send(&indexes[0], 1, MPI_INT, 0, TAG_NB, comm);
+    
+    cout << "Rank " << setw(3) << rank << " computed NB forces on Tetrad " << setw(3) << indexes[0] << " and " << setw(3) << indexes[1] << endl;
+    //delete []NB_Forces1;
 }

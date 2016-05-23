@@ -5,8 +5,9 @@
 #include <iostream>
 #include <cmath>
 
+#include "mpi.h"
 #include "tetrad.hpp"
-//#include "./qcprot/qcprot.h"
+#include "./qcprot/qcprot.h"
 
 using namespace std;
 

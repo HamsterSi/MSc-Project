@@ -41,6 +41,7 @@ Master_Management::~Master_Management(void) {
     delete []total_Coordinates;
     delete []noise_Factor;
     delete []langevin_Forces;
+     
 }
 
 
@@ -73,12 +74,10 @@ void Master_Management::initialise(void) {
     for (max_Atoms = 0, i = 0; i < io.prm.num_Tetrads; i++) {
         max_Atoms = max_Atoms > io.tetrad[i].num_Atoms_In_Tetrad ? max_Atoms : io.tetrad[i].num_Atoms_In_Tetrad;
     }
-    ED_Forces    = new float[3 * max_Atoms];
-    /*
+    ED_Forces    = new float [3 * max_Atoms + 2];
     NB_Forces    = new float*[2];
-    NB_Forces[0] = new float[3 * max_Atoms];
-    NB_Forces[1] = new float[3 * max_Atoms];
-     */
+    NB_Forces[0] = new float [3 * max_Atoms + 2];
+    NB_Forces[1] = new float [3 * max_Atoms + 2];
     
     noise_Factor    = new float[3 * io.crd.total_Atoms];
     langevin_Forces = new float[3 * io.crd.total_Atoms];
@@ -153,19 +152,19 @@ void Master_Management::tetrads_Sending(void) {
         MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
         for (int j = 0; j < io.prm.num_Tetrads; j++) {
             
-            MPI_Send(io.tetrad[j].avg_Structure, 3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+1, comm);
+            MPI_Send(&(io.tetrad[j].avg_Structure[0]), 3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+1, comm);
             
-            MPI_Send(io.tetrad[j].masses,        3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+2, comm);
+            MPI_Send(&(io.tetrad[j].masses[0]),        3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+2, comm);
             
-            MPI_Send(io.tetrad[j].abq,           3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+3, comm);
+            MPI_Send(&(io.tetrad[j].abq[0]),           3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+3, comm);
             
-            MPI_Send(io.tetrad[j].eigenvalues,   io.tetrad[j].num_Evecs,             MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+4, comm);
+            MPI_Send(&(io.tetrad[j].eigenvalues[0]),   io.tetrad[j].num_Evecs,             MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+4, comm);
             
             MPI_Send(&(io.tetrad[j].eigenvectors[0][0]),  io.tetrad[j].num_Evecs*3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+5, comm);
             
-            MPI_Send(io.tetrad[j].coordinates,   3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+6, comm);
+            MPI_Send(&(io.tetrad[j].coordinates[0]),   3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+6, comm);
             
-            MPI_Send(io.tetrad[j].velocities,    3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+7, comm);
+            MPI_Send(&(io.tetrad[j].velocities[0]),    3*io.tetrad[j].num_Atoms_In_Tetrad, MPI_FLOAT, status.MPI_SOURCE, TAG_TETRAD+j+7, comm);
             
             /*
             MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &io.tetrad[j]);
@@ -189,7 +188,7 @@ void Master_Management::tetrads_Sending(void) {
  */
 void Master_Management::force_Passing(void) {
     
-    int i, j, k, index, temp, flag, signal;
+    int i, j, k, index, indexes[2], temp, flag, signal;
     MPI_Status status;
     
     for (int i = 0; i < size-1; i++) {
@@ -201,6 +200,7 @@ void Master_Management::force_Passing(void) {
     // Generate pair lists of tetrads for NB forces
     int pair_List[(io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2)][2];
     edmd.generate_Pair_Lists(pair_List, io.prm.num_Tetrads, io.tetrad);
+    cout << "Pair list number: " << (io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) << endl;
     
     for (i = 0, j = 0; i < size-1; i++) { // For every worker process
         
@@ -208,30 +208,43 @@ void Master_Management::force_Passing(void) {
             MPI_Send(&i, 1, MPI_INT, i+1, TAG_ED, comm);
             
         } else { // i >= num_Tetrads, send tetrad indexes for NB calculation
-            if (j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2 && pair_List[j][0] + pair_List[j][1] != -2) {
-                int indexes[2] = {pair_List[j][0], pair_List[j][1]};
-                MPI_Send(indexes, 2, MPI_INT, i+1, TAG_NB, comm);
+            while (j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
+                if (pair_List[j][0] + pair_List[j][1] != -2) {
+                    indexes[0] = pair_List[j][0];
+                    indexes[1] = pair_List[j][1];
+                    MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
+                    j++;
+                    break;
+                } else {
+                    j++;
+                }
             }
-            j++;
         }
     }
     
     while (signal)
     {
-        MPI_Iprobe(0, MPI_ANY_TAG, comm, &flag, &status);
+        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &flag, &status);
         if (flag)
         {
             switch (status.MPI_TAG) {
-                case TAG_ED: // Add ED forces into the total_ED_Forces;
-                    MPI_Recv(ED_Forces, 3*max_Atoms+1, MPI_FLOAT, MPI_ANY_SOURCE, TAG_ED, comm, &status);
-                    index = displacement[i];
+                case TAG_ED: // Add ED forces into total_ED_Forces;
+                    MPI_Recv(&(ED_Forces[0]), 3 * max_Atoms + 2, MPI_FLOAT, MPI_ANY_SOURCE, TAG_ED, comm, &status);
+                    /*
+                    index = displacement[ED_Forces[3 * max_Atoms + 2]];
                     for (k = 0; k < 3 * io.tetrad[i].num_Atoms_In_Tetrad; k++) {
                         total_ED_Forces[k] = ED_Forces[index++];
-                    }
+                    }*/
                     break;
                     
-                case TAG_NB: // Add NB forces into the total_ED_Forces;
-                    MPI_Recv(NB_Forces, 2*3*max_Atoms+4, MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
+                case TAG_NB: // Add NB forces into total_ED_Forces;
+                    int fff;
+                    //float *NB_Forces1 = new float[2 * 3 * max_Atoms + 4];
+                    //MPI_Recv(&(NB_Forces[0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
+                    MPI_Recv(&fff, 1, MPI_INT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
+                    //delete []NB_Forces1;
+                    //MPI_Recv(&(NB_Forces[0][0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
+                    /*
                     temp = NB_Forces[0][3*max_Atoms+1];
                     index = displacement[pair_List[temp][0]];
                     for (k = 0; k < 3 * io.tetrad[pair_List[i][0]].num_Atoms_In_Tetrad; k++) {
@@ -242,25 +255,33 @@ void Master_Management::force_Passing(void) {
                     for (k = 0; k < 3 * io.tetrad[pair_List[i][1]].num_Atoms_In_Tetrad; k++) {
                         total_NB_Forces[k] += NB_Forces[1][index++];
                     }
+                     */
                     break;
-                    
-                default: signal = 0; break;
             }
         }
         
-        if (i < io.prm.num_Tetrads + io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
-            if (i < io.prm.num_Tetrads) { // receive and send ED forces parameters
-                MPI_Send(&i, 1, MPI_INT, status.MPI_SOURCE, TAG_ED, comm);
-                
-            } else if (i >= io.prm.num_Tetrads && j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
+        if (i < io.prm.num_Tetrads) { // receive and send ED forces parameters
+            MPI_Send(&i, 1, MPI_INT, status.MPI_SOURCE, TAG_ED, comm);
+            
+        } else {
+            //cout << "j = " << j << endl;
+            while (j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
                 if (pair_List[j][0] + pair_List[j][1] != -2) {
-                    int indexes[2] = {pair_List[j][0], pair_List[j][1]};
+                    indexes[0] = pair_List[j][0];
+                    indexes[1] = pair_List[j][1];
                     MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
+                    j++;//cout << j << endl;
+                    break;
+                } else {
+                    j++;
                 }
-                j++;
             }
         }
         i++;
+        
+        if (i > io.prm.num_Tetrads && j > io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
+            signal = 0;
+        }
     }
 }
 
