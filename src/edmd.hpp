@@ -58,7 +58,7 @@ public:
     
     void calculate_ED_Forces(Tetrad tetrad, float* forces, float scaled, int ED_Energy);
     
-    void calculate_NB_Forces(Tetrad tetrad[], float** NB_Forces, int NB_Energy, int Electrostatic_Energy);
+    void calculate_NB_Forces(Tetrad tetrad1, Tetrad tetrad2, float** NB_Forces, int NB_Energy, int Electrostatic_Energy);
     
     float generate_Stochastic_Term(float tetrad_ID);
     

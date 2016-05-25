@@ -142,7 +142,6 @@ void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, in
         temp += proj[i]*proj[i] / tetrad.eigenvalues[i];
     }
     ED_Forces[ED_Energy] = scaled * 0.5 * temp; // ED Energy
-    
     /*
     int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     cout << "Rank " << rank << ": " << endl;
@@ -173,7 +172,7 @@ void EDMD::calculate_ED_Forces(Tetrad tetrad, float* ED_Forces, float scaled, in
  *
  * Return:    None
  */
-void EDMD::calculate_NB_Forces(Tetrad tetrad[], float** NB_Forces, int NB_Energy, int Electrostatic_Energy) {
+void EDMD::calculate_NB_Forces(Tetrad tetrad1, Tetrad tetrad2, float** NB_Forces, int NB_Energy, int Electrostatic_Energy) {
     
     int i, j;
     float dx, dy, dz, sqdist;
@@ -183,17 +182,17 @@ void EDMD::calculate_NB_Forces(Tetrad tetrad[], float** NB_Forces, int NB_Energy
     float qfac = 332.064; //qfac: electrostatics factor
     float max_Forces = 1.0;
     
-    for (i = 0; i < tetrad[0].num_Atoms_In_Tetrad; i++) {
-        for (j = 0;  j < tetrad[1].num_Atoms_In_Tetrad; j++) {
+    for (i = 0; i < tetrad1.num_Atoms_In_Tetrad; i++) {
+        for (j = 0;  j < tetrad2.num_Atoms_In_Tetrad; j++) {
             
-            dx = tetrad[0].coordinates[3*i]   - tetrad[1].coordinates[3*i];
-            dy = tetrad[0].coordinates[3*i+1] - tetrad[1].coordinates[3*i+1];
-            dz = tetrad[0].coordinates[3*i+2] - tetrad[1].coordinates[3*i+2];
+            dx = tetrad1.coordinates[3*i]   - tetrad2.coordinates[3*i];
+            dy = tetrad1.coordinates[3*i+1] - tetrad2.coordinates[3*i+1];
+            dz = tetrad1.coordinates[3*i+2] - tetrad2.coordinates[3*i+2];
             sqdist = dx*dx + dy*dy + dz*dz;
             
             // NB energies
             a = max(0.0, 2.0-sqdist);
-            q = tetrad[0].abq[3*i+2] * tetrad[1].abq[3*j+2];
+            q = tetrad1.abq[3*i+2] * tetrad2.abq[3*j+2];
             
             NB_Forces[0][NB_Energy] += 0.25 * krep * a * a;
             NB_Forces[1][Electrostatic_Energy] += 0.5 * qfac * q * sqdist;
@@ -213,11 +212,11 @@ void EDMD::calculate_NB_Forces(Tetrad tetrad[], float** NB_Forces, int NB_Energy
     }
     
     // Clip NB forces
-    for (i = 0; i < 3 * tetrad[0].num_Atoms_In_Tetrad; i++) {
+    for (i = 0; i < 3 * tetrad1.num_Atoms_In_Tetrad; i++) {
         NB_Forces[0][i] = max( max_Forces, NB_Forces[0][i]);
         NB_Forces[0][i] = min(-max_Forces, NB_Forces[0][i]);
     }
-    for (i = 0; i < 3 * tetrad[1].num_Atoms_In_Tetrad; i++) {
+    for (i = 0; i < 3 * tetrad2.num_Atoms_In_Tetrad; i++) {
         NB_Forces[1][i] = max( max_Forces, NB_Forces[1][i]);
         NB_Forces[1][i] = min(-max_Forces, NB_Forces[1][i]);
     }

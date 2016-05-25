@@ -218,7 +218,7 @@ void Master_Management::force_Passing(void) {
         }
     }
     
-    while (signal)
+    while (1)
     {
         MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &flag, &status);
         if (flag)
@@ -249,25 +249,26 @@ void Master_Management::force_Passing(void) {
                      */
                     break;
             }
-        }
-        
-        if (i < io.prm.num_Tetrads) { // receive and send ED forces parameters
-            MPI_Send(&i, 1, MPI_INT, status.MPI_SOURCE, TAG_ED, comm);
             
-        } else {
-            while (j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
-                if (pair_List[j][0] + pair_List[j][1] != -2) {
-                    indexes[0] = pair_List[j][0]; indexes[1] = pair_List[j][1];
-                    MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
-                    j++; break;
-                } else { j++; }
+            if (i < io.prm.num_Tetrads) { // receive and send ED forces parameters
+                MPI_Send(&i, 1, MPI_INT, status.MPI_SOURCE, TAG_ED, comm);
+                
+            } else {
+                while (j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
+                    if (pair_List[j][0] + pair_List[j][1] != -2) {
+                        indexes[0] = pair_List[j][0]; indexes[1] = pair_List[j][1];
+                        MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
+                        j++; break;
+                    } else { j++; }
+                }
+            }
+            i++;
+            
+            if (i > io.prm.num_Tetrads && j >= io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
+                break;
             }
         }
-        i++;
-        
-        if (i > io.prm.num_Tetrads && j > io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
-            signal = 0;
-        }
+    
     }
 }
 

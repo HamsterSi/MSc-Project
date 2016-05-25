@@ -26,7 +26,6 @@ void master_Code(void) {
     master.tetrads_Sending();
     
     master.force_Passing();
-    
     /*
     master.LV_Forces();
     

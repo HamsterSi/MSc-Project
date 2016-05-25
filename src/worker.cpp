@@ -24,13 +24,13 @@ Worker_Management::Worker_Management(void) {
  * Return:    None
  */
 Worker_Management::~Worker_Management(void) {
-    
+    /*
     delete []ED_Forces;
     delete []NB_Forces[0];
     delete []NB_Forces[1];
     delete []NB_Forces;
     delete []num_Atoms_N_Evecs;
-     
+     */
 }
 
 
@@ -146,11 +146,12 @@ void Worker_Management::ED_Calculation(void) {
     
     /*
     int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    cout << "Rank" << rank << ", index" << index << endl;
-    for (int i = 0; i < 3*max_Atoms+1; i++) {
-        cout << ED_Forces[i] << " ";
+    cout << "Rank " << rank << ": " << endl;
+    for (int i = 0; i < 3*tetrad[index].num_Atoms_In_Tetrad; i++) {
+        cout << setw(11) << ED_Forces[i] << " ";
         if ((i+1)%10 == 0) cout << endl;
-    }*/
+    }
+    cout << endl << endl;*/
 
     ED_Forces[3 * max_Atoms + 1] = index;
     
@@ -171,17 +172,14 @@ void Worker_Management::ED_Calculation(void) {
  */
 void Worker_Management::NB_Calculation(void) {
     
-    int indexes[2];
+    int indexes[2] = {0, 0};
     
-    MPI_Recv(indexes, 2, MPI_INT, 0, TAG_NB, comm, &status);
+    MPI_Recv(&(indexes[0]), 2, MPI_INT, 0, TAG_NB, comm, &status);
     
-    Tetrad te[2] = {tetrad[indexes[0]], tetrad[indexes[1]]};
-    
-    //edmd.calculate_NB_Forces(te, NB_Forces, 3*max_Atoms, 3*max_Atoms);
+    //edmd.calculate_NB_Forces(tetrad[indexes[0]], tetrad[indexes[1]], NB_Forces, 3*max_Atoms, 3*max_Atoms);
     
     NB_Forces[0][3*max_Atoms+1] = indexes[0];
     NB_Forces[1][3*max_Atoms+1] = indexes[1];
-    cout << NB_Forces[0][3*max_Atoms+1] << endl;
     
     MPI_Send(&(NB_Forces[0][0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, 0, TAG_NB, comm);
     
