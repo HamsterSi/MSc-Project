@@ -178,6 +178,28 @@ void Master_Management::tetrads_Sending(void) {
 
 
 /*
+ * Master receives tetrad received signal
+ * Function:  Master will receive the signal from worker processes that 
+ *            they have received all tetrads.
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
+void Master_Management::tetrad_Received_Signal(void) {
+    
+    MPI_Status status;
+    
+    for (int signal, i = 0; i < size-1; i++) {
+        MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
+    }
+    cout << ">>> All workers have received tetrads\nData sending completed.\n" << endl;
+    cout << "Forces caculation starting..." << endl;
+    
+}
+
+
+/*
  * Master ED forces management
  * Function:  Distrubute ED force calculation among workers,
  *            Main job is to send tetrad parameters to workers to compute ED forces.
@@ -188,15 +210,9 @@ void Master_Management::tetrads_Sending(void) {
  */
 void Master_Management::force_Passing(void) {
     
-    int i, j, k, index, indexes[2], temp, flag, signal;
+    int i, j, k, index, indexes[2], temp, flag;
     MPI_Status status;
-    
-    for (int i = 0; i < size-1; i++) {
-        MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
-    }
-    cout << ">>> All workers have received tetrads\nData sending completed.\n" << endl;
-    cout << "Forces caculation starting..." << endl;
-    
+
     // Generate pair lists of tetrads for NB forces
     int pair_List[(io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2)][2];
     edmd.generate_Pair_Lists(pair_List, io.prm.num_Tetrads, io.tetrad);
@@ -225,7 +241,7 @@ void Master_Management::force_Passing(void) {
         {
             switch (status.MPI_TAG) {
                 case TAG_ED: // Add ED forces into total_ED_Forces;
-                    MPI_Recv(&(ED_Forces[0]), 3 * max_Atoms + 2, MPI_FLOAT, MPI_ANY_SOURCE, TAG_ED, comm, &status);
+                    MPI_Recv(ED_Forces, 3 * max_Atoms + 2, MPI_FLOAT, MPI_ANY_SOURCE, TAG_ED, comm, &status);
                     /*
                     index = displacement[ED_Forces[3 * max_Atoms + 2]];
                     for (k = 0; k < 3 * io.tetrad[i].num_Atoms_In_Tetrad; k++) {
@@ -271,30 +287,6 @@ void Master_Management::force_Passing(void) {
     
     }
 }
-
-
-/*
- * Master ED forces management
- * Function:  Distrubute ED force calculation among workers,
- *            Main job is to send tetrad parameters to workers to compute ED forces.
- *
- * Parameter: None
- *
- * Return:    None
- */
-//void Master_Management::ED_Forces(void)
-
-
-/*
- * Master NB forces management
- * Function:  Distrubute NB force calculation among workers,
- *            Main job is to send tetrad parameters to workers to compute NB forces.
- *
- * Parameter: None
- *
- * Return:    None
- */
-//void Master_Management::NB_Forces(void)
 
 
 /*

@@ -63,11 +63,9 @@ public:
     
     void tetrads_Sending(void);
     
+    void tetrad_Received_Signal(void);
+    
     void force_Passing(void);
-    
-    //void ED_Forces(void);
-    
-    //void NB_Forces(void);
     
     void LV_Forces(void);
     

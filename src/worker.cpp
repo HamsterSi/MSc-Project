@@ -24,13 +24,13 @@ Worker_Management::Worker_Management(void) {
  * Return:    None
  */
 Worker_Management::~Worker_Management(void) {
-    /*
+    
     delete []ED_Forces;
     delete []NB_Forces[0];
     delete []NB_Forces[1];
     delete []NB_Forces;
     delete []num_Atoms_N_Evecs;
-     */
+     
 }
 
 
@@ -142,7 +142,7 @@ void Worker_Management::ED_Calculation(void) {
     
     MPI_Recv(&index, 1, MPI_INT, 0, TAG_ED, comm, &status);
     
-    edmd.calculate_ED_Forces(tetrad[index], ED_Forces, edmd.scaled, 3*max_Atoms);
+    edmd.calculate_ED_Forces(&tetrad[index], ED_Forces, edmd.scaled, 3*max_Atoms);
     
     /*
     int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -155,7 +155,7 @@ void Worker_Management::ED_Calculation(void) {
 
     ED_Forces[3 * max_Atoms + 1] = index;
     
-    MPI_Send(&(ED_Forces[0]), 3 * max_Atoms + 2, MPI_FLOAT, 0, TAG_ED, comm);
+    MPI_Send(ED_Forces, 3 * max_Atoms + 2, MPI_FLOAT, 0, TAG_ED, comm);
     
     cout << "Rank " << setw(3) << rank << " computed ED forces on Tetrad " << setw(3) << index << endl;
     
@@ -172,14 +172,32 @@ void Worker_Management::ED_Calculation(void) {
  */
 void Worker_Management::NB_Calculation(void) {
     
-    int indexes[2] = {0, 0};
+    int i, j, indexes[2] = {0, 0};
     
-    MPI_Recv(&(indexes[0]), 2, MPI_INT, 0, TAG_NB, comm, &status);
+    MPI_Recv(indexes, 2, MPI_INT, 0, TAG_NB, comm, &status);
     
-    //edmd.calculate_NB_Forces(tetrad[indexes[0]], tetrad[indexes[1]], NB_Forces, 3*max_Atoms, 3*max_Atoms);
+    for (i = 0 ; i < 2; i++) {
+        for (j = 0 ; j < 3*max_Atoms+2; j++) {
+            NB_Forces[i][j] = 0.0;
+        }
+    }
+    
+    edmd.calculate_NB_Forces(&tetrad[indexes[0]], &tetrad[indexes[1]], NB_Forces, 3*max_Atoms, 3*max_Atoms);
     
     NB_Forces[0][3*max_Atoms+1] = indexes[0];
     NB_Forces[1][3*max_Atoms+1] = indexes[1];
+    
+    
+    if (indexes[0] == 83) {
+        for (int i = 0 ; i < 2; i++) {
+            for (int j = 0 ; j < 3*max_Atoms+2; j++) {
+                cout << NB_Forces[i][j] << " ";
+                if ((i+1)%10 == 0) cout << endl;
+            }
+        }
+        cout << endl;
+    }
+    
     
     MPI_Send(&(NB_Forces[0][0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, 0, TAG_NB, comm);
     
