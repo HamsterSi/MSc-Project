@@ -30,6 +30,8 @@ Master_Management::~Master_Management(void) {
     delete []masses;
     delete []displacement;
     
+    delete []ED_Forces[0];
+    delete []ED_Forces[1];
     delete []ED_Forces;
     delete []NB_Forces[0];
     delete []NB_Forces[1];
@@ -37,10 +39,10 @@ Master_Management::~Master_Management(void) {
     
     delete []total_ED_Forces;
     delete []total_NB_Forces;
+    delete []langevin_Forces;
+    
     delete []total_Velocities;
     delete []total_Coordinates;
-    delete []noise_Factor;
-    delete []langevin_Forces;
      
 }
 
@@ -74,20 +76,27 @@ void Master_Management::initialise(void) {
     for (max_Atoms = 0, i = 0; i < io.prm.num_Tetrads; i++) {
         max_Atoms = max_Atoms > io.tetrad[i].num_Atoms_In_Tetrad ? max_Atoms : io.tetrad[i].num_Atoms_In_Tetrad;
     }
-    ED_Forces    = new float [3 * max_Atoms + 2];
+    ED_Forces    = new float*[2];
+    ED_Forces[0] = new float [3 * max_Atoms + 2];
+    ED_Forces[1] = new float [3 * max_Atoms + 2];
     NB_Forces    = new float*[2];
     NB_Forces[0] = new float [3 * max_Atoms + 2];
     NB_Forces[1] = new float [3 * max_Atoms + 2];
     
-    noise_Factor    = new float[3 * io.crd.total_Atoms];
-    langevin_Forces = new float[3 * io.crd.total_Atoms];
-    masses          = new float[3 * io.crd.total_Atoms];
-    displacement    = new float[io.crd.num_BP];
+    masses            = new float[3 * io.crd.total_Atoms];
+    displacement      = new float[io.crd.num_BP];
     
     total_ED_Forces   = new float[3 * io.crd.total_Atoms];
     total_NB_Forces   = new float[3 * io.crd.total_Atoms];
+    langevin_Forces   = new float[3 * io.crd.total_Atoms];
+    
     total_Velocities  = new float[3 * io.crd.total_Atoms];
     total_Coordinates = new float[3 * io.crd.total_Atoms];
+    
+    for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
+        total_ED_Forces[i] = total_NB_Forces[i] = langevin_Forces[i] = 0.0;
+        total_Velocities[i] = total_Coordinates[i] = 0.0;
+    }
     
     // Initialise the whole masses array
     for (i = 0; i < io.prm.num_Tetrads; i++) {
@@ -210,13 +219,19 @@ void Master_Management::tetrad_Received_Signal(void) {
  */
 void Master_Management::force_Passing(void) {
     
-    int i, j, k, index, indexes[2], temp, flag;
+    int i, j, k, flag, num_PL;
+    int tetrad_Index, index, indexes[2];
     MPI_Status status;
 
     // Generate pair lists of tetrads for NB forces
     int pair_List[(io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2)][2];
     edmd.generate_Pair_Lists(pair_List, io.prm.num_Tetrads, io.tetrad);
     cout << "Pair list number: " << (io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) << endl;
+    for (num_PL = 0, i = 0; i < (io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2); i++) {
+        if (pair_List[i][0] + pair_List[i][1] != -2) {
+            num_PL++;
+        }
+    }
     
     for (i = 0, j = 0; i < size-1; i++) { // For every worker process
         
@@ -241,28 +256,32 @@ void Master_Management::force_Passing(void) {
         {
             switch (status.MPI_TAG) {
                 case TAG_ED: // Add ED forces into total_ED_Forces;
-                    MPI_Recv(ED_Forces, 3 * max_Atoms + 2, MPI_FLOAT, MPI_ANY_SOURCE, TAG_ED, comm, &status);
-                    /*
-                    index = displacement[ED_Forces[3 * max_Atoms + 2]];
-                    for (k = 0; k < 3 * io.tetrad[i].num_Atoms_In_Tetrad; k++) {
-                        total_ED_Forces[k] = ED_Forces[index++];
-                    }*/
+                    MPI_Recv(&(ED_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, MPI_ANY_SOURCE, TAG_ED, comm, &status);
+                    
+                    tetrad_Index = (int) ED_Forces[0][3 * max_Atoms + 1];
+                    index = displacement[tetrad_Index];
+                    for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
+                        total_ED_Forces[index++] += ED_Forces[0][k];
+                        langevin_Forces[index++] += ED_Forces[1][k];
+                    }
+
                     break;
                     
                 case TAG_NB: // Add NB forces into total_ED_Forces;
-                    MPI_Recv(&(NB_Forces[0][0]), 2 * 3 * max_Atoms + 4, MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
-                    /*
-                    temp = NB_Forces[0][3*max_Atoms+1];
-                    index = displacement[pair_List[temp][0]];
-                    for (k = 0; k < 3 * io.tetrad[pair_List[i][0]].num_Atoms_In_Tetrad; k++) {
-                        total_NB_Forces[k] += NB_Forces[0][index++];
+                    MPI_Recv(&(NB_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
+                    
+                    tetrad_Index = (int) NB_Forces[0][(int) 3 * max_Atoms + 1];
+                    index = displacement[pair_List[tetrad_Index][0]];
+                    for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
+                        total_NB_Forces[index++] += NB_Forces[0][k];
                     }
-                    temp = NB_Forces[1][3*max_Atoms+1];
-                    index = displacement[pair_List[temp][1]];
-                    for (k = 0; k < 3 * io.tetrad[pair_List[i][1]].num_Atoms_In_Tetrad; k++) {
-                        total_NB_Forces[k] += NB_Forces[1][index++];
+                    
+                    tetrad_Index = (int) NB_Forces[1][(int) 3 * max_Atoms + 1];
+                    index = displacement[pair_List[tetrad_Index][1]];
+                    for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
+                        total_NB_Forces[index++] += NB_Forces[1][k];
                     }
-                     */
+                    
                     break;
             }
             
@@ -280,39 +299,14 @@ void Master_Management::force_Passing(void) {
             }
             i++;
             
-            if (i > io.prm.num_Tetrads && j >= io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
+            if (i >= num_PL + io.prm.num_Tetrads + size - 1 && j >= io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
                 break;
             }
         }
-    
     }
+    cout << "Forces calculation completed." << endl;
 }
 
-
-/*
- * Master calculates LV forces
- * Function:  Calculate the LV random forces.
- *
- * Parameter: None
- *
- * Return:    None
- */
-void Master_Management::LV_Forces(void) {
-    int i, j;
-    
-    // Intialise random number generator
-    for (i = 0; i < io.prm.num_Tetrads; i++) {
-        edmd.generate_Stochastic_Term(i);
-    }
-    
-    // Calculate the randon forces
-    {
-        for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
-            noise_Factor[i] = sqrt(2.0 * edmd.gamma * edmd.scaled * masses[i] / edmd.dt);
-        }
-        //langevin_Forces = random_Forces(io.crd.total_Atoms, noise_Factor);
-    }
-}
 
 /*
  * Master total forces management
@@ -323,7 +317,7 @@ void Master_Management::LV_Forces(void) {
  *
  * Return:    None
  */
-void Master_Management::total_Forces(void) {
+void Master_Management::calculate_Total_Forces(void) {
     
     // Calculate the average ED forces
     for (int i = 0; i < io.crd.total_Atoms; i++) {

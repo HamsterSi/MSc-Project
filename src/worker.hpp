@@ -27,7 +27,7 @@ public:
     
     int *num_Atoms_N_Evecs;
     
-    float  *ED_Forces;
+    float **ED_Forces;
     
     float **NB_Forces;
     

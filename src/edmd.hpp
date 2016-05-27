@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <ctime>
 
 #include "mpi.h"
 #include "tetrad.hpp"
@@ -58,9 +59,9 @@ public:
     
     void calculate_ED_Forces(Tetrad* tetrad, float* forces, float scaled, int ED_Energy);
     
-    void calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2, float** NB_Forces, int NB_Energy, int Electrostatic_Energy);
+    void calculate_Random_Forces(Tetrad* tetrad, float* random_Forces);
     
-    float generate_Stochastic_Term(float tetrad_ID);
+    void calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2, float** NB_Forces, int NB_Energy, int Electrostatic_Energy);
     
     void generate_Pair_Lists(int pair_List[][2], int num_Tetrads, Tetrad* tetrad);
     

@@ -29,9 +29,7 @@ void master_Code(void) {
     
     master.force_Passing();
     /*
-    master.LV_Forces();
-    
-    master.total_Forces();
+    master.calculate_Total_Forces();
     
     master.velocities();
     

@@ -38,13 +38,11 @@ public:
     float *masses;
     float *displacement;
     
-    float *ED_Forces;
+    float **ED_Forces;
     float *total_ED_Forces;
     
     float **NB_Forces;
     float *total_NB_Forces;
-    
-    float *noise_Factor;
     float *langevin_Forces;
     
     float *total_Velocities;
@@ -67,9 +65,7 @@ public:
     
     void force_Passing(void);
     
-    void LV_Forces(void);
-    
-    void total_Forces(void);
+    void calculate_Total_Forces(void);
     
     void velocities(void);
     

@@ -158,6 +158,70 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, float* ED_Forces, float scaled, i
 
 
 /*
+ * Function:  Calculate the LV random forces.
+ *            Generate the Gaussian stochastic term. Assuming unitless.
+ *
+ * Parameter:
+ *
+ * Return:    None
+ */
+void EDMD::calculate_Random_Forces(Tetrad* tetrad, float* random_Forces) {
+    
+    int i, j;
+    float random, s = 0.449871, t = -0.386595, a = 0.19600, b = 0.25472;
+    float half = 0.5, r1 = 0.27597, r2 = 0.27846, u, v, x, y, q;
+    float* noise_Factor = new float[3 * tetrad->num_Atoms_In_Tetrad];
+    
+    // Noise factors
+    for (i = 0; i < 3 * tetrad->num_Atoms_In_Tetrad; i++) {
+        noise_Factor[i]  = sqrt(2.0 * gamma * scaled * tetrad->masses[i] / dt);
+        random_Forces[i] = 0.0;
+    }
+    
+    // Calculate random forces;
+    for (i = 0; i < 3 * tetrad->num_Atoms_In_Tetrad; i++) {
+        /*
+         ! Adapted from the following Fortran 77 code
+         !      ALGORITHM 712, COLLECTED ALGORITHMS FROM ACM.
+         !      THIS WORK PUBLISHED IN TRANSACTIONS ON MATHEMATICAL SOFTWARE,
+         !      VOL. 18, NO. 4, DECEMBER, 1992, PP. 434-435.
+         
+         !  The function random_normal() returns a normally distributed pseudo-random
+         !  number with zero mean and unit variance.
+         
+         !  The algorithm uses the ratio of uniforms method of A.J. Kinderman
+         !  and J.F. Monahan augmented with quadratic bounding curves.
+         */
+        {
+            srand((unsigned )time(NULL));
+            // Generate P = (u,v) uniform in rectangle enclosing acceptance region
+            while (1) {
+                u = (float)(rand()/(float)RAND_MAX);
+                v = (float)(rand()/(float)RAND_MAX);
+                v = 1.7156 * (v - half);
+                
+                x = u - s;
+                y = abs(v) - t;
+                q = x*x + y * (a*y - b*x);
+                
+                // Accept P if inside inner ellipse
+                if (q < r1) { break; }
+                //  Reject P if outside outer ellipse
+                if (q > r2) { continue; }
+                //  Reject P if outside acceptance region
+                if (v*v < -4.0 * log(u) * (u*u)) { break; }
+            }
+            // Return ratio of P's coordinates as the normal deviate
+            random = v/u;
+        }
+        random_Forces[i] = random * noise_Factor[i];
+    }
+    
+    delete []noise_Factor;
+}
+
+
+/*
  * Function:  Calculate NB forces
  *
  * Parameter:
@@ -173,6 +237,12 @@ void EDMD::calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2, float** NB_Forc
     float q;              // q: num_atoms vectors of charges
     float qfac = 332.064; //qfac: electrostatics factor
     float max_Forces = 1.0;
+    
+    for (i = 0 ; i < 2; i++) {
+        for (j = 0 ; j < NB_Energy + 2; j++) {
+            NB_Forces[i][j] = 0.0;
+        }
+    }
     
     for (i = 0; i < tetrad1->num_Atoms_In_Tetrad; i++) {
         for (j = 0;  j < tetrad2->num_Atoms_In_Tetrad; j++) {
@@ -212,21 +282,6 @@ void EDMD::calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2, float** NB_Forc
         NB_Forces[1][i] = min( max_Forces, NB_Forces[1][i]);
         NB_Forces[1][i] = max(-max_Forces, NB_Forces[1][i]);
     }
-}
-
-
-/*
- * Function:  Generate the Gaussian stochastic term. Assuming unitless.
- *
- * Parameter:
- *
- * Return:    None
- */
-float EDMD::generate_Stochastic_Term(float tetrad_ID) {
-    
-    int RNG = RNG_Seed + tetrad_ID;
-    
-    return RNG;
 }
 
 
