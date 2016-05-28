@@ -12,8 +12,7 @@ EDMD::EDMD(void) {
     constants.Boltzmann = 0.002;
     constants.timefac = 20.455;
     
-    circular = true;
-    RNG_Seed = 13579.0;
+    circular = false;
     
     dt    = 0.002;
     gamma = 0.4;
@@ -167,10 +166,13 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, float* ED_Forces, float scaled, i
  */
 void EDMD::calculate_Random_Forces(Tetrad* tetrad, float* random_Forces) {
     
-    int i, j;
+    int i, j, rank, RNG_Seed = 13579;
     float random, s = 0.449871, t = -0.386595, a = 0.19600, b = 0.25472;
     float half = 0.5, r1 = 0.27597, r2 = 0.27846, u, v, x, y, q;
     float* noise_Factor = new float[3 * tetrad->num_Atoms_In_Tetrad];
+    
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    srand((unsigned)RNG_Seed + rank);
     
     // Noise factors
     for (i = 0; i < 3 * tetrad->num_Atoms_In_Tetrad; i++) {
@@ -193,9 +195,9 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad, float* random_Forces) {
          !  and J.F. Monahan augmented with quadratic bounding curves.
          */
         {
-            srand((unsigned )time(NULL));
             // Generate P = (u,v) uniform in rectangle enclosing acceptance region
             while (1) {
+                
                 u = (float)(rand()/(float)RAND_MAX);
                 v = (float)(rand()/(float)RAND_MAX);
                 v = 1.7156 * (v - half);
@@ -206,9 +208,9 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad, float* random_Forces) {
                 
                 // Accept P if inside inner ellipse
                 if (q < r1) { break; }
-                //  Reject P if outside outer ellipse
+                // Reject P if outside outer ellipse
                 if (q > r2) { continue; }
-                //  Reject P if outside acceptance region
+                // Reject P if outside acceptance region
                 if (v*v < -4.0 * log(u) * (u*u)) { break; }
             }
             // Return ratio of P's coordinates as the normal deviate
@@ -366,23 +368,33 @@ void EDMD::update_Velocities(float* velocities, float* ED_Forces, float* NB_Forc
     // Simple Langevin dynamics
     for (i = 0; i < 3 * total_Atoms; i++) {
         velocities[i] = (velocities[i] + ED_Forces[i]*dt + NB_Forces[i]*dt/masses[i]) * gamfac;
+        //cout << velocities[i] << "\t";
+        //if ((i+1)%10 == 0) cout << endl;
     }
+    //cout << endl;
     
     // Berendsen temperature control
     for (i = 0; i < 3 * total_Atoms; i++) {
-        kentical_Energy += 0.5*masses[i]*velocities[i]*velocities[i];
+        kentical_Energy += 0.5 * masses[i] * velocities[i] * velocities[i];
+        //cout << kentical_Energy << "\t";
+        //if ((i+1)%10 == 0) cout << endl;
     }
+    //cout << endl;
     
     actual_Temperature = kentical_Energy * 2 / (constants.Boltzmann * 3 * total_Atoms);
     
     target_KE = 0.5 * scaled * 3 * total_Atoms;
     
     tscal = sqrt(1.0 + (dt/tautp) * ((target_KE/kentical_Energy) - 1.0));
+    cout << dt/tautp << " " << target_KE << " " << kentical_Energy << " " << tscal << endl;
     
     // Update velocities
     for (i = 0; i < 3 * total_Atoms; i++) {
         velocities[i] = velocities[i] * tscal;
+        //cout << velocities[i] << "\t";
+        //if ((i+1)%10 == 0) cout << endl;
     }
+    //cout << endl;
 }
 
 

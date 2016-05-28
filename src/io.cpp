@@ -216,21 +216,24 @@ void IO::write_Results(string output_File, float* velocities, float* coordinates
         
         int i, j;
         
-        // The format may be better to be the same as the "crd" file
-        // The energies also should be output inot the file
-        // So it may need to write to two files.
+        // The energies also should be output into the file
         
         // Write out velocities
+        fout << "Velocities: \n";
         for (i = 0, j = 0; i < 3 * crd.total_Atoms; i++) {
             fout << velocities[i] << "\t";
-            if (i == crd.num_Atoms_In_BP[j++]) cout << endl;
+            if ((i + 1) % 10 == 0) fout << "\n";
+            if (i == 3 * crd.num_Atoms_In_BP[j++]) fout << "\n";
         }
         
         // Write out coordinates
+        fout << "\n\nCoordinates: \n";
         for (i = 0, j = 0; i < 3 * crd.total_Atoms; i++) {
             fout << coordinates[i] << "\t";
-            if (i == crd.num_Atoms_In_BP[j++]) cout << endl;
+            if ((i + 1) % 10 == 0) fout << "\n";
+            if (i == 3 * crd.num_Atoms_In_BP[j++]) fout << "\n";
         }
+        fout << "\n";
         
         fout.close();
         

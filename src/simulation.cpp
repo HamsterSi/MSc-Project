@@ -28,17 +28,18 @@ void master_Code(void) {
     master.tetrad_Received_Signal();
     
     master.force_Passing();
-    /*
+    
     master.calculate_Total_Forces();
     
     master.velocities();
     
     master.coordinates();
-     */
+    
+    master.finalise();
     
     clock_t end_Time = clock();
     double time_Usage = double(end_Time - begin_Time) / CLOCKS_PER_SEC;
-    cout << "Time usage for the simualtion: " << time_Usage << endl;
+    cout << "Time usage for the simualtion: " << time_Usage << "\n" << endl;
     
 }
 
@@ -75,7 +76,7 @@ void worker_Code()
                 //cout << "Rank " << setw(3) << rank << " computing NB forces" << endl;
                 worker.NB_Calculation();
                 
-            } else {
+            } else if (status.MPI_TAG == TAG_DEATH) {
                 signal = 0;
                 
             }

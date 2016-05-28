@@ -11,6 +11,10 @@
  */
 Master_Management::Master_Management(void) {
     
+    prm_File = "./data//GC90c12.prm";
+    crd_File = "./data//GC90_6c.crd";
+    output_File =  "./GC90_Result.rst";
+    
     comm = MPI_COMM_WORLD;
     MPI_Comm_size(comm, &size);
 
@@ -26,7 +30,7 @@ Master_Management::Master_Management(void) {
  * Return:    None
  */
 Master_Management::~Master_Management(void) {
-    
+    /*
     delete []masses;
     delete []displacement;
     
@@ -43,7 +47,7 @@ Master_Management::~Master_Management(void) {
     
     delete []total_Velocities;
     delete []total_Coordinates;
-     
+     */
 }
 
 
@@ -56,12 +60,10 @@ Master_Management::~Master_Management(void) {
  * Return:    None
  */
 void Master_Management::initialise(void) {
-    int i, j;
+    int i, j, k;
     
-    prm_File = "./data//GC90c12.prm";
-    crd_File = "./data//GC90_6c.crd";
-    
-    cout << "Data reading...\n>>> Reading prm file..." << endl;
+    cout << "Simulation starting...\n\nData reading starting..." << endl;
+    cout << ">>> Reading prm file..." << endl;
     io.read_Prm(prm_File);
     
     cout << ">>> Read prm file finished\n>>> Reading crd file..." << endl;
@@ -71,6 +73,8 @@ void Master_Management::initialise(void) {
     io.read_Initial_Crds();
     
     cout << "Data read completed.\n" << endl;
+    cout << "The number of DNA Base Pairs: " << io.crd.num_BP << endl;
+    cout << "The number of DNA Tetrads: " << io.prm.num_Tetrads << "\n" << endl;
     
     // Allocate memory for arrays
     for (max_Atoms = 0, i = 0; i < io.prm.num_Tetrads; i++) {
@@ -94,16 +98,26 @@ void Master_Management::initialise(void) {
     total_Coordinates = new float[3 * io.crd.total_Atoms];
     
     for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
-        total_ED_Forces[i] = total_NB_Forces[i] = langevin_Forces[i] = 0.0;
+        total_ED_Forces[i]  = total_NB_Forces[i]   = 0.0;
+        langevin_Forces[i]  = 0.0;
         total_Velocities[i] = total_Coordinates[i] = 0.0;
     }
     
     // Initialise the whole masses array
-    for (i = 0; i < io.prm.num_Tetrads; i++) {
-        for (j = 0; j < 3 * io.tetrad[i].num_Atoms_In_Tetrad; j++) {
-            masses[j] = io.tetrad[i].masses[j];
+    for (i = 0, j = 0; j < io.prm.num_Tetrads - 1; j++) {
+        for (k = 0; k < 3 * io.crd.num_Atoms_In_BP[j]; k++) {
+            masses[i++] = io.tetrad[j].masses[k];
         }
     }
+    for (k = 0; k < 3 * io.tetrad[j].num_Atoms_In_Tetrad; k++) {
+        masses[i++] = io.tetrad[j].masses[k];
+    }
+    /*
+    for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
+        cout << masses[i] << "\t";
+        if((i+1) % 10 == 0) cout << endl;
+    }
+    cout << endl;*/
     
     // Generate diplacements of BP
     for (displacement[0] = 0.0, i = 0; i < io.crd.num_BP; i++) {
@@ -138,7 +152,7 @@ void Master_Management::parameters_Sending(void) {
     }
     
     delete []num_Atoms_N_Evecs;
-    cout << "Data sending...\n>>> Master sending parameters..." << endl;
+    cout << "Data sending starting...\n>>> Master sending parameters..." << endl;
 }
 
 
@@ -203,7 +217,7 @@ void Master_Management::tetrad_Received_Signal(void) {
         MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
     }
     cout << ">>> All workers have received tetrads\nData sending completed.\n" << endl;
-    cout << "Forces caculation starting..." << endl;
+    cout << "Forces calculation starting..." << endl;
     
 }
 
@@ -226,7 +240,7 @@ void Master_Management::force_Passing(void) {
     // Generate pair lists of tetrads for NB forces
     int pair_List[(io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2)][2];
     edmd.generate_Pair_Lists(pair_List, io.prm.num_Tetrads, io.tetrad);
-    cout << "Pair list number: " << (io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) << endl;
+    cout << ">>> Pair list number: " << (io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) << endl;
     for (num_PL = 0, i = 0; i < (io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2); i++) {
         if (pair_List[i][0] + pair_List[i][1] != -2) {
             num_PL++;
@@ -254,35 +268,33 @@ void Master_Management::force_Passing(void) {
         MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &flag, &status);
         if (flag)
         {
-            switch (status.MPI_TAG) {
-                case TAG_ED: // Add ED forces into total_ED_Forces;
-                    MPI_Recv(&(ED_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, MPI_ANY_SOURCE, TAG_ED, comm, &status);
-                    
-                    tetrad_Index = (int) ED_Forces[0][3 * max_Atoms + 1];
-                    index = displacement[tetrad_Index];
-                    for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
-                        total_ED_Forces[index++] += ED_Forces[0][k];
-                        langevin_Forces[index++] += ED_Forces[1][k];
-                    }
-
-                    break;
-                    
-                case TAG_NB: // Add NB forces into total_ED_Forces;
-                    MPI_Recv(&(NB_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
-                    
-                    tetrad_Index = (int) NB_Forces[0][(int) 3 * max_Atoms + 1];
-                    index = displacement[pair_List[tetrad_Index][0]];
-                    for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
-                        total_NB_Forces[index++] += NB_Forces[0][k];
-                    }
-                    
-                    tetrad_Index = (int) NB_Forces[1][(int) 3 * max_Atoms + 1];
-                    index = displacement[pair_List[tetrad_Index][1]];
-                    for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
-                        total_NB_Forces[index++] += NB_Forces[1][k];
-                    }
-                    
-                    break;
+            if (status.MPI_TAG == TAG_ED) {
+                
+                MPI_Recv(&(ED_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, MPI_ANY_SOURCE, TAG_ED, comm, &status);
+                
+                tetrad_Index = (int) ED_Forces[0][3 * max_Atoms + 1];
+                index = displacement[tetrad_Index];
+                for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
+                    total_ED_Forces[index++] += ED_Forces[0][k];
+                    langevin_Forces[index++] += ED_Forces[1][k];
+                }
+                
+            } else if (status.MPI_TAG == TAG_NB) {
+                
+                MPI_Recv(&(NB_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
+                
+                tetrad_Index = (int) NB_Forces[0][(int) 3 * max_Atoms + 1];
+                index = displacement[pair_List[tetrad_Index][0]];
+                for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
+                    total_NB_Forces[index++] += NB_Forces[0][k];
+                }
+                
+                tetrad_Index = (int) NB_Forces[1][(int) 3 * max_Atoms + 1];
+                index = displacement[pair_List[tetrad_Index][1]];
+                for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
+                    total_NB_Forces[index++] += NB_Forces[1][k];
+                }
+                
             }
             
             if (i < io.prm.num_Tetrads) { // receive and send ED forces parameters
@@ -304,7 +316,7 @@ void Master_Management::force_Passing(void) {
             }
         }
     }
-    cout << "Forces calculation completed." << endl;
+    cout << "Forces calculation completed.\n" << endl;
 }
 
 
@@ -320,18 +332,27 @@ void Master_Management::force_Passing(void) {
 void Master_Management::calculate_Total_Forces(void) {
     
     // Calculate the average ED forces
-    for (int i = 0; i < io.crd.total_Atoms; i++) {
+    for (int i = 0; i < 3 * io.crd.total_Atoms; i++) {
         total_ED_Forces[i] /= 4;
-        if (edmd.circular != true) {
+        if (edmd.circular == false) {
             if (i < 3) total_ED_Forces[i] /= (i+1);
             if (i > io.crd.total_Atoms-4) total_ED_Forces[i] /= (io.crd.total_Atoms-i);
         }
+        
+        //cout << total_ED_Forces[i] << "\t";
+        //if ((i+1)%10 == 0) cout << endl;
     }
+    //cout << endl;
     
     // Add flv & NB_Forces together -  Langevin dynamics
     for (int i = 0; i < 3 * io.crd.total_Atoms; i++) {
         total_NB_Forces[i] += langevin_Forces[i];
+   
+        //cout << total_ED_Forces[i] << "\t";
+        //if ((i+1)%10 == 0) cout << endl;
     }
+    //cout << endl;
+    
 }
 
 
@@ -345,7 +366,17 @@ void Master_Management::calculate_Total_Forces(void) {
  */
 void Master_Management::velocities(void) {
     
-    edmd.update_Velocities(total_Velocities, total_ED_Forces, total_NB_Forces, masses, io.prm.num_Tetrads);
+    cout << "Velocities calculation starting..." << endl;
+    
+    edmd.update_Velocities(total_Velocities, total_ED_Forces, total_NB_Forces, masses, io.crd.total_Atoms);
+    
+    for (int i = 0;  i < 3 * io.crd.total_Atoms; i++) {
+        //cout << total_Velocities[i] << "\t";
+        //if ((i+1)%10 == 0) cout << endl;
+    }
+    //cout << endl;
+    
+    cout << "Velocities calculation complteted.\n" << endl;
     
 }
 
@@ -360,8 +391,11 @@ void Master_Management::velocities(void) {
  */
 void Master_Management::coordinates(void) {
     
-    edmd.update_Coordinates(total_Coordinates, total_Velocities, io.prm.num_Tetrads);
+    cout << "Coordinates calculation starting..." << endl;
+    
+    edmd.update_Coordinates(total_Coordinates, total_Velocities, io.crd.total_Atoms);
 
+    cout << "Coordinates calculation complteted.\n" << endl;
 }
 
 /*
@@ -373,11 +407,13 @@ void Master_Management::coordinates(void) {
  * Return:    None
  */
 void Master_Management::finalise(void) {
-
+    
+    io.write_Results(output_File, total_Velocities, total_Coordinates);
+    
     for (int stop = -1, i = 1; i < size; i++) {
         MPI_Send(&stop, 1, MPI_INT, i, TAG_DEATH, comm);
     }
     
-    io.write_Results(output_File, total_Velocities, total_Coordinates);
+    cout << "Simulation ended.\n" << endl;
     
 }

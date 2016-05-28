@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cmath>
 #include <ctime>
+#include <cstdlib>
 
 #include "mpi.h"
 #include "tetrad.hpp"
@@ -43,8 +44,6 @@ public:
     Constants  constants;
     
     bool  circular;     // Whether the sistem has a circular or linear topology
-    
-    float RNG_Seed;    // Seed for the random number generator
     
     float dt;          // Timestep, in ps
     float gamma;       // The friction coefficient, in ps⁻¹
