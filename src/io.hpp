@@ -56,9 +56,9 @@ public:
     
 public:
     
-    IO(void);
+    //IO(void);
     
-    ~IO(void);
+    //~IO(void);
     
     void read_Prm(string prm_File);
     

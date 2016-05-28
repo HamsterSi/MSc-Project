@@ -7,16 +7,16 @@
 /*
  *
  */
-IO::IO(void) {
-    
-}
+//IO::IO(void) {
+    //
+//}
 
 /*
  *
  */
-IO::~IO(void) {
+//IO::~IO(void) {
     //
-}
+//}
 
 /*
  * Function:   Read-in the prm file.

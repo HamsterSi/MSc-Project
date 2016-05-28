@@ -177,14 +177,13 @@ void Worker_Management::ED_Calculation(void) {
  */
 void Worker_Management::NB_Calculation(void) {
     
-    int i, j, indexes[2] = {0, 0};
+    int i, j, indexes[3];
     
-    MPI_Recv(indexes, 2, MPI_INT, 0, TAG_NB, comm, &status);
+    MPI_Recv(indexes, 3, MPI_INT, 0, TAG_NB, comm, &status);
     
-    edmd.calculate_NB_Forces(&tetrad[indexes[0]], &tetrad[indexes[1]], NB_Forces, 3*max_Atoms, 3*max_Atoms);
+    edmd.calculate_NB_Forces(&tetrad[indexes[1]], &tetrad[indexes[2]], NB_Forces, 3*max_Atoms, 3*max_Atoms);
     
     NB_Forces[0][3*max_Atoms+1] = indexes[0];
-    NB_Forces[1][3*max_Atoms+1] = indexes[1];
     
     /*
     if (indexes[0] == 83) {

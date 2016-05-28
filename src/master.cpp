@@ -62,7 +62,10 @@ Master_Management::~Master_Management(void) {
 void Master_Management::initialise(void) {
     int i, j, k;
     
-    cout << "Simulation starting...\n\nData reading starting..." << endl;
+    cout << "\nInitialising program..." << endl;
+    cout << "Size of MPI processes: " << size << endl;
+    
+    cout << "\nSimulation starting...\n\nData reading starting..." << endl;
     cout << ">>> Reading prm file..." << endl;
     io.read_Prm(prm_File);
     
@@ -234,7 +237,7 @@ void Master_Management::tetrad_Received_Signal(void) {
 void Master_Management::force_Passing(void) {
     
     int i, j, k, flag, num_PL;
-    int tetrad_Index, index, indexes[2];
+    int tetrad_Index, pair_Index, index, indexes[3];
     MPI_Status status;
 
     // Generate pair lists of tetrads for NB forces
@@ -255,7 +258,7 @@ void Master_Management::force_Passing(void) {
         } else { // i >= num_Tetrads, send tetrad indexes for NB calculation
             while (j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
                 if (pair_List[j][0] + pair_List[j][1] != -2) {
-                    indexes[0] = pair_List[j][0]; indexes[1] = pair_List[j][1];
+                    indexes[0] = j; indexes[1] = pair_List[j][0]; indexes[2] = pair_List[j][1];
                     MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
                     j++; break;
                 } else { j++; }
@@ -283,14 +286,16 @@ void Master_Management::force_Passing(void) {
                 
                 MPI_Recv(&(NB_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, MPI_ANY_SOURCE, TAG_NB, comm, &status);
                 
-                tetrad_Index = (int) NB_Forces[0][(int) 3 * max_Atoms + 1];
-                index = displacement[pair_List[tetrad_Index][0]];
+                pair_Index   = (int) NB_Forces[0][(int) 3 * max_Atoms + 1];
+                
+                tetrad_Index = pair_List[pair_Index][0];
+                index = displacement[tetrad_Index];
                 for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
                     total_NB_Forces[index++] += NB_Forces[0][k];
                 }
                 
-                tetrad_Index = (int) NB_Forces[1][(int) 3 * max_Atoms + 1];
-                index = displacement[pair_List[tetrad_Index][1]];
+                tetrad_Index = pair_List[pair_Index][1];
+                index = displacement[tetrad_Index];
                 for (k = 0; k < 3 * io.tetrad[tetrad_Index].num_Atoms_In_Tetrad; k++) {
                     total_NB_Forces[index++] += NB_Forces[1][k];
                 }
@@ -303,7 +308,7 @@ void Master_Management::force_Passing(void) {
             } else {
                 while (j < io.prm.num_Tetrads*(io.prm.num_Tetrads-1)/2) {
                     if (pair_List[j][0] + pair_List[j][1] != -2) {
-                        indexes[0] = pair_List[j][0]; indexes[1] = pair_List[j][1];
+                        indexes[0] = j; indexes[1] = pair_List[j][0]; indexes[2] = pair_List[j][1];
                         MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
                         j++; break;
                     } else { j++; }

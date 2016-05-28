@@ -19,6 +19,7 @@ Tetrad::Tetrad(void) {
 
 Tetrad::~Tetrad(void) {
     
+    /*
     delete []avg_Structure;
     delete []masses;
     delete []abq;
@@ -31,4 +32,5 @@ Tetrad::~Tetrad(void) {
     
     delete []coordinates;
     delete []velocities;
+     */
 }
