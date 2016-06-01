@@ -250,7 +250,7 @@ void Master_Management::force_Calculation(void) {
         
         // If there are some more need to be calculated, send indexes.
         if (i < io.prm.num_Tetrads) { // Send tetrad index for ED calculation
-            MPI_Send(&i, 1, MPI_INT, i+1, TAG_ED, comm);
+            MPI_Send(&i, 1, MPI_INT, status.MPI_SOURCE, TAG_ED, comm);
             
         } else {  // i >= num_Tetrads, send tetrad indexes for NB calculation
             while (j < num_PL) {
