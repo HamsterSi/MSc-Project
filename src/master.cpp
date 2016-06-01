@@ -64,16 +64,20 @@ void Master_Management::initialise(void) {
     
     cout << "Data read completed.\n" << endl;
     cout << "The number of DNA Base Pairs: " << io.crd.num_BP << endl;
-    cout << "The number of DNA Tetrads   : " << io.prm.num_Tetrads << "\n" << endl;
-    cout << "Total atoms in DNA segment  : " << 3 * io.crd.total_Atoms << endl;
+    cout << "The number of DNA Tetrads   : " << io.prm.num_Tetrads << endl;
+    cout << "Total atoms in DNA segment  : " << 3 * io.crd.total_Atoms << endl << endl;
     
     // Pick out the maximum number of atoms in tetrad
     for (max_Atoms = 0, i = 0; i < io.prm.num_Tetrads; i++) {
         max_Atoms = max_Atoms > io.tetrad[i].num_Atoms_In_Tetrad ? max_Atoms : io.tetrad[i].num_Atoms_In_Tetrad;
     }
     
+    // Allocate memory for arrays & initialise
     whole_Velocities  = new float[3 * io.crd.total_Atoms];
     whole_Coordinates = new float[3 * io.crd.total_Atoms];
+    for (i = 0; i < io.crd.total_Atoms; i++) {
+        whole_Velocities[i] = whole_Coordinates[i] = 0.0;
+    }
     
     // Generate diplacements of BP
     displs = new int[io.prm.num_Tetrads];
@@ -307,7 +311,7 @@ void Master_Management::velocity_Calculation(void) {
     // Aggregate all velocities together for easily wirting out
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (index = displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms_In_Tetrad; j++) {
-            whole_Velocities[index++] = io.tetrad[i].velocities[j];
+            whole_Velocities[index++] += io.tetrad[i].velocities[j];
         }
     }
     
@@ -343,15 +347,15 @@ void Master_Management::coordinate_Calculation(void) {
     cout << "Coordinates calculation starting..." << endl;
     
     // Calculate coordinates of all tetrads
-    for (int i = 0; i < io.prm.num_Tetrads; i++) {
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
         edmd.update_Coordinates(&io.tetrad[i]);
     }
     
-    // x(posX1:posX2) = x(posX1:posX2)+xslice(1:posX2-posX1+1)
+    // x(posX1:posX2) = x(posX1:posX2) + xslice(1:posX2-posX1+1)
     // Aggregate all coordinates together for easily wirting out
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (index = displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms_In_Tetrad; j++) {
-            whole_Coordinates[index++] = io.tetrad[i].coordinates[j];
+            whole_Coordinates[index++] += io.tetrad[i].coordinates[j];
         }
     }
     
