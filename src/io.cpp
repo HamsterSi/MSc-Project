@@ -4,19 +4,6 @@
 
 #include "io.hpp"
 
-/*
- *
- */
-//IO::IO(void) {
-    //
-//}
-
-/*
- *
- */
-//IO::~IO(void) {
-    //
-//}
 
 /*
  * Function:   Read-in the prm file.
@@ -179,7 +166,6 @@ void IO::read_Initial_Crds(void) {
         // Get the start and end displacement of tetrads in crd.num_Atoms_In_BP
         start_Index = displs[i];
         end_Index   = displs[i+4] - 1;
-        //cout << start_Index << " " << end_Index << ",\t";
 
         // Check if all data is matching
         if (num_Atoms != tetrad[i].num_Atoms_In_Tetrad) {
@@ -195,7 +181,6 @@ void IO::read_Initial_Crds(void) {
             tetrad[i].coordinates[j] = crd.ini_BP_Crds[start_Index++];
             tetrad[i].velocities[j]  = tetrad[i].ED_Forces[j]   = 0.0;
             tetrad[i].random_Forces[j] = tetrad[i].NB_Forces[j] = 0.0;
-            //if (i == prm.num_Tetrads-1) cout << crd.ini_BP_Crds[start_Index-1] << "\t";
         }
     }
 }

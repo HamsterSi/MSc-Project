@@ -60,9 +60,9 @@ public:
     
     void calculate_Random_Forces(Tetrad* tetrad, float* random_Forces);
     
-    void calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2, float* NB_Forces1, float* NB_Forces2, int energy_Index);
-    
     void generate_Pair_Lists(int pair_List[][2], int num_Tetrads, Tetrad* tetrad);
+    
+    void calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2, float* NB_Forces1, float* NB_Forces2, int energy_Index);
     
     void update_Velocities(Tetrad* tetrad);
     

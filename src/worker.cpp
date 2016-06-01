@@ -10,7 +10,10 @@
  * Return:    None
  */
 Worker_Management::Worker_Management(void) {
+    
     comm = MPI_COMM_WORLD;
+    
+    // Get the rank of worker process
     MPI_Comm_rank(comm, &rank);
     
 }
@@ -25,7 +28,10 @@ Worker_Management::Worker_Management(void) {
  * Return:    None
  */
 Worker_Management::~Worker_Management(void) {
+    
+    // Deallocate memory spaces of tetrads
     for (int i = 0; i < num_Tetrads; i++) {
+        
         delete []tetrad[i].avg_Structure;
         delete []tetrad[i].masses;
         delete []tetrad[i].abq;
@@ -56,14 +62,17 @@ Worker_Management::~Worker_Management(void) {
  * Return:    None
  */
 void Worker_Management::parameters_Receiving(void) {
+    
     int i, j, signal = 1, parameters[2];
     
+    // Receive parameters from the master process
     MPI_Recv(parameters, 2, MPI_INT, 0, TAG_DATA, comm, &status);
+    num_Tetrads = parameters[0]; // The number of tetrads
+    max_Atoms   = parameters[1]; // The maximum number of atoms in tetrads
     
-    num_Tetrads = parameters[0];
-    max_Atoms   = parameters[1];
     int num_Atoms_N_Evecs[2 * num_Tetrads];
     
+    // Receive the number of atoms & evecs in tetrads
     MPI_Recv(num_Atoms_N_Evecs, 2 * num_Tetrads, MPI_INT, 0, TAG_DATA, comm, &status);
     
     // Allocate memory for tetrads
@@ -88,6 +97,7 @@ void Worker_Management::parameters_Receiving(void) {
         tetrad[i].NB_Forces     = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
     }
     
+    // Send feedback to the master process that has received all parameters.
     MPI_Send(&signal, 1, MPI_INT, 0, TAG_DATA, comm);
     
 }
@@ -102,9 +112,11 @@ void Worker_Management::parameters_Receiving(void) {
  * Return:    None
  */
 void Worker_Management::tetrads_Receiving(void) {
+    
     int i, signal = 1;
     MPI_Datatype MPI_Tetrad;
     
+    // Receive all tetrads from the master process
     for (i = 0; i < num_Tetrads; i++) {
         
         MPI_Recv(tetrad[i].avg_Structure, 3*tetrad[i].num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_TETRAD+rank+i+1, comm, &status);
@@ -118,7 +130,6 @@ void Worker_Management::tetrads_Receiving(void) {
         for (int j = 0; j < tetrad[i].num_Evecs; j++) {
             MPI_Recv(tetrad[i].eigenvectors[j],  3 * tetrad[i].num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_TETRAD+rank+i+5+j, comm, &status);
         }
-        //MPI_Recv(&(tetrad[i].eigenvectors[0][0]),  tetrad[i].num_Evecs * 3 * tetrad[i].num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_TETRAD+rank+i+5, comm, &status);
         
         MPI_Recv(tetrad[i].velocities,    3*tetrad[i].num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_TETRAD+rank+i+6, comm, &status);
         
@@ -135,6 +146,7 @@ void Worker_Management::tetrads_Receiving(void) {
     }
     cout << endl;*/
     
+    // Send feedback to the master process that has received all tetrads
     MPI_Send(&signal, 1, MPI_INT, 0, TAG_TETRAD, comm);
 }
 
@@ -152,22 +164,26 @@ void Worker_Management::ED_Calculation(void) {
     int index;
     float ED_Forces[2][3 * max_Atoms + 2];
     
+    // Receive the tetrad index from the master process
     MPI_Recv(&index, 1, MPI_INT, 0, TAG_ED, comm, &status);
     
+    // Calculate ED forces (ED energy) & random forces
     edmd.calculate_ED_Forces(&tetrad[index], ED_Forces[0], edmd.scaled, 3 * max_Atoms);
     edmd.calculate_Random_Forces(&tetrad[index], ED_Forces[1]);
     
+    // Needs to send tetrad index back so the master process can operates on according tetrad
     ED_Forces[0][3 * max_Atoms + 1] = index;
+    
+    // Send the calculated ED forces, ED energy, random forces & index back
+    MPI_Send(&(ED_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, 0, TAG_ED, comm);
     
     /*
     if (index == 89 ) {
-    for (int i = 0; i < 3 * tetrad[index].num_Atoms_In_Tetrad; i++) {
-        cout << ED_Forces[0][i] << "\t"; if ((i+1)%10 == 0) cout << endl;
-    } cout << endl; }*/
+        for (int i = 0; i < 3 * tetrad[index].num_Atoms_In_Tetrad; i++) {
+            cout << ED_Forces[0][i] << "\t"; if ((i+1)%10 == 0) cout << endl;
+        } cout << endl; }*/
     
-    if (index == 89 ) cout << "Rank " << setw(3) << rank << " computed ED forces on Tetrad " << setw(3) << index << endl;
-    
-    MPI_Send(&(ED_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, 0, TAG_ED, comm);
+    //cout << "Rank " << setw(3) << rank << " computed ED forces on Tetrad " << setw(3) << index << endl;
     
 }
 
@@ -182,15 +198,22 @@ void Worker_Management::ED_Calculation(void) {
  */
 void Worker_Management::NB_Calculation(void) {
     
-    int i, j, indexes[2];
+    int indexes[2];
     float NB_Forces[2][3 * max_Atoms + 2];
     
+    // Receive the tetrad indexes for NB forces calculation
     MPI_Recv(indexes, 2, MPI_INT, 0, TAG_NB, comm, &status);
     
+    // Calculate NB forces, NB energy, etc.
     edmd.calculate_NB_Forces(&tetrad[indexes[0]], &tetrad[indexes[1]], NB_Forces[0], NB_Forces[1], 3 * max_Atoms);
     
+    // Need to send both tetrad indexes back to the master process
     NB_Forces[0][3 * max_Atoms + 1] = indexes[0];
     NB_Forces[1][3 * max_Atoms + 1] = indexes[1];
+    
+    // Send NB forces, energies & indexes back
+    MPI_Send(&(NB_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, 0, TAG_NB, comm);
+    
     /*
     if (indexes[0] == 83) {
         for (int i = 0 ; i < 2; i++) {
@@ -201,7 +224,4 @@ void Worker_Management::NB_Calculation(void) {
     }*/
     
     //cout << "Rank " << setw(3) << rank << " computed NB forces on Tetrad " << setw(3) << indexes[0] << " and " << setw(3) << indexes[1] << endl;
-    
-    MPI_Send(&(NB_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, 0, TAG_NB, comm);
-    
 }

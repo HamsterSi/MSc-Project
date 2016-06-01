@@ -224,56 +224,6 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad, float* random_Forces) {
 
 
 /*
- * Function:  Calculate NB forces
- *
- * Parameter:
- *
- * Return:    None
- */
-void EDMD::calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2, float* NB_Forces1, float* NB_Forces2, int energy_Index) {
-    
-    int i, j;
-    int NB_Energy = energy_Index, Electrostatic_Energy = energy_Index;
-    float dx, dy, dz, sqdist;
-    float a, pair_Force;
-    float krep = 100.0;   // krep: soft repulsion constant
-    float q;              // q: num_atoms vectors of charges
-    float qfac = 332.064; //qfac: electrostatics factor
-    
-    for (i = 0 ; i < energy_Index + 2; i++) {
-        NB_Forces1[i] = NB_Forces2[i] = 0.0;
-    }
-    
-    for (i = 0; i < tetrad1->num_Atoms_In_Tetrad; i++) {
-        for (j = 0;  j < tetrad2->num_Atoms_In_Tetrad; j++) {
-            
-            dx = tetrad1->coordinates[3*i]   - tetrad2->coordinates[3*i];
-            dy = tetrad1->coordinates[3*i+1] - tetrad2->coordinates[3*i+1];
-            dz = tetrad1->coordinates[3*i+2] - tetrad2->coordinates[3*i+2];
-            sqdist = dx*dx + dy*dy + dz*dz;
-            
-            // NB energies
-            a = max(0.0, 2.0-sqdist);
-            q = tetrad1->abq[3*i+2] * tetrad2->abq[3*j+2];
-            
-            NB_Forces1[NB_Energy] += 0.25 * krep * a * a;
-            NB_Forces2[Electrostatic_Energy] += 0.5 * qfac * q * sqdist;
-            
-            // NB forces
-            pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
-            NB_Forces1[3*i]   -= dx * pair_Force;
-            NB_Forces1[3*i+1] -= dy * pair_Force;
-            NB_Forces1[3*i+2] -= dz * pair_Force;
-            
-            NB_Forces2[3*j]   += dx * pair_Force;
-            NB_Forces2[3*j+1] += dy * pair_Force;
-            NB_Forces2[3*j+2] += dz * pair_Force;
-        }
-    }
-}
-
-
-/*
  * Function:  Generate the pair list of tetrads.
  *
  * Parameter:
@@ -334,6 +284,56 @@ void EDMD::generate_Pair_Lists(int pair_List[][2], int num_Tetrads, Tetrad* tetr
 
 
 /*
+ * Function:  Calculate NB forces
+ *
+ * Parameter:
+ *
+ * Return:    None
+ */
+void EDMD::calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2, float* NB_Forces1, float* NB_Forces2, int energy_Index) {
+    
+    int i, j;
+    int NB_Energy = energy_Index, Electrostatic_Energy = energy_Index;
+    float dx, dy, dz, sqdist;
+    float a, pair_Force;
+    float krep = 100.0;   // krep: soft repulsion constant
+    float q;              // q: num_atoms vectors of charges
+    float qfac = 332.064; //qfac: electrostatics factor
+    
+    for (i = 0 ; i < energy_Index + 2; i++) {
+        NB_Forces1[i] = NB_Forces2[i] = 0.0;
+    }
+    
+    for (i = 0; i < tetrad1->num_Atoms_In_Tetrad; i++) {
+        for (j = 0;  j < tetrad2->num_Atoms_In_Tetrad; j++) {
+            
+            dx = tetrad1->coordinates[3*i]   - tetrad2->coordinates[3*i];
+            dy = tetrad1->coordinates[3*i+1] - tetrad2->coordinates[3*i+1];
+            dz = tetrad1->coordinates[3*i+2] - tetrad2->coordinates[3*i+2];
+            sqdist = dx*dx + dy*dy + dz*dz;
+            
+            a = max(0.0, 2.0-sqdist);
+            q = tetrad1->abq[3*i+2] * tetrad2->abq[3*j+2];
+            
+            // NB energies
+            NB_Forces1[NB_Energy] += 0.25 * krep * a * a;
+            NB_Forces2[Electrostatic_Energy] += 0.5 * qfac * q * sqdist;
+            
+            // NB forces
+            pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
+            NB_Forces1[3*i]   -= dx * pair_Force;
+            NB_Forces1[3*i+1] -= dy * pair_Force;
+            NB_Forces1[3*i+2] -= dz * pair_Force;
+            
+            NB_Forces2[3*j]   += dx * pair_Force;
+            NB_Forces2[3*j+1] += dy * pair_Force;
+            NB_Forces2[3*j+2] += dz * pair_Force;
+        }
+    }
+}
+
+
+/*
  * Function:  Update velocities & Berendsen temperature control
  *
  * Parameter:
@@ -366,12 +366,10 @@ void EDMD::update_Velocities(Tetrad* tetrad) {
     target_KE = 0.5 * scaled * 3 * tetrad->num_Atoms_In_Tetrad;
     
     tscal = sqrt(1.0 + (dt/tautp) * ((target_KE/kentical_Energy) - 1.0));
-    //cout << dt << " " << gamfac << " " << dt/tautp << " " << target_KE << " " << kentical_Energy << " " << tscal << endl;
     
     // Update velocities
     for (i = 0; i < 3 * tetrad->num_Atoms_In_Tetrad; i++) {
         tetrad->velocities[i] = tetrad->velocities[i] * tscal;
-        //cout << tetrad->velocities[i] << "\t"; if ((i+1)%10 == 0) cout << endl;
     }
 }
 

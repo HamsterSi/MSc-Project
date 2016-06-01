@@ -24,7 +24,9 @@ class Master_Management {
 public:
     
     string prm_File;
+    
     string crd_File;
+    
     string output_File;
     
     EDMD edmd;

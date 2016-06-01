@@ -14,6 +14,7 @@ using namespace std;
 
 /* Initial parameters of tetrads are read from "prm" file */
 
+// It still needs to be discussed whether it is better to use structure or class for tetrads
 typedef struct _Tetrad {
     
     int num_Atoms_In_Tetrad; // The number of atoms in tetrads

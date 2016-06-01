@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
         exit(1);
     }
 
-    // Start processes
+    // Start simulation
     if (rank == 0) master_Code(); // The master initialises the simulation
     if (rank != 0) worker_Code(); // Force calculation workers
     
