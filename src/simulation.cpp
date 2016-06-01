@@ -16,15 +16,11 @@ void master_Code(void) {
     
     master.tetrads_Sending();
     
-    master.tetrad_Received_Signal();
+    master.force_Calculation();
     
-    master.force_Passing();
+    master.velocity_Calculation();
     
-    master.calculate_Total_Forces();
-    
-    master.velocities();
-    
-    master.coordinates();
+    master.coordinate_Calculation();
     
     master.finalise();
     
@@ -38,12 +34,12 @@ void master_Code(void) {
  * Function: Manage the worker working progress
  */
 void worker_Code() {
-    int flag, signal = 1;
     
-    MPI_Status status;
+    int flag, signal;
     Worker_Management worker;
+    MPI_Status status;
     
-    while (signal)
+    while (1)
     {
         MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &status);
         if (flag)
@@ -51,7 +47,7 @@ void worker_Code() {
             if (status.MPI_TAG == TAG_DATA) {
                 worker.parameters_Receiving();
                 
-            } else if (status.MPI_TAG >= TAG_TETRAD && status.MPI_TAG < TAG_ED) {
+            } else if (status.MPI_TAG >= TAG_TETRAD) {
                 worker.tetrads_Receiving();
                 
             } else if (status.MPI_TAG == TAG_ED) {
@@ -61,7 +57,8 @@ void worker_Code() {
                 worker.NB_Calculation();
                 
             } else if (status.MPI_TAG == TAG_DEATH) {
-                signal = 0;
+                MPI_Recv(&signal, 1, MPI_INT, 0, TAG_DEATH, MPI_COMM_WORLD, &status);
+                break;
                 
             }
         }

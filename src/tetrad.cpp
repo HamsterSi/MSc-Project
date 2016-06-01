@@ -8,7 +8,7 @@
 
 #include "tetrad.hpp"
 
-
+/*
 Tetrad::Tetrad(void) {
     
     num_Atoms_In_Tetrad = 0;
@@ -18,8 +18,7 @@ Tetrad::Tetrad(void) {
 
 
 Tetrad::~Tetrad(void) {
-    
-    /*
+   
     delete []avg_Structure;
     delete []masses;
     delete []abq;
@@ -30,7 +29,11 @@ Tetrad::~Tetrad(void) {
     }
     delete []eigenvectors;
     
-    delete []coordinates;
     delete []velocities;
-     */
-}
+    delete []coordinates;
+    
+    delete []ED_Forces;
+    delete []random_Forces;
+    delete []NB_Forces;
+    
+}*/

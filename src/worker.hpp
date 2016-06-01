@@ -19,25 +19,19 @@ class Worker_Management {
     
 public:
     
-    int rank;
+    int rank;           // The rank of worker process
     
-    int num_Tetrads;
+    int num_Tetrads;    // The number of total tetrads
     
-    int max_Atoms;
+    int max_Atoms;      // The maximum number of atoms in tetrads
     
-    int *num_Atoms_N_Evecs;
+    Tetrad *tetrad;     // Tetrad array, used to stroe tetrads
     
-    float **ED_Forces;
+    EDMD edmd;          // EDMD class, needs to call functions to calculate forces
     
-    float **NB_Forces;
+    MPI_Status status;  // MPI Status
     
-    Tetrad *tetrad;
-    
-    EDMD edmd;
-    
-    MPI_Status status;
-    
-    MPI_Comm comm;
+    MPI_Comm comm;      // MPI Communicator
     
 public:
     

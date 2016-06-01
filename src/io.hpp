@@ -16,7 +16,6 @@
 
 using namespace std;
 
-
 /* Parameters read from crd file */
 typedef struct _Crd {
     
@@ -55,10 +54,6 @@ public:
     Tetrad *tetrad;
     
 public:
-    
-    //IO(void);
-    
-    //~IO(void);
     
     void read_Prm(string prm_File);
     
