@@ -25,12 +25,6 @@ public:
     
     int max_Atoms;
     
-    int *num_Atoms_N_Evecs;
-    
-    float **ED_Forces;
-    
-    float **NB_Forces;
-    
     Tetrad *tetrad;
     
     EDMD edmd;

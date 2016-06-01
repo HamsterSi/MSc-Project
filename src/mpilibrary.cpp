@@ -8,6 +8,47 @@
 
 #include "mpilibrary.hpp"
 
+void MPI_Library::create_Tetrad_Package(Tetrad* tetrad, float* buffer, int* position) {
+    int num_Atoms = 3 * tetrad->num_Atoms_In_Tetrad;
+    int total_Elements = 2 + 5 * num_Atoms + tetrad->num_Evecs * (1 + num_Atoms);
+    float atoms = tetrad->num_Atoms_In_Tetrad, evecs = tetrad->num_Evecs;
+    *position = 0;
+    MPI_Comm comm = MPI_COMM_WORLD;
+    
+    buffer = new float[total_Elements];
+    
+    MPI_Pack(&atoms, 1, MPI_INT, buffer, total_Elements, position, comm);
+    MPI_Pack(&evecs, 1, MPI_INT, buffer, total_Elements, position, comm);
+    MPI_Pack(tetrad->avg_Structure, num_Atoms, MPI_FLOAT, buffer, total_Elements, position, comm);
+    MPI_Pack(tetrad->masses,        num_Atoms, MPI_FLOAT, buffer, total_Elements, position, comm);
+    MPI_Pack(tetrad->abq,           num_Atoms, MPI_FLOAT, buffer, total_Elements, position, comm);
+    MPI_Pack(tetrad->eigenvalues,   tetrad->num_Evecs, MPI_FLOAT, buffer, total_Elements, position, comm);
+    MPI_Pack(tetrad->eigenvectors,  tetrad->num_Evecs * num_Atoms, MPI_FLOAT, buffer, total_Elements, position, comm);
+    MPI_Pack(tetrad->coordinates,   num_Atoms, MPI_FLOAT, buffer, total_Elements, position, comm);
+    MPI_Pack(tetrad->velocities,    num_Atoms, MPI_FLOAT, buffer, total_Elements, position, comm);
+
+}
+
+void MPI_Library::unpack_Tetrad_Package(Tetrad* tetrad, float* buffer, int num_Atoms, int total_Elements) {
+    float atoms, evecs;
+    int position = 0;
+    MPI_Comm comm = MPI_COMM_WORLD;
+    
+    MPI_Unpack(buffer, total_Elements, &position, &atoms, 1, MPI_INT, comm);
+    tetrad->num_Atoms_In_Tetrad = (int) atoms;
+    MPI_Unpack(buffer, total_Elements, &position, &evecs, 1, MPI_INT, comm);
+    tetrad->num_Evecs = (int) evecs;
+    
+    MPI_Unpack(buffer, total_Elements, &position, tetrad->avg_Structure, num_Atoms, MPI_INT, comm);
+    MPI_Unpack(buffer, total_Elements, &position, tetrad->masses,        num_Atoms, MPI_INT, comm);
+    MPI_Unpack(buffer, total_Elements, &position, tetrad->abq,           num_Atoms, MPI_INT, comm);
+    MPI_Unpack(buffer, total_Elements, &position, tetrad->eigenvalues, tetrad->num_Evecs, MPI_INT, comm);
+    MPI_Unpack(buffer, total_Elements, &position, tetrad->eigenvectors, tetrad->num_Evecs * num_Atoms, MPI_INT, comm);
+    MPI_Unpack(buffer, total_Elements, &position, tetrad->coordinates,   num_Atoms, MPI_INT, comm);
+    MPI_Unpack(buffer, total_Elements, &position, tetrad->velocities,    num_Atoms, MPI_INT, comm);
+    
+}
+
 void MPI_Library::create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, Tetrad* tetrad) {
     int num_Atoms = 3 * tetrad->num_Atoms_In_Tetrad;
     
@@ -52,10 +93,19 @@ void MPI_Library::create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, Tetrad* tetrad) {
         offsetof(Tetrad, coordinates),  offsetof(Tetrad, velocities)
     };
     
-    MPI_Type_create_struct(9, counts, displs, types, MPI_Tetrad); */
+    MPI_Type_create_struct(9, counts, displs, types, MPI_Tetrad);
+    MPI_Type_commit(MPI_Tetrad);
     
-    int counts[6] = {1, 1, num_Atoms, num_Atoms, num_Atoms, tetrad->num_Evecs};
-    MPI_Datatype types[6] = {MPI_INT, MPI_INT, MPI_FLOAT, MPI_FLOAT, MPI_FLOAT, MPI_FLOAT};
+    MPI_Type_free(&type_2D);*/
+    /*
+    int counts[3] = {1, 1, num_Atoms};
+    MPI_Datatype types[3] = {MPI_INT, MPI_INT, MPI_FLOAT};
+    
+    MPI_Type_create_struct(3, counts, displs, types, MPI_Tetrad);
+    MPI_Type_commit(MPI_Tetrad);
+    
+    MPI_Type_free(&type_2D);*/
+
 }
 
 void MPI_Library::free_MPI_Tetrad(MPI_Datatype* MPI_Tetrad) {

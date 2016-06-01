@@ -16,7 +16,6 @@
 
 using namespace std;
 
-
 /* Parameters read from crd file */
 typedef struct _Crd {
     

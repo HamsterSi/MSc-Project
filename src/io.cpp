@@ -58,8 +58,12 @@ void IO::read_Prm(string prm_File) {
                 tetrad[i].eigenvectors[j] = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
             }
             
-            tetrad[i].coordinates   = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
             tetrad[i].velocities    = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            tetrad[i].coordinates   = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            
+            tetrad[i].ED_Forces     = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            tetrad[i].random_Forces = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            tetrad[i].NB_Forces     = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
             
             // Line 3 onwards: Reference (average) structure for the tetrad (x1,y1,z1,x2,y2,z2, etc as in .crd file)
             for (j = 0; j < 3 * tetrad[i].num_Atoms_In_Tetrad; j++) {
@@ -71,7 +75,7 @@ void IO::read_Prm(string prm_File) {
                 fin >> tetrad[i].masses[j];
                 // Spread masses
                 tetrad[i].masses[j+2] = tetrad[i].masses[j+1] = tetrad[i].masses[j];
-                j = j + 3;
+                j += 3;
             }
             
             // Line ? onwards: Non-bonded parameters. Each line contains vdW parameters A and B, and partial charge q, for two atoms (e.g. 1st line: atoms 1 and 2, next line: atoms 3 and 4, etc.).
@@ -155,27 +159,26 @@ void IO::read_Crd(string crd_File, bool redundant) {
  */
 void IO::read_Initial_Crds(void) {
 
-    int i, j, displacement[crd.num_BP+1];
+    int i, j, displs[crd.num_BP+1];
     int num_Atoms, start_Index, end_Index;
     int error_Code;
     
     /* next section sets up some book-keeping stuff and does some sanity checking
      * displacement stores the displacement of base pairs. If the 1st pair is 1, then the
      * 2nd pair displacement is 1 + (3 * the number of atoms in pair 1) */
-    for (displacement[0] = 0, i = 1; i < crd.num_BP+1; i++) {
-        displacement[i] = displacement[i-1] + 3 * crd.num_Atoms_In_BP[i-1];
-        //cout << displacement[i] << "\t";
+    for (displs[0] = 0, i = 1; i < crd.num_BP+1; i++) {
+        displs[i] = displs[i-1] + 3 * crd.num_Atoms_In_BP[i-1];
     }
-    //cout << endl;
 
     for (i = 0; i < prm.num_Tetrads; i++) {
         
         // Sum the number of atoms in 4 BPs in crd.num_Atoms_In_BP
         num_Atoms = crd.num_Atoms_In_BP[i] + crd.num_Atoms_In_BP[i+1] +
             crd.num_Atoms_In_BP[i+2] + crd.num_Atoms_In_BP[i+3];
+        
         // Get the start and end displacement of tetrads in crd.num_Atoms_In_BP
-        start_Index = displacement[i];
-        end_Index   = displacement[i+4] - 1;
+        start_Index = displs[i];
+        end_Index   = displs[i+4] - 1;
         //cout << start_Index << " " << end_Index << ",\t";
 
         // Check if all data is matching
@@ -190,11 +193,11 @@ void IO::read_Initial_Crds(void) {
         // Read in the initial coordinates
         for (j = 0; j < 3 * tetrad[i].num_Atoms_In_Tetrad; j++) {
             tetrad[i].coordinates[j] = crd.ini_BP_Crds[start_Index++];
-            tetrad[i].velocities[j]  = 0.0;
+            tetrad[i].velocities[j]  = tetrad[i].ED_Forces[j]   = 0.0;
+            tetrad[i].random_Forces[j] = tetrad[i].NB_Forces[j] = 0.0;
             //if (i == prm.num_Tetrads-1) cout << crd.ini_BP_Crds[start_Index-1] << "\t";
         }
     }
-    //cout << endl;
 }
 
 
