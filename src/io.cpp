@@ -4,17 +4,23 @@
 
 #include "io.hpp"
 
+
 /*
  *
  */
 IO::IO(void) {
     
     // Default file paths, can be changed in "Config" file
-    prm_File    = "./data//GC90c12.prm";
-    crd_File    = "./data//GC90_6c.crd";
-    forces_File = "./forces.fcs";
-    output_File = "./result.rst";
+    prm_File     = "./data//GC90c12.prm";
+    crd_File     = "./data//GC90_6c.crd";
+    energy_File  = "./results/energies.eng";
+    forces_File  = "./results/forces.fcs";
+    trj_File     = "./results/trajectory.trj";
+    crd_File_New = "./results/crd.crd";
 }
+
+
+
 
 /*
  *
@@ -28,20 +34,19 @@ IO::~IO(void) {
         delete []tetrad[i].masses;
         delete []tetrad[i].abq;
         delete []tetrad[i].eigenvalues;
-        
         for (int j = 0; j < tetrad[i].num_Evecs; j++) {
             delete []tetrad[i].eigenvectors[j];
         }
         delete []tetrad[i].eigenvectors;
-        
         delete []tetrad[i].velocities;
         delete []tetrad[i].coordinates;
-        
         delete []tetrad[i].ED_Forces;
         delete []tetrad[i].random_Forces;
         delete []tetrad[i].NB_Forces;
     }
 }
+
+
 
 
 /*
@@ -61,19 +66,23 @@ void IO::read_Cofig(void) {
     
     if (fin.is_open()) {
     
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 6; i++) {
             fin.getline(line, sizeof(line));
             stringstream file_Path(line);
-            
+
             switch (i) {
                 case 0:
                     file_Path >> s1 >> s2 >> prm_File;    break;
                 case 1:
                     file_Path >> s1 >> s2 >> crd_File;    break;
                 case 2:
-                    file_Path >> s1 >> s2 >> forces_File; break;
+                    file_Path >> s1 >> s2 >> energy_File; break;
                 case 3:
-                    file_Path >> s1 >> s2 >> output_File; break;
+                    file_Path >> s1 >> s2 >> forces_File; break;
+                case 4:
+                    file_Path >> s1 >> s2 >> trj_File;    break;
+                case 5:
+                    file_Path >> s1 >> s2 >> crd_File_New;break;
             }
         }
     
@@ -84,6 +93,8 @@ void IO::read_Cofig(void) {
         exit(1);
     }
 }
+
+
 
 
 /*
@@ -175,6 +186,8 @@ void IO::read_Prm(void) {
         exit(1);
     }
 }
+
+
 
 
 /*
@@ -269,8 +282,48 @@ void IO::read_Initial_Crds(void) {
 }
 
 
+
+
 /*
- * Function: Write out final results, formats needs to be discussed.
+ * Function: Write out energies & temperature of tetrads.
+ *
+ * Parameters: * energies -> Energies & temperature of tetrads
+ *
+ * Returns: None.
+ */
+void IO::write_Energies(float* energies) {
+    
+    ofstream fout;
+    fout.open(energy_File, ios_base::out);
+    
+    if (fout.is_open()) {
+        
+        // Write out energies & temperature
+        fout << "Energies:" << endl;
+        fout << "ED Energy \tNB_Energy \tElectrostatic_Energy \tTemperature" << endl;
+        for (int i = 0; i < 4 * prm.num_Tetrads; ) {
+            fout << energies[i]   << "\t\t";
+            fout << energies[i+1] << "\t\t";
+            fout << energies[i+2] << "\t\t";
+            fout << energies[i+3] << endl;
+            i += 4;
+        }
+        fout << endl;
+        
+        fout.close();
+        
+    } else {
+        cout << ">>> ERROR: Can not open the energy file!" << endl;
+        exit(1);
+    }
+
+}
+
+
+
+
+/*
+ * Function: Write out all ED forces, random forces & NB forces
  *
  * Parameters: * ED_Forces     -> The total ED forces
  *             * random_Forces -> The total random forces
@@ -279,8 +332,9 @@ void IO::read_Initial_Crds(void) {
  * Returns: None.
  */
 void IO::write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces) {
+    
     ofstream fout;
-    fout.open(output_File, ios_base::out);
+    fout.open(forces_File, ios_base::out);
     
     if (fout.is_open()) {
         
@@ -288,26 +342,32 @@ void IO::write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces) 
         
         // Write out ED forces
         fout << "ED Forces:" << endl;
-        for (i = 0, j = 0; i < 3 * crd.total_Atoms; i++) {
-            fout << ED_Forces[i] << "\t";
-            if ((i + 1) % 10 == 0) fout << endl;
-            if (i == 3 * crd.num_Atoms_In_BP[j++]) fout << endl;
+        for (i = 0; i < crd.num_BP; i++) {
+            for (j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << ED_Forces[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+                if ((j + 1) % 10 == 0) fout << endl;
+            }
+            fout << endl;
         }
         
         // Write out random forces
         fout << "\n\nRandom Forces:" << endl;
-        for (i = 0, j = 0; i < 3 * crd.total_Atoms; i++) {
-            fout << random_Forces[i] << "\t";
-            if ((i + 1) % 10 == 0) fout << endl;
-            if (i == 3 * crd.num_Atoms_In_BP[j++]) fout << endl;
+        for (i = 0; i < crd.num_BP; i++) {
+            for (j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << random_Forces[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+                if ((j + 1) % 10 == 0) fout << endl;
+            }
+            fout << endl;
         }
         
         // Write out NB forces
-        fout << "\n\nCoordinates:" << endl;
-        for (i = 0, j = 0; i < 3 * crd.total_Atoms; i++) {
-            fout << NB_Forces[i] << "\t";
-            if ((i + 1) % 10 == 0) fout << endl;
-            if (i == 3 * crd.num_Atoms_In_BP[j++]) fout << endl;
+        fout << "\n\nNB Forces:" << endl;
+        for (i = 0; i < crd.num_BP; i++) {
+            for (j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << NB_Forces[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+                if ((j + 1) % 10 == 0) fout << endl;
+            }
+            fout << endl;
         }
         fout << endl;
         
@@ -319,53 +379,94 @@ void IO::write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces) 
     }
 }
 
+
+
+
+
 /*
- * Function: Write out final results, formats needs to be discussed.
+ * Function: Write out velocities & coordinates
  *
- * Parameters: * energies    -> The energies of tetrads
- *             * velocities  -> The simulated velocities of the whole DNA
- *             * coordinates -> The simulated coordinates of the DNA
+ * Parameters: * coordinates -> The whole coordinates of DNA
  *
  * Returns: None.
  */
-void IO::write_Results(float* energies, float* velocities, float* coordinates) {
+void IO::write_Trajectory(float* coordinates) {
     
     ofstream fout;
-    fout.open(output_File, ios_base::out);
+    fout.open(trj_File, ios_base::out);
     
     if (fout.is_open()) {
         
-        int i, j;
-        
-        // Write out energies
-        fout << "Energies:" << endl;
-        for (i = 0, j = 0; i < 3 * crd.total_Atoms; i++) {
-            fout << energies[i] << "\t";
-            if ((i + 1) % 10 == 0) fout << endl;
-            if (i == 3 * crd.num_Atoms_In_BP[j++]) fout << endl;
-        }
-        
-        // Write out velocities
-        fout << "\n\nVelocities:" << endl;
-        for (i = 0, j = 0; i < 3 * crd.total_Atoms; i++) {
-            fout << velocities[i] << "\t";
-            if ((i + 1) % 10 == 0) fout << endl;
-            if (i == 3 * crd.num_Atoms_In_BP[j++]) fout << endl;
-        }
-        
         // Write out coordinates
-        fout << "\n\nCoordinates:" << endl;
-        for (i = 0, j = 0; i < 3 * crd.total_Atoms; i++) {
-            fout << coordinates[i] << "\t";
-            if ((i + 1) % 10 == 0) fout << endl;
-            if (i == 3 * crd.num_Atoms_In_BP[j++]) fout << endl;
+        fout << "Coordinates:" << endl;
+        
+        for (int i = 0; i < crd.num_BP; i++) {
+            for (int j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << coordinates[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+                if ((j + 1) % 10 == 0) fout << endl;
+            }
+            fout << endl;
         }
         fout << endl;
         
         fout.close();
         
     } else {
-        cout << ">>> ERROR: Can not open the output file!" << endl;
+        cout << ">>> ERROR: Can not open the trajectory file!" << endl;
+        exit(1);
+    }
+}
+
+
+
+/*
+ * Function: Update the crd file for next iteration
+ *
+ * Parameters: * velocities  -> The whole velocities of DNA
+ *             * coordinates -> The whole coordinates of DNA
+ *
+ * Returns: None.
+ */
+void IO::update_Crd(float* velocities, float* coordinates) {
+    
+    ofstream fout;
+    fout.open(crd_File_New, ios_base::out);
+    
+    if (fout.is_open()) {
+        
+        int i, j;
+        
+        // Write out the total number of base pairs
+        fout << crd.num_BP << endl;
+        
+        // Write out the number of atoms in every base pairs
+        for (i = 0; i < crd.num_BP; i++) {
+            fout << crd.num_Atoms_In_BP[i] << endl;
+        }
+        
+        // Write out velocities
+        for (i = 0; i < crd.num_BP; i++) {
+            for (j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << velocities[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+                if ((j + 1) % 10 == 0) fout << endl;
+            }
+            fout << endl;
+        }
+        
+        // Write out coordinates
+        for (i = 0; i < crd.num_BP; i++) {
+            for (j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << coordinates[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+                if ((j + 1) % 10 == 0) fout << endl;
+            }
+            fout << endl;
+        }
+        fout << endl;
+        
+        fout.close();
+        
+    } else {
+        cout << ">>> ERROR: Can not open the new crd file!" << endl;
         exit(1);
     }
 }

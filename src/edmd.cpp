@@ -1,5 +1,6 @@
 #include "edmd.hpp"
 
+
 /*
  * Function:  The constructor of EDMD class
  *
@@ -30,8 +31,10 @@ EDMD::EDMD(void) {
 }
 
 
+
+
 /*
- * Function:  Calculate Ed forces
+ * Function:  Calculate ED forces
  *
  * Parameter:
  *
@@ -155,6 +158,8 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, float scaled) {
 }
 
 
+
+
 /*
  * Function:  Calculate the LV random forces.
  *            Generate the Gaussian stochastic term. Assuming unitless.
@@ -222,6 +227,8 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
 }
 
 
+
+
 /*
  * Function:  Generate the pair list of tetrads.
  *
@@ -282,6 +289,8 @@ void EDMD::generate_Pair_Lists(int pair_List[][2], int num_Tetrads, Tetrad* tetr
 }
 
 
+
+
 /*
  * Function:  Calculate NB forces
  *
@@ -336,6 +345,8 @@ void EDMD::calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2) {
 }
 
 
+
+
 /*
  * Function:  Update velocities & Berendsen temperature control
  *
@@ -375,6 +386,8 @@ void EDMD::update_Velocities(Tetrad* tetrad) {
         tetrad->velocities[i] = tetrad->velocities[i] * tscal;
     }
 }
+
+
 
 
 /*

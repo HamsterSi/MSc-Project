@@ -52,9 +52,13 @@ public:
     
     string crd_File;
     
+    string energy_File;
+    
     string forces_File;
     
-    string output_File;
+    string trj_File;
+    
+    string crd_File_New;
     
     Crd crd;
     
@@ -76,9 +80,13 @@ public:
     
     void read_Initial_Crds(void);
     
+    void write_Energies(float* energies);
+    
     void write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces);
     
-    void write_Results(float* energies, float* velocities, float* coordinates);
+    void write_Trajectory(float* coordinates);
+    
+    void update_Crd(float* velocities, float* coordinates);
     
 };
 

@@ -23,19 +23,18 @@ class Master_Management {
     
 public:
     
+    int size;
+    int max_Atoms;
+    int * displs;
+    
+    float * velocities;
+    float * coordinates;
+    
     EDMD edmd;
     IO io;
     
     MPI_Comm comm;
     MPI_Status status;
-    
-    int size;
-    int max_Atoms;
-    int * displs;
-    
-    float * whole_Energies;
-    float * whole_Velocities;
-    float * whole_Coordinates;
     
 public:
     
@@ -45,15 +44,23 @@ public:
     
     void initialise(void);
     
-    void parameters_Sending(void);
+    void send_Parameters(void);
     
-    void tetrads_Sending(void);
+    void send_Tetrads(void);
     
-    void force_Calculation(void);
+    void force_Passing(void);
     
-    void velocity_Calculation(void);
+    void cal_Velocities(void);
     
-    void coordinate_Calculation(void);
+    void cal_Coordinate(void);
+    
+    void write_Energy(void);
+    
+    void write_Forces(void);
+    
+    void write_Trajectory(void);
+    
+    void update_Crd_File(void);
     
     void finalise(void);
     

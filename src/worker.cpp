@@ -1,9 +1,9 @@
 
 #include "worker.hpp"
 
+
 /*
- * The constructor of Master_Management class
- * Function:  Construct Worker Management class
+ * Function:  The constructor of Master_Management class.
  *
  * Parameter: None
  *
@@ -19,9 +19,11 @@ Worker_Management::Worker_Management(void) {
 }
 
 
+
+
 /*
- * The destructor of Master_Management class
- * Function:  Deallocate memory etc.
+ * Function:  The destructor of Master_Management class. 
+ *            Deallocate memory.
  *
  * Parameter: None
  *
@@ -52,8 +54,9 @@ Worker_Management::~Worker_Management(void) {
 }
 
 
+
+
 /*
- * Receive parameters
  * Function:  Workers receive the number of tetrads, number of atoms in every tetrad
  *            and number of evecs from the master process
  *
@@ -61,7 +64,7 @@ Worker_Management::~Worker_Management(void) {
  *
  * Return:    None
  */
-void Worker_Management::parameters_Receiving(void) {
+void Worker_Management::recv_Parameters(void) {
     
     int i, j, signal = 1, parameters[2];
     
@@ -100,21 +103,22 @@ void Worker_Management::parameters_Receiving(void) {
         tetrad[i].temperature = 0.0;
     }
     
-    // Send feedback to the master process that has received all parameters.
+    // Send feedback to master that has received all parameters.
     MPI_Send(&signal, 1, MPI_INT, 0, TAG_DATA, comm);
     
 }
 
 
+
+
 /*
- * Receive tetrads
  * Function:  Workers receive tetrads from the master process
  *
  * Parameter: None
  *
  * Return:    None
  */
-void Worker_Management::tetrads_Receiving(void) {
+void Worker_Management::recv_Tetrads(void) {
     
     int i, signal = 1;
     MPI_Datatype MPI_Tetrad;
@@ -143,20 +147,17 @@ void Worker_Management::tetrads_Receiving(void) {
         MPI_Recv(&tetrad[i], 1, MPI_Tetrad, 0, TAG_TETRAD+i, comm, &status);
         MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);*/
     }
-    /*
-    for (int i = 0; i < 3 * tetrad[89].num_Atoms; i++) {
-        cout << tetrad[89].coordinates[i] << " "; if ((i+1)%10 == 0) cout << endl;
-    }
-    cout << endl;*/
     
-    // Send feedback to the master process that has received all tetrads
+    // Send feedback to master that has received all tetrads
     MPI_Send(&signal, 1, MPI_INT, 0, TAG_TETRAD, comm);
 }
 
 
+
+
 /*
- * Function:  Receive tetrad parameters, Compute ED forces of tetrad &
- *            Send the calculated ED forces back to the master.
+ * Function:  Compute ED forces of tetrads.
+ *            Send calculated ED/random forces back to master.
  *
  * Parameter: None
  *
@@ -189,20 +190,16 @@ void Worker_Management::ED_Calculation(void) {
     // Send the calculated ED forces, ED energy, random forces & index back
     MPI_Send(&(ED_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, 0, TAG_ED, comm);
     
-    /*
-    if (index == 89 ) {
-        for (int i = 0; i < 3 * tetrad[index].num_Atoms; i++) {
-            cout << ED_Forces[0][i] << "\t"; if ((i+1)%10 == 0) cout << endl;
-        } cout << endl; }*/
-    
     //cout << "Rank " << setw(3) << rank << " computed ED forces on Tetrad " << setw(3) << index << endl;
     
 }
 
 
+
+
 /*
- * Function:  Receive tetrad parameters, Compute NB forces of tetrad &
- *            Send the calculated NB forces back to the master.
+ * Function:  Compute NB forces of tetrads.
+ *            Send calculated NB forces back to master.
  *
  * Parameter: None
  *
@@ -236,14 +233,9 @@ void Worker_Management::NB_Calculation(void) {
     // Send NB forces, energies & indexes back to the master process
     MPI_Send(&(NB_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, 0, TAG_NB, comm);
     
-    /*
-    if (indexes[0] == 83) {
-        for (int i = 0 ; i < 2; i++) {
-            for (int j = 0 ; j < 3 * max_Atoms+2; j++) {
-                cout << NB_Forces[i][j] << " "; if ((i+1)%10 == 0) cout << endl;
-            } cout << endl;
-        } cout << endl;
-    }*/
-    
     //cout << "Rank " << setw(3) << rank << " computed NB forces on Tetrad " << setw(3) << indexes[0] << " and " << setw(3) << indexes[1] << endl;
 }
+
+
+
+

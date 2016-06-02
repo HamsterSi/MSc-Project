@@ -1,9 +1,10 @@
 
 #include "master.hpp"
 
+
 /*
- * The constructor of Master_Management class
- * Function:  Read-in tetrads parameters, memory allocation and other initialisation
+ * Function:  The constructor of Master_Management class.
+ *            Read-in tetrads parameters, memory allocation and other initialisation
  *
  * Parameter: None
  *
@@ -12,14 +13,18 @@
 Master_Management::Master_Management(void) {
     
     comm = MPI_COMM_WORLD;
+    
+    // Get the size of MPI processes
     MPI_Comm_size(comm, &size);
 
 }
 
 
+
+
 /*
- * The destructor of Master_Management class
- * Function:  Deallocate memory etc.
+ * Function:  The destructor of Master_Management class. 
+ *            Deallocate memory of arrays.
  *
  * Parameter: None
  *
@@ -28,15 +33,16 @@ Master_Management::Master_Management(void) {
 Master_Management::~Master_Management(void) {
     
     delete []displs;
-    delete []whole_Velocities;
-    delete []whole_Coordinates;
+    delete []velocities;
+    delete []coordinates;
     
 }
 
 
+
+
 /*
- * Initialise the simulation
- * Function:  Master reads data from files and allocate memory for arrays;
+ * Function:  Master reads data from files and initialise the simulation;
  *
  * Parameter: None
  *
@@ -71,15 +77,14 @@ void Master_Management::initialise(void) {
     }
     
     // Allocate memory for arrays & initialise
-    whole_Energies    = new float [3 * io.crd.total_Atoms];
-    whole_Velocities  = new float [3 * io.crd.total_Atoms];
-    whole_Coordinates = new float [3 * io.crd.total_Atoms];
+    velocities  = new float [3 * io.crd.total_Atoms];
+    coordinates = new float [3 * io.crd.total_Atoms];
     for (i = 0; i < io.crd.total_Atoms; i++) {
-        whole_Energies[i] = whole_Velocities[i] = whole_Coordinates[i] = 0.0;
+        velocities[i] = coordinates[i] = 0.0;
     }
     
     // Generate diplacements of BP
-    displs = new int[io.prm.num_Tetrads];
+    displs = new int[io.crd.num_BP];
     for (displs[0] = 0, i = 1; i < io.crd.num_BP; i++) {
         displs[i] = displs[i-1] + 3 * io.crd.num_Atoms_In_BP[i];
     }
@@ -91,16 +96,17 @@ void Master_Management::initialise(void) {
 }
 
 
+
+
 /*
- * Send parameters
- * Function:  Master send the number of tetrads, number of atoms in every tetrad 
+ * Function:  Master sends the number of tetrads, number of atoms in every tetrad
  *            and number of evecs to worker processes
  *
  * Parameter: None
  *
  * Return:    None
  */
-void Master_Management::parameters_Sending(void) {
+void Master_Management::send_Parameters(void) {
     
     int parameters[2] = {io.prm.num_Tetrads, max_Atoms};
     int i, signal, *num_Atoms_N_Evecs;
@@ -131,15 +137,16 @@ void Master_Management::parameters_Sending(void) {
 }
 
 
+
+
 /*
- * Send tetrads
- * Function:  Master send tetrads to worker processes
+ * Function:  Master sends tetrads to worker processes
  *
  * Parameter: None
  *
  * Return:    None
  */
-void Master_Management::tetrads_Sending(void) {
+void Master_Management::send_Tetrads(void) {
     
     int i, j, signal;
     MPI_Datatype MPI_Tetrad;
@@ -182,16 +189,17 @@ void Master_Management::tetrads_Sending(void) {
 }
 
 
+
+
 /*
- * Master ED forces management
- * Function:  Distrubute ED force calculation among workers,
+ * Function:  Master ED forces management. Distrubute ED force calculation among workers,
  *            Main job is to send tetrad parameters to workers to compute ED forces.
  *
  * Parameter: None
  *
  * Return:    None
  */
-void Master_Management::force_Calculation(void) {
+void Master_Management::force_Passing(void) {
     
     int i, j, k, flag, index, indexes[2], effective_PL = 0;
     int num_PL = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
@@ -202,7 +210,7 @@ void Master_Management::force_Calculation(void) {
     int pair_List[num_PL][2];
     edmd.generate_Pair_Lists(pair_List, io.prm.num_Tetrads, io.tetrad);
     
-    cout << "Forces calculation starting..." << endl;
+    cout << "Calculation starting...\n>>> Calculating forces..." << endl;
     cout << ">>> Pair list number: " << num_PL << endl;
     for (i = 0; i < num_PL; i++) {
         if (pair_List[i][0] + pair_List[i][1] != -2) effective_PL++;
@@ -237,17 +245,22 @@ void Master_Management::force_Calculation(void) {
                 io.tetrad[index].ED_Forces[k]     += temp_Forces[0][k];
                 io.tetrad[index].random_Forces[k] += temp_Forces[1][k];
             }
+            io.tetrad[index].energies[0] = temp_Forces[0][3 * max_Atoms];
             
         // Stroe NB forces
         } else if (status.MPI_TAG == TAG_NB) {
             index = (int) temp_Forces[0][3 * max_Atoms + 1];
             for (k = 0; k < 3 * io.tetrad[index].num_Atoms; k++) {
                 io.tetrad[index].NB_Forces[k] += temp_Forces[0][k];
-            } 
+            }
+            io.tetrad[index].energies[1] += temp_Forces[0][3 * max_Atoms];
+            io.tetrad[index].energies[2] += temp_Forces[1][3 * max_Atoms];
             index = (int) temp_Forces[1][3 * max_Atoms + 1];
             for (k = 0; k < 3 * io.tetrad[index].num_Atoms; k++) {
                 io.tetrad[index].NB_Forces[k] += temp_Forces[1][k];
             }
+            io.tetrad[index].energies[1] += temp_Forces[0][3 * max_Atoms];
+            io.tetrad[index].energies[2] += temp_Forces[1][3 * max_Atoms];
             
         }
         
@@ -277,29 +290,22 @@ void Master_Management::force_Calculation(void) {
         }
     }
     
-    /*
-    for (j = 0; j < 3 * io.tetrad[89].num_Atoms; j++) {
-        cout << io.tetrad[89].ED_Forces[j] << " ";
-    } cout << endl;*/
-    
-    cout << "Forces calculation completed.\n" << endl;
-    
 }
 
 
+
 /*
- * Master updates velocities
- * Function:  Update Velocities & Berendsen temperature control
+ * Function:  Master updates Velocities & Berendsen temperature control
  *
  * Parameter: None
  *
  * Return:    None
  */
-void Master_Management::velocity_Calculation(void) {
+void Master_Management::cal_Velocities(void) {
     
     int i, j, index;
     
-    cout << "Velocities calculation starting..." << endl;
+    cout << ">>> Calculating velocities..." << endl;
     
     // Calculate velocities of every tetrad
     for (i = 0; i < io.prm.num_Tetrads; i++) {
@@ -308,42 +314,33 @@ void Master_Management::velocity_Calculation(void) {
     
     // v(posX1:posX2) = v(posX1:posX2) + xslice(1:posX2-posX1+1)
     // Aggregate all velocities together for easily wirting out
-    for (i = 0; i < io.prm.num_Tetrads; i++) {
+    for (i = 0; i < io.crd.num_BP; i++) {
         for (index = displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            whole_Velocities[index++] += io.tetrad[i].velocities[j];
+            velocities[index++] += io.tetrad[i].velocities[i * 3 * io.tetrad[i].num_Atoms + j];
         }
     }
     
     // Needs to consider whether it's circular or linear
-    
-    for (i = 0; i < io.crd.total_Atoms; i++) {
-        whole_Velocities[i] *= 0.25;
+    for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
+        velocities[i] *= 0.25;
     }
-    
-    /*
-     for (int i = 0;  i < 3 * io.crd.total_Atoms; i++) {
-     cout << whole_Velocities[i] << "\t"; if ((i+1)%10 == 0) cout << endl;
-     }
-     cout << endl;*/
-    
-    cout << "Velocities calculation complteted.\n" << endl;
     
 }
 
 
+
 /*
- * Master updates coordinates
- * Function:  Update Coordinates
+ * Function:  Master updates Coordinates
  *
  * Parameter: None
  *
  * Return:    None
  */
-void Master_Management::coordinate_Calculation(void) {
+void Master_Management::cal_Coordinate(void) {
     
     int i, j, index;
     
-    cout << "Coordinates calculation starting..." << endl;
+    cout << ">>> Calculating Coordinates..." << endl;
     
     // Calculate coordinates of all tetrads
     for (i = 0; i < io.prm.num_Tetrads; i++) {
@@ -352,30 +349,135 @@ void Master_Management::coordinate_Calculation(void) {
     
     // x(posX1:posX2) = x(posX1:posX2) + xslice(1:posX2-posX1+1)
     // Aggregate all coordinates together for easily wirting out
-    for (i = 0; i < io.prm.num_Tetrads; i++) {
+    for (i = 0; i < io.crd.num_BP; i++) {
         for (index = displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            whole_Coordinates[index++] += io.tetrad[i].coordinates[j];
+            coordinates[index++] += io.tetrad[i].coordinates[i * 3 * io.tetrad[i].num_Atoms + j];
         }
     }
     
     // Needs to consider whether it's circular or linear
-    
-    for (i = 0; i < io.crd.total_Atoms; i++) {
-        whole_Coordinates[i] *= 0.25;
+    for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
+        coordinates[i] *= 0.25;
     }
-    
     /*
-    for (int i = 0;  i < 3 * io.crd.total_Atoms; i++) {
-        cout << whole_Coordinates[i] << "\t"; if ((i+1)%10 == 0) cout << endl;
+    for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
+        cout << setw(10) << coordinates[i] << " "; if((i+1)%10==0)cout << endl;
     }
     cout << endl;*/
-
-    cout << "Coordinates calculation complteted.\n" << endl;
+    
+    cout << "Calculation completed.\n" << endl;
 }
 
+
+
+
 /*
- * Master terminates all workers
- * Function:  Terminate worker processes
+ * Function:  Master writes out energies of all tetrads
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
+void Master_Management::write_Energy(void) {
+    
+    int i, j;
+    float * energies = new float [4 * io.prm.num_Tetrads];
+    
+    cout << "Write out results...\n>>> Write out energies..." << endl;
+    
+    // Gather all energies & temperature of tetrads together
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        for (j = 0; j < 3; j++) {
+            energies[i * 4 + j] = io.tetrad[i].energies[j];
+        }
+        energies[i * 4 + j] = io.tetrad[i].temperature;
+    }
+    
+    // Wrtie out energies
+    io.write_Energies(energies);
+    
+    delete []energies;
+}
+
+
+
+
+/*
+ * Function:  Master writes out forces of all atoms in DNA
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
+void Master_Management::write_Forces(void) {
+    
+    int i, j, index;
+    float * ED_Forces     = new float [3 * io.crd.total_Atoms];
+    float * random_Forces = new float [3 * io.crd.total_Atoms];
+    float * NB_Forces     = new float [3 * io.crd.total_Atoms];
+    
+    cout << ">>> Write out forces..." << endl;
+    
+    // Gather all forcees together into three arrays
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        for (index = displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
+            ED_Forces[index++]     += io.tetrad[i].ED_Forces[i * 3 * io.tetrad[i].num_Atoms + j];
+            random_Forces[index++] += io.tetrad[i].random_Forces[i * 3 * io.tetrad[i].num_Atoms + j];
+            NB_Forces[index++]     += io.tetrad[i].NB_Forces[i * 3 * io.tetrad[i].num_Atoms + j];
+        }
+    }
+    
+    // Write out all forces
+    io.write_Forces(ED_Forces, random_Forces, NB_Forces);
+    
+    delete []ED_Forces;
+    delete []random_Forces;
+    delete []NB_Forces;
+    
+}
+
+
+
+
+/*
+ * Function:  Master writes out coordinates of all atoms in DNA
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
+void Master_Management::write_Trajectory(void) {
+
+    cout << ">>> Write out trajectories..." << endl;
+    
+    // Write out coordinates
+    io.write_Trajectory(coordinates);
+}
+
+
+
+/*
+ * Function:  Master updates crd file for the next simulation
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
+void Master_Management::update_Crd_File(void) {
+    
+    cout << ">>> Update crd file..." << endl;
+    
+    // Write out crd file
+    io.update_Crd(velocities, coordinates);
+    
+    cout << "Write completed." << endl;
+}
+
+
+
+
+/*
+ * Function:  Master terminates worker processes
  *
  * Parameter: None
  *
@@ -387,9 +489,6 @@ void Master_Management::finalise(void) {
     for (int signal = -1, i = 1; i < size; i++) {
         MPI_Send(&signal, 1, MPI_INT, i, TAG_DEATH, comm);
     }
-    
-    // Write out the results to new file (Format to be discussed)
-    io.write_Results(whole_Energies, whole_Velocities, whole_Coordinates);
     
     cout << "Simulation ended.\n" << endl;
     

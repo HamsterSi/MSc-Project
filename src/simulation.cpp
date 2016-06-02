@@ -12,15 +12,23 @@ void master_Code(void) {
     
     master.initialise();
     
-    master.parameters_Sending();
+    master.send_Parameters();
     
-    master.tetrads_Sending();
+    master.send_Tetrads();
     
-    master.force_Calculation();
+    master.force_Passing();
     
-    master.velocity_Calculation();
+    master.cal_Velocities();
     
-    master.coordinate_Calculation();
+    master.cal_Coordinate();
+    
+    master.write_Energy();
+    
+    master.write_Forces();
+    
+    master.write_Trajectory();
+    
+    master.update_Crd_File();
     
     master.finalise();
     
@@ -29,6 +37,8 @@ void master_Code(void) {
     cout << "Time usage for the simualtion: " << time_Usage << "\n" << endl;
     
 }
+
+
 
 /*
  * Function: Manage the worker working progress
@@ -45,10 +55,10 @@ void worker_Code() {
         if (flag)
         {
             if (status.MPI_TAG == TAG_DATA) {
-                worker.parameters_Receiving();
+                worker.recv_Parameters();
                 
             } else if (status.MPI_TAG >= TAG_TETRAD) {
-                worker.tetrads_Receiving();
+                worker.recv_Tetrads();
                 
             } else if (status.MPI_TAG == TAG_ED) {
                 worker.ED_Calculation();

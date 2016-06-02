@@ -39,9 +39,9 @@ public:
     
     ~Worker_Management(void);
     
-    void parameters_Receiving(void);
+    void recv_Parameters(void);
     
-    void tetrads_Receiving(void);
+    void recv_Tetrads(void);
     
     void ED_Calculation(void);
     
