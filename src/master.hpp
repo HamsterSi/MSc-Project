@@ -24,30 +24,23 @@ class Master_Management {
 public:
     
     string prm_File;
+    
     string crd_File;
+    
     string output_File;
     
     EDMD edmd;
     IO io;
     
     MPI_Comm comm;
+    MPI_Status status;
     
     int size;
     int max_Atoms;
+    int * displs;
     
-    float *masses;
-    float *displacement;
-    
-    float **ED_Forces;
-    float *total_ED_Forces;
-    
-    float **NB_Forces;
-    float *total_NB_Forces;
-    float *langevin_Forces;
-    
-    float *total_Velocities;
-    float *total_Coordinates;
-    
+    float * whole_Velocities;
+    float * whole_Coordinates;
     
 public:
     
@@ -61,15 +54,11 @@ public:
     
     void tetrads_Sending(void);
     
-    void tetrad_Received_Signal(void);
+    void force_Calculation(void);
     
-    void force_Passing(void);
+    void velocity_Calculation(void);
     
-    void calculate_Total_Forces(void);
-    
-    void velocities(void);
-    
-    void coordinates(void);
+    void coordinate_Calculation(void);
     
     void finalise(void);
     
