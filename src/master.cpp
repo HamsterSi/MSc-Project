@@ -11,10 +11,6 @@
  */
 Master_Management::Master_Management(void) {
     
-    prm_File = "./data//GC90c12.prm";
-    crd_File = "./data//GC90_6c.crd";
-    output_File = "./result.rst";
-    
     comm = MPI_COMM_WORLD;
     MPI_Comm_size(comm, &size);
 
@@ -53,11 +49,13 @@ void Master_Management::initialise(void) {
     cout << "Size of MPI processes: " << size << endl;
     
     cout << "\nSimulation starting...\n\nData reading starting..." << endl;
+    io.read_Cofig();
+    
     cout << ">>> Reading prm file..." << endl;
-    io.read_Prm(prm_File);
+    io.read_Prm();
     
     cout << ">>> Read prm file finished\n>>> Reading crd file..." << endl;
-    io.read_Crd(crd_File, true); // "true" for circular, "flase" for linar
+    io.read_Crd(true); // "true" for circular, "flase" for linar
     
     cout << ">>> Read crd file finished" << endl;
     io.read_Initial_Crds();
@@ -73,10 +71,11 @@ void Master_Management::initialise(void) {
     }
     
     // Allocate memory for arrays & initialise
-    whole_Velocities  = new float[3 * io.crd.total_Atoms];
-    whole_Coordinates = new float[3 * io.crd.total_Atoms];
+    whole_Energies    = new float [3 * io.crd.total_Atoms];
+    whole_Velocities  = new float [3 * io.crd.total_Atoms];
+    whole_Coordinates = new float [3 * io.crd.total_Atoms];
     for (i = 0; i < io.crd.total_Atoms; i++) {
-        whole_Velocities[i] = whole_Coordinates[i] = 0.0;
+        whole_Energies[i] = whole_Velocities[i] = whole_Coordinates[i] = 0.0;
     }
     
     // Generate diplacements of BP
@@ -390,7 +389,7 @@ void Master_Management::finalise(void) {
     }
     
     // Write out the results to new file (Format to be discussed)
-    io.write_Results(output_File, whole_Velocities, whole_Coordinates);
+    io.write_Results(whole_Energies, whole_Velocities, whole_Coordinates);
     
     cout << "Simulation ended.\n" << endl;
     

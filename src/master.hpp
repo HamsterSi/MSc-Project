@@ -23,12 +23,6 @@ class Master_Management {
     
 public:
     
-    string prm_File;
-    
-    string crd_File;
-    
-    string output_File;
-    
     EDMD edmd;
     IO io;
     
@@ -39,6 +33,7 @@ public:
     int max_Atoms;
     int * displs;
     
+    float * whole_Energies;
     float * whole_Velocities;
     float * whole_Coordinates;
     

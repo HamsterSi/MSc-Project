@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <string>
 #include <fstream>
+#include <sstream>
 #include "mpi.h"
 
 #include "tetrad.hpp"
@@ -47,6 +48,14 @@ class IO {
     
 public:
     
+    string prm_File;
+    
+    string crd_File;
+    
+    string forces_File;
+    
+    string output_File;
+    
     Crd crd;
     
     Prm prm;
@@ -55,15 +64,21 @@ public:
     
 public:
     
+    IO(void);
+    
     ~IO(void);
     
-    void read_Prm(string prm_File);
+    void read_Cofig(void);
     
-    void read_Crd(string crd_File, bool redundant);
+    void read_Prm(void);
+    
+    void read_Crd(bool redundant);
     
     void read_Initial_Crds(void);
     
-    void write_Results(string output_File, float* velocities, float* coordinates);
+    void write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces);
+    
+    void write_Results(float* energies, float* velocities, float* coordinates);
     
 };
 
