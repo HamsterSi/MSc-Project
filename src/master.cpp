@@ -314,9 +314,9 @@ void Master_Management::cal_Velocities(void) {
     
     // v(posX1:posX2) = v(posX1:posX2) + xslice(1:posX2-posX1+1)
     // Aggregate all velocities together for easily wirting out
-    for (i = 0; i < io.crd.num_BP; i++) {
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (index = displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            velocities[index++] += io.tetrad[i].velocities[i * 3 * io.tetrad[i].num_Atoms + j];
+            velocities[index++] += io.tetrad[i].velocities[j];
         }
     }
     
@@ -349,9 +349,9 @@ void Master_Management::cal_Coordinate(void) {
     
     // x(posX1:posX2) = x(posX1:posX2) + xslice(1:posX2-posX1+1)
     // Aggregate all coordinates together for easily wirting out
-    for (i = 0; i < io.crd.num_BP; i++) {
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (index = displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            coordinates[index++] += io.tetrad[i].coordinates[i * 3 * io.tetrad[i].num_Atoms + j];
+            coordinates[index++] += io.tetrad[i].coordinates[j];
         }
     }
     
@@ -421,9 +421,9 @@ void Master_Management::write_Forces(void) {
     // Gather all forcees together into three arrays
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (index = displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            ED_Forces[index++]     += io.tetrad[i].ED_Forces[i * 3 * io.tetrad[i].num_Atoms + j];
-            random_Forces[index++] += io.tetrad[i].random_Forces[i * 3 * io.tetrad[i].num_Atoms + j];
-            NB_Forces[index++]     += io.tetrad[i].NB_Forces[i * 3 * io.tetrad[i].num_Atoms + j];
+            ED_Forces[index++]     += io.tetrad[i].ED_Forces[j];
+            random_Forces[index++] += io.tetrad[i].random_Forces[j];
+            NB_Forces[index++]     += io.tetrad[i].NB_Forces[j];
         }
     }
     
@@ -470,7 +470,7 @@ void Master_Management::update_Crd_File(void) {
     // Write out crd file
     io.update_Crd(velocities, coordinates);
     
-    cout << "Write completed." << endl;
+    cout << "Write completed.\n" << endl;
 }
 
 
