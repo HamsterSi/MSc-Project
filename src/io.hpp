@@ -55,6 +55,8 @@ public:
     
 public:
     
+    ~IO(void);
+    
     void read_Prm(string prm_File);
     
     void read_Crd(string crd_File, bool redundant);

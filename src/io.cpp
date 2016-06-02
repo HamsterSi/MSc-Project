@@ -4,6 +4,33 @@
 
 #include "io.hpp"
 
+/*
+ *
+ */
+IO::~IO(void) {
+    
+    // Deallocate memory spaces of tetrads
+    for (int i = 0; i < prm.num_Tetrads; i++) {
+        
+        delete []tetrad[i].avg_Structure;
+        delete []tetrad[i].masses;
+        delete []tetrad[i].abq;
+        delete []tetrad[i].eigenvalues;
+        
+        for (int j = 0; j < tetrad[i].num_Evecs; j++) {
+            delete []tetrad[i].eigenvectors[j];
+        }
+        delete []tetrad[i].eigenvectors;
+        
+        delete []tetrad[i].velocities;
+        delete []tetrad[i].coordinates;
+        
+        delete []tetrad[i].ED_Forces;
+        delete []tetrad[i].random_Forces;
+        delete []tetrad[i].NB_Forces;
+    }
+}
+
 
 /*
  * Function:   Read-in the prm file.
@@ -31,34 +58,37 @@ void IO::read_Prm(string prm_File) {
         for (i = 0; i < prm.num_Tetrads; i++) {
             
             // Line 2: Number of atoms in the tetrad, and number of eigenvectors
-            fin >> tetrad[i].num_Atoms;
+            fin >> tetrad[i].num_Atoms_In_Tetrad;
             fin >> tetrad[i].num_Evecs;
             
             // Allocate memory for arrays in tetrads
-            tetrad[i].avg_Structure = new float[3 * tetrad[i].num_Atoms];
-            tetrad[i].masses        = new float[3 * tetrad[i].num_Atoms];
-            tetrad[i].abq           = new float[3 * tetrad[i].num_Atoms];
+            tetrad[i].avg_Structure = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            tetrad[i].masses        = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            tetrad[i].abq           = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
             
             tetrad[i].eigenvalues   = new float[tetrad[i].num_Evecs];
             tetrad[i].eigenvectors  = new float* [tetrad[i].num_Evecs];
             for (j = 0; j < tetrad[i].num_Evecs; j++) {
-                tetrad[i].eigenvectors[j] = new float[3 * tetrad[i].num_Atoms];
+                tetrad[i].eigenvectors[j] = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
             }
             
-            tetrad[i].velocities    = new float[3 * tetrad[i].num_Atoms];
-            tetrad[i].coordinates   = new float[3 * tetrad[i].num_Atoms];
+            tetrad[i].velocities    = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            tetrad[i].coordinates   = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
             
-            tetrad[i].ED_Forces     = new float[3 * tetrad[i].num_Atoms];
-            tetrad[i].random_Forces = new float[3 * tetrad[i].num_Atoms];
-            tetrad[i].NB_Forces     = new float[3 * tetrad[i].num_Atoms];
+            tetrad[i].ED_Forces     = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            tetrad[i].random_Forces = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            tetrad[i].NB_Forces     = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            
+            tetrad[i].energies[0] = tetrad[i].energies[1] = tetrad[i].energies[2] = 0.0;
+            tetrad[i].temperature = 0.0;
             
             // Line 3 onwards: Reference (average) structure for the tetrad (x1,y1,z1,x2,y2,z2, etc as in .crd file)
-            for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {
+            for (j = 0; j < 3 * tetrad[i].num_Atoms_In_Tetrad; j++) {
                 fin >> tetrad[i].avg_Structure[j];
             }
             
             // Line ? onwards: Masses for each atom (amu)
-            for (j = 0; j < 3 * tetrad[i].num_Atoms; ) {
+            for (j = 0; j < 3 * tetrad[i].num_Atoms_In_Tetrad; ) {
                 fin >> tetrad[i].masses[j];
                 // Spread masses
                 tetrad[i].masses[j+2] = tetrad[i].masses[j+1] = tetrad[i].masses[j];
@@ -66,7 +96,7 @@ void IO::read_Prm(string prm_File) {
             }
             
             // Line ? onwards: Non-bonded parameters. Each line contains vdW parameters A and B, and partial charge q, for two atoms (e.g. 1st line: atoms 1 and 2, next line: atoms 3 and 4, etc.).
-            for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {
+            for (j = 0; j < 3 * tetrad[i].num_Atoms_In_Tetrad; j++) {
                 fin >> tetrad[i].abq[j];
             }
             
@@ -78,7 +108,7 @@ void IO::read_Prm(string prm_File) {
             // (etc to the last eigenvector of this tetrad)
             for (j = 0; j < tetrad[i].num_Evecs; j++) {
                 fin >> tetrad[i].eigenvalues[j];
-                for (k = 0; k < 3 * tetrad[i].num_Atoms; k++) {
+                for (k = 0; k < 3 * tetrad[i].num_Atoms_In_Tetrad; k++) {
                     fin >> tetrad[i].eigenvectors[j][k];
                 }
             }
@@ -168,7 +198,7 @@ void IO::read_Initial_Crds(void) {
         end_Index   = displs[i+4] - 1;
 
         // Check if all data is matching
-        if (num_Atoms != tetrad[i].num_Atoms) {
+        if (num_Atoms != tetrad[i].num_Atoms_In_Tetrad) {
             cout << ">>> ERROR: The number of atoms in crd file is wrong." << endl;
             MPI_Abort(MPI_COMM_WORLD, error_Code);
         } else if ((end_Index - start_Index + 1) != (3 * num_Atoms)) {
@@ -177,7 +207,7 @@ void IO::read_Initial_Crds(void) {
         }
         
         // Read in the initial coordinates
-        for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {
+        for (j = 0; j < 3 * tetrad[i].num_Atoms_In_Tetrad; j++) {
             tetrad[i].coordinates[j] = crd.ini_BP_Crds[start_Index++];
             tetrad[i].velocities[j]  = tetrad[i].ED_Forces[j]   = 0.0;
             tetrad[i].random_Forces[j] = tetrad[i].NB_Forces[j] = 0.0;

@@ -56,13 +56,13 @@ public:
     
     EDMD(void);
     
-    void calculate_ED_Forces(Tetrad* tetrad, float* forces, float scaled, int ED_Energy);
+    void calculate_ED_Forces(Tetrad* tetrad, float scaled);
     
-    void calculate_Random_Forces(Tetrad* tetrad, float* random_Forces);
+    void calculate_Random_Forces(Tetrad* tetrad);
     
     void generate_Pair_Lists(int pair_List[][2], int num_Tetrads, Tetrad* tetrad);
     
-    void calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2, float* NB_Forces1, float* NB_Forces2, int energy_Index);
+    void calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2);
     
     void update_Velocities(Tetrad* tetrad);
     

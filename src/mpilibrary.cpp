@@ -9,9 +9,9 @@
 #include "mpilibrary.hpp"
 
 void MPI_Library::create_Tetrad_Package(Tetrad* tetrad, float* buffer, int* position) {
-    int num_Atoms = 3 * tetrad->num_Atoms;
+    int num_Atoms = 3 * tetrad->num_Atoms_In_Tetrad;
     int total_Elements = 2 + 5 * num_Atoms + tetrad->num_Evecs * (1 + num_Atoms);
-    float atoms = tetrad->num_Atoms, evecs = tetrad->num_Evecs;
+    float atoms = tetrad->num_Atoms_In_Tetrad, evecs = tetrad->num_Evecs;
     *position = 0;
     MPI_Comm comm = MPI_COMM_WORLD;
     
@@ -35,7 +35,7 @@ void MPI_Library::unpack_Tetrad_Package(Tetrad* tetrad, float* buffer, int num_A
     MPI_Comm comm = MPI_COMM_WORLD;
     
     MPI_Unpack(buffer, total_Elements, &position, &atoms, 1, MPI_INT, comm);
-    tetrad->num_Atoms = (int) atoms;
+    tetrad->num_Atoms_In_Tetrad = (int) atoms;
     MPI_Unpack(buffer, total_Elements, &position, &evecs, 1, MPI_INT, comm);
     tetrad->num_Evecs = (int) evecs;
     
@@ -50,7 +50,7 @@ void MPI_Library::unpack_Tetrad_Package(Tetrad* tetrad, float* buffer, int num_A
 }
 
 void MPI_Library::create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, Tetrad* tetrad) {
-    int num_Atoms = 3 * tetrad->num_Atoms;
+    int num_Atoms = 3 * tetrad->num_Atoms_In_Tetrad;
     
     // For 2D array "eigenvectors"
     MPI_Datatype type_2D;
@@ -64,7 +64,7 @@ void MPI_Library::create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, Tetrad* tetrad) {
     MPI_Aint base, displs[9];
     
     MPI_Address(tetrad, &base);
-    MPI_Address(&(tetrad->num_Atoms), &displs[0]);
+    MPI_Address(&(tetrad->num_Atoms_In_Tetrad), &displs[0]);
     MPI_Address(&(tetrad->num_Evecs), &displs[1]);
     MPI_Address(&(tetrad->avg_Structure), &displs[2]);
     MPI_Address(&(tetrad->masses), &displs[3]);
@@ -86,7 +86,7 @@ void MPI_Library::create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, Tetrad* tetrad) {
         2*sizeof(int) + 4*num_Atoms*sizeof(float) + tetrad->num_Evecs*sizeof(float) + tetrad->num_Evecs*num_Atoms*sizeof(float),
     };
     
-    MPI_Aint displs[9] = { offsetof(Tetrad, num_Atoms),
+    MPI_Aint displs[9] = { offsetof(Tetrad, num_Atoms_In_Tetrad),
         offsetof(Tetrad, num_Evecs),    offsetof(Tetrad, avg_Structure),
         offsetof(Tetrad, masses),       offsetof(Tetrad, abq),
         offsetof(Tetrad, eigenvalues),  offsetof(Tetrad, eigenvectors),
