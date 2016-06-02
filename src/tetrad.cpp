@@ -11,7 +11,7 @@
 /*
 Tetrad::Tetrad(void) {
     
-    num_Atoms_In_Tetrad = 0;
+    num_Atoms = 0;
     num_Evecs = 0;
     
 }

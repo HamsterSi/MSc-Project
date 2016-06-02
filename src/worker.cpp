@@ -78,23 +78,23 @@ void Worker_Management::parameters_Receiving(void) {
     // Allocate memory for tetrads
     tetrad = new Tetrad[num_Tetrads];
     for (i = 0; i < num_Tetrads; i++) {
-        tetrad[i].num_Atoms_In_Tetrad = num_Atoms_N_Evecs[2*i];
+        tetrad[i].num_Atoms = num_Atoms_N_Evecs[2*i];
         tetrad[i].num_Evecs = num_Atoms_N_Evecs[2*i+1];
         
-        tetrad[i].avg_Structure = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-        tetrad[i].masses        = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-        tetrad[i].abq           = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+        tetrad[i].avg_Structure = new float[3 * tetrad[i].num_Atoms];
+        tetrad[i].masses        = new float[3 * tetrad[i].num_Atoms];
+        tetrad[i].abq           = new float[3 * tetrad[i].num_Atoms];
         tetrad[i].eigenvalues   = new float [tetrad[i].num_Evecs];
         tetrad[i].eigenvectors  = new float*[tetrad[i].num_Evecs];
         for (j = 0; j < tetrad[i].num_Evecs; j++) {
-            tetrad[i].eigenvectors[j] = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+            tetrad[i].eigenvectors[j] = new float[3 * tetrad[i].num_Atoms];
         }
-        tetrad[i].coordinates   = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-        tetrad[i].velocities    = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+        tetrad[i].coordinates   = new float[3 * tetrad[i].num_Atoms];
+        tetrad[i].velocities    = new float[3 * tetrad[i].num_Atoms];
         
-        tetrad[i].ED_Forces     = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-        tetrad[i].random_Forces = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
-        tetrad[i].NB_Forces     = new float[3 * tetrad[i].num_Atoms_In_Tetrad];
+        tetrad[i].ED_Forces     = new float[3 * tetrad[i].num_Atoms];
+        tetrad[i].random_Forces = new float[3 * tetrad[i].num_Atoms];
+        tetrad[i].NB_Forces     = new float[3 * tetrad[i].num_Atoms];
     }
     
     // Send feedback to the master process that has received all parameters.
@@ -119,21 +119,21 @@ void Worker_Management::tetrads_Receiving(void) {
     // Receive all tetrads from the master process
     for (i = 0; i < num_Tetrads; i++) {
         
-        MPI_Recv(tetrad[i].avg_Structure, 3*tetrad[i].num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_TETRAD+rank+i+1, comm, &status);
+        MPI_Recv(tetrad[i].avg_Structure, 3*tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+1, comm, &status);
         
-        MPI_Recv(tetrad[i].masses,        3*tetrad[i].num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_TETRAD+rank+i+2, comm, &status);
+        MPI_Recv(tetrad[i].masses,        3*tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+2, comm, &status);
         
-        MPI_Recv(tetrad[i].abq,           3*tetrad[i].num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_TETRAD+rank+i+3, comm, &status);
+        MPI_Recv(tetrad[i].abq,           3*tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+3, comm, &status);
         
         MPI_Recv(tetrad[i].eigenvalues,   tetrad[i].num_Evecs,             MPI_FLOAT, 0, TAG_TETRAD+rank+i+4, comm, &status);
         
         for (int j = 0; j < tetrad[i].num_Evecs; j++) {
-            MPI_Recv(tetrad[i].eigenvectors[j],  3 * tetrad[i].num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_TETRAD+rank+i+5+j, comm, &status);
+            MPI_Recv(tetrad[i].eigenvectors[j],  3 * tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+5+j, comm, &status);
         }
         
-        MPI_Recv(tetrad[i].velocities,    3*tetrad[i].num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_TETRAD+rank+i+6, comm, &status);
+        MPI_Recv(tetrad[i].velocities,    3*tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+6, comm, &status);
         
-        MPI_Recv(tetrad[i].coordinates,   3*tetrad[i].num_Atoms_In_Tetrad, MPI_FLOAT, 0, TAG_TETRAD+rank+i+7, comm, &status);
+        MPI_Recv(tetrad[i].coordinates,   3*tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+7, comm, &status);
 
         /*
         MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &tetrad[i]);
@@ -141,7 +141,7 @@ void Worker_Management::tetrads_Receiving(void) {
         MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);*/
     }
     /*
-    for (int i = 0; i < 3 * tetrad[89].num_Atoms_In_Tetrad; i++) {
+    for (int i = 0; i < 3 * tetrad[89].num_Atoms; i++) {
         cout << tetrad[89].coordinates[i] << " "; if ((i+1)%10 == 0) cout << endl;
     }
     cout << endl;*/
@@ -179,7 +179,7 @@ void Worker_Management::ED_Calculation(void) {
     
     /*
     if (index == 89 ) {
-        for (int i = 0; i < 3 * tetrad[index].num_Atoms_In_Tetrad; i++) {
+        for (int i = 0; i < 3 * tetrad[index].num_Atoms; i++) {
             cout << ED_Forces[0][i] << "\t"; if ((i+1)%10 == 0) cout << endl;
         } cout << endl; }*/
     
