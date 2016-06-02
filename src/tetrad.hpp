@@ -17,7 +17,7 @@ using namespace std;
 // It still needs to be discussed whether it is better to use structure or class for tetrads
 typedef struct _Tetrad {
     
-    int num_Atoms_In_Tetrad; // The number of atoms in tetrads
+    int num_Atoms; // The number of atoms in tetrads
     
     int num_Evecs;           // The number of eigenvectors & eigenvalues
     
@@ -48,7 +48,7 @@ class Tetrad {
     
 public:
     
-    int num_Atoms_In_Tetrad; // The number of atoms in tetrads
+    int num_Atoms; // The number of atoms in tetrads
     
     int num_Evecs;           // The number of eigenvectors & eigenvalues
     
