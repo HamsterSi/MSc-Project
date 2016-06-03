@@ -201,20 +201,18 @@ void Master_Management::send_Tetrads(void) {
  */
 void Master_Management::force_Passing(void) {
     
-    int i, j, k, flag, index, indexes[2], effective_PL = 0;
-    int num_PL = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
+    int i, j, k, flag, index, indexes[2], effective_Pairs;
+    int num_Pairs = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
     float max_Forces = 1.0;
     float temp_Forces[2][3 * max_Atoms + 2];
     
     // Generate pair lists of tetrads for NB forces
-    int pair_List[num_PL][2];
-    edmd.generate_Pair_Lists(pair_List, io.prm.num_Tetrads, io.tetrad);
+    int pair_List[num_Pairs][2];
+    edmd.generate_Pair_Lists(pair_List, &effective_Pairs, io.prm.num_Tetrads, io.tetrad);
     
-    cout << "Calculation starting...\n>>> Calculating forces..." << endl;
-    cout << ">>> Pair list number: " << num_PL << endl;
-    for (i = 0; i < num_PL; i++) {
-        if (pair_List[i][0] + pair_List[i][1] != -2) effective_PL++;
-    }
+    cout << "Calculation starting...\n>>> Calculating ED/NB forces..." << endl;
+    cout << ">>> Generating pair lists...\n>>>    Pair list number: " << num_Pairs << endl;
+    cout << ">>>    Effective pairs : " << effective_Pairs << endl;
     
     // Send tetrad indexes for ED/NB forces calculation at the beginning
     for (i = 0, j = 0; i < size-1; i++) {
@@ -222,7 +220,7 @@ void Master_Management::force_Passing(void) {
             MPI_Send(&i, 1, MPI_INT, i+1, TAG_ED, comm);
             
         } else {  // i >= num_Tetrads, send tetrad indexes for NB calculation
-            while (j < num_PL) {
+            while (j < num_Pairs) {
                 if (pair_List[j][0] + pair_List[j][1] != -2) {
                     indexes[0] = pair_List[j][0]; indexes[1] = pair_List[j++][1];
                     MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
@@ -233,7 +231,7 @@ void Master_Management::force_Passing(void) {
     }
     
     // When there are still forces need to be calculated, receive forces back from worker processes & send new tetrad indexes
-    while (i < effective_PL + io.prm.num_Tetrads + size - 1 && j <= num_PL) {
+    while (i < effective_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs) {
 
         // Receive ED/NB forces from worker processes
         MPI_Recv(&(temp_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status);
@@ -269,7 +267,7 @@ void Master_Management::force_Passing(void) {
             MPI_Send(&i, 1, MPI_INT, status.MPI_SOURCE, TAG_ED, comm);
             
         } else {  // i >= num_Tetrads, send tetrad indexes for NB calculation
-            while (j < num_PL) {
+            while (j < num_Pairs) {
                 if (pair_List[j][0] + pair_List[j][1] != -2) {
                     indexes[0] = pair_List[j][0]; indexes[1] = pair_List[j++][1];
                     MPI_Send(indexes, 2, MPI_INT, status.MPI_SOURCE, TAG_NB, comm);
@@ -321,8 +319,14 @@ void Master_Management::cal_Velocities(void) {
     }
     
     // Needs to consider whether it's circular or linear
-    for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
-        velocities[i] *= 0.25;
+    for (i = 0; i < io.crd.num_BP; i++) {
+        for (j = 0; j < 3 * io.crd.num_Atoms_In_BP[i]; j++) {
+            velocities[j] /= 4;
+            if (edmd.circular == false) {
+                if (i < 3) velocities[j] /= (i + 1);
+                if (i > io.crd.num_BP - 4) velocities[j] /= (io.crd.num_BP - i);
+            }
+        }
     }
     
 }
@@ -356,9 +360,16 @@ void Master_Management::cal_Coordinate(void) {
     }
     
     // Needs to consider whether it's circular or linear
-    for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
-        coordinates[i] *= 0.25;
+    for (i = 0; i < io.crd.num_BP; i++) {
+        for (j = 0; j < 3 * io.crd.num_Atoms_In_BP[i]; j++) {
+            coordinates[j] /= 4;
+            if (edmd.circular == false) {
+                if (i < 3) coordinates[j] /= (i + 1);
+                if (i > io.crd.num_BP - 4) coordinates[j] /= (io.crd.num_BP - i);
+            }
+        }
     }
+    
     /*
     for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
         cout << setw(10) << coordinates[i] << " "; if((i+1)%10==0)cout << endl;
@@ -416,13 +427,18 @@ void Master_Management::write_Forces(void) {
     float * random_Forces = new float [3 * io.crd.total_Atoms];
     float * NB_Forces     = new float [3 * io.crd.total_Atoms];
     
+    for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
+        ED_Forces[i] = 0.0;
+        random_Forces[i] = NB_Forces[i] = 0.0;
+    }
+    
     cout << ">>> Write out forces..." << endl;
     
     // Gather all forcees together into three arrays
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (index = displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            ED_Forces[index++]     += io.tetrad[i].ED_Forces[j];
-            random_Forces[index++] += io.tetrad[i].random_Forces[j];
+            ED_Forces[index]     += io.tetrad[i].ED_Forces[j];
+            random_Forces[index] += io.tetrad[i].random_Forces[j];
             NB_Forces[index++]     += io.tetrad[i].NB_Forces[j];
         }
     }
@@ -450,7 +466,6 @@ void Master_Management::write_Trajectory(void) {
 
     cout << ">>> Write out trajectories..." << endl;
     
-    // Write out coordinates
     io.write_Trajectory(coordinates);
 }
 
@@ -467,7 +482,6 @@ void Master_Management::update_Crd_File(void) {
     
     cout << ">>> Update crd file..." << endl;
     
-    // Write out crd file
     io.update_Crd(velocities, coordinates);
     
     cout << "Write completed.\n" << endl;

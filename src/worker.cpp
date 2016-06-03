@@ -99,8 +99,8 @@ void Worker_Management::recv_Parameters(void) {
         tetrad[i].random_Forces = new float[3 * tetrad[i].num_Atoms];
         tetrad[i].NB_Forces     = new float[3 * tetrad[i].num_Atoms];
         
-        tetrad[i].energies[0] = tetrad[i].energies[1] = tetrad[i].energies[2] = 0.0;
-        tetrad[i].temperature = 0.0;
+        tetrad[i].energies[0] = tetrad[i].energies[1] = 0.0;
+        tetrad[i].energies[2] = tetrad[i].temperature = 0.0;
     }
     
     // Send feedback to master that has received all parameters.

@@ -249,7 +249,7 @@ void IO::read_Initial_Crds(void) {
     /* next section sets up some book-keeping stuff and does some sanity checking
      * displacement stores the displacement of base pairs. If the 1st pair is 1, then the
      * 2nd pair displacement is 1 + (3 * the number of atoms in pair 1) */
-    for (displs[0] = 0, i = 1; i < crd.num_BP+1; i++) {
+    for (displs[0] = 0, i = 1; i < crd.num_BP + 1; i++) {
         displs[i] = displs[i-1] + 3 * crd.num_Atoms_In_BP[i-1];
     }
 
