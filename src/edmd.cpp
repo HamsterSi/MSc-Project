@@ -13,8 +13,6 @@ EDMD::EDMD(void) {
     constants.Boltzmann = 0.002;
     constants.timefac = 20.455;
     
-    circular = false;
-    
     dt    = 0.002;
     gamma = 0.4;
     tautp = 0.2;

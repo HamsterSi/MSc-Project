@@ -20,13 +20,15 @@ using namespace std;
 /* Parameters read from crd file */
 typedef struct _Crd {
     
-    int num_BP;           // Number of DNA Base Pairs
+    int num_BP;            // Number of DNA Base Pairs
     
-    int *num_Atoms_In_BP; // Number of atoms in each base pair
+    int * num_Atoms_In_BP; // Number of atoms in each base pair
     
-    int total_Atoms;      // Total number of atoms in DNA base pairs
+    int total_Atoms;       // Total number of atoms in DNA base pairs
     
-    float *ini_BP_Crds;   // Initial BP coordinates;
+    float * ini_BP_Vels;   // Initial BP velocities;
+    
+    float * ini_BP_Crds;   // Initial BP coordinates;
     
 }Crd;
 
@@ -48,17 +50,15 @@ class IO {
     
 public:
     
+    int iteration;
+    bool circular;
+    
     string prm_File;
-    
     string crd_File;
-    
     string energy_File;
-    
     string forces_File;
-    
     string trj_File;
-    
-    string crd_File_New;
+    string new_Crd_File;
     
     Crd crd;
     
@@ -76,7 +76,7 @@ public:
     
     void read_Prm(void);
     
-    void read_Crd(bool redundant);
+    void read_Crd(void);
     
     void read_Initial_Crds(void);
     

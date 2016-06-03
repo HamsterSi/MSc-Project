@@ -43,8 +43,6 @@ public:
     
     Constants  constants;
     
-    bool  circular;     // Whether the sistem has a circular or linear topology
-    
     float dt;          // Timestep, in ps
     float gamma;       // The friction coefficient, in ps⁻¹
     float tautp;       // Berendsen temperature coupling parameter

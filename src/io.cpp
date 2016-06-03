@@ -10,14 +10,20 @@
  */
 IO::IO(void) {
     
-    // Default file paths, can be changed in "Config" file
+    // The number of iteration, default shape of DNA &
+    // default file paths, can be changed in "Config" file
+    iteration = 0;
+    circular  = false;
+    
     prm_File     = "./data//GC90c12.prm";
     crd_File     = "./data//GC90_6c.crd";
     energy_File  = "./results/energies.eng";
     forces_File  = "./results/forces.fcs";
     trj_File     = "./results/trajectory.trj";
-    crd_File_New = "./results/crd.crd";
+    new_Crd_File = "./results/crd.crd";
+    
 }
+
 
 
 
@@ -26,6 +32,11 @@ IO::IO(void) {
  *
  */
 IO::~IO(void) {
+    
+    // Deallocate memory of crd
+    delete []crd.num_Atoms_In_BP;
+    delete []crd.ini_BP_Crds;
+    delete []crd.ini_BP_Vels;
     
     // Deallocate memory spaces of tetrads
     for (int i = 0; i < prm.num_Tetrads; i++) {
@@ -44,7 +55,9 @@ IO::~IO(void) {
         delete []tetrad[i].random_Forces;
         delete []tetrad[i].NB_Forces;
     }
+    
 }
+
 
 
 
@@ -52,47 +65,55 @@ IO::~IO(void) {
 /*
  * Function:   Read-in the config file.
  *
- * Parameters: Config  -> path to the configuration fle.
+ * Parameters: Config   -> path to the configuration fle.
  *
  * Returns:    None.
  */
 void IO::read_Cofig(void) {
     
     char line[100] = {0};
-    string s1, s2;
+    string s1, s2, s3;
     
     ifstream fin;
     fin.open("./Config.md", ios_base::in);
     
     if (fin.is_open()) {
     
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 8; i++) {
             fin.getline(line, sizeof(line));
             stringstream file_Path(line);
-
+            
             switch (i) {
                 case 0:
-                    file_Path >> s1 >> s2 >> prm_File;    break;
+                    file_Path >> s1 >> s2 >> s3;
+                    iteration = stoi(s3); break;
                 case 1:
-                    file_Path >> s1 >> s2 >> crd_File;    break;
+                    file_Path >> s1 >> s2 >> s3;
+                    istringstream(s3) >> boolalpha >> circular; break;
                 case 2:
-                    file_Path >> s1 >> s2 >> energy_File; break;
+                    file_Path >> s1 >> s2 >> prm_File;     break;
                 case 3:
-                    file_Path >> s1 >> s2 >> forces_File; break;
+                    file_Path >> s1 >> s2 >> crd_File;     break;
                 case 4:
-                    file_Path >> s1 >> s2 >> trj_File;    break;
+                    file_Path >> s1 >> s2 >> energy_File;  break;
                 case 5:
-                    file_Path >> s1 >> s2 >> crd_File_New;break;
+                    file_Path >> s1 >> s2 >> forces_File;  break;
+                case 6:
+                    file_Path >> s1 >> s2 >> trj_File;     break;
+                case 7:
+                    file_Path >> s1 >> s2 >> new_Crd_File; break;
             }
         }
-    
+        
         fin.close();
         
     } else {
         cout << ">>> ERROR: Can not open the Config file!" << endl;
         exit(1);
     }
+    
 }
+
 
 
 
@@ -154,9 +175,9 @@ void IO::read_Prm(void) {
             
             // Line ? onwards: Masses for each atom (amu)
             for (j = 0; j < 3 * tetrad[i].num_Atoms; ) {
-                fin >> tetrad[i].masses[j];
-                // Spread masses
+                fin >> tetrad[i].masses[j]; // Read & spread masses
                 tetrad[i].masses[j+2] = tetrad[i].masses[j+1] = tetrad[i].masses[j];
+                
                 j += 3;
             }
             
@@ -168,7 +189,7 @@ void IO::read_Prm(void) {
             // Next the eigenvector and eigenvalue data for this tetrad:
             // Line ?: The eigenvalue for the 1st (largest) eigenvector
             // Line ? onwards: Coefficients of the 1st eigenvector
-            // Line ?: The eigenvalue for the second eigenvector
+            // Line ?: The eigenvalue for the 2nd eigenvector
             // Line ? onwards: Coefficients of the 2nd eigenvector
             // (etc to the last eigenvector of this tetrad)
             for (j = 0; j < tetrad[i].num_Evecs; j++) {
@@ -185,7 +206,9 @@ void IO::read_Prm(void) {
         cout << ">>> ERROR: Can not open the prm file!" << endl;
         exit(1);
     }
+    
 }
+
 
 
 
@@ -198,10 +221,11 @@ void IO::read_Prm(void) {
  *
  * Returns:    None.
  */
-void IO::read_Crd(bool redundant) {
+void IO::read_Crd(void) {
     
     ifstream fin;
-    fin.open(crd_File, ios_base::in);
+    if (iteration == 0) fin.open(crd_File, ios_base::in);
+    else fin.open(new_Crd_File, ios_base::in);
     
     if (fin.is_open()) {
         
@@ -223,13 +247,24 @@ void IO::read_Crd(bool redundant) {
             fin >> crd.ini_BP_Crds[i];
         }
         
+        // Lines ? - : If this is the new crd file & not the 1st time to run the simulation, then there are velocities to read
+        crd.ini_BP_Vels = new float[3 * crd.total_Atoms];
+        if (iteration != 0) {
+            for (int i = 0; i < 3 * crd.total_Atoms; i++) {
+                fin >> crd.ini_BP_Vels[i];
+            }
+        }
+        
         fin.close();
         
     } else {
         cout << ">>> ERROR: Can not open the crd file!" << endl;
         exit(1);
     }
+    
 }
+
+
 
 
 
@@ -274,12 +309,16 @@ void IO::read_Initial_Crds(void) {
         
         // Read in the initial coordinates
         for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {
+            if (iteration == 0) tetrad[i].velocities[j] = 0.0;
+            else tetrad[i].velocities[j] = crd.ini_BP_Vels[start_Index];
+            
             tetrad[i].coordinates[j] = crd.ini_BP_Crds[start_Index++];
-            tetrad[i].velocities[j]  = tetrad[i].ED_Forces[j]   = 0.0;
-            tetrad[i].random_Forces[j] = tetrad[i].NB_Forces[j] = 0.0;
+            tetrad[i].ED_Forces[j] = tetrad[i].random_Forces[j] = tetrad[i].NB_Forces[j] = 0.0;
         }
     }
+    
 }
+
 
 
 
@@ -415,6 +454,7 @@ void IO::write_Trajectory(float* coordinates) {
         cout << ">>> ERROR: Can not open the trajectory file!" << endl;
         exit(1);
     }
+    
 }
 
 
@@ -430,7 +470,7 @@ void IO::write_Trajectory(float* coordinates) {
 void IO::update_Crd(float* velocities, float* coordinates) {
     
     ofstream fout;
-    fout.open(crd_File_New, ios_base::out);
+    fout.open(new_Crd_File, ios_base::out);
     
     if (fout.is_open()) {
         
@@ -469,6 +509,7 @@ void IO::update_Crd(float* velocities, float* coordinates) {
         cout << ">>> ERROR: Can not open the new crd file!" << endl;
         exit(1);
     }
+    
 }
 
 

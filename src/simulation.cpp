@@ -10,6 +10,12 @@ void master_Code(void) {
     
     clock_t begin_Time = clock();
     
+    master.read_Cofig();
+    
+    master.read_Prm();
+    
+    master.read_Crd();
+    
     master.initialise();
     
     master.send_Parameters();
@@ -51,21 +57,27 @@ void worker_Code() {
     
     while (1)
     {
+        // Test if there is any message arrived
         MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &status);
         if (flag)
         {
+            // Arrived message tag indicates to receive parameters
             if (status.MPI_TAG == TAG_DATA) {
                 worker.recv_Parameters();
                 
+            // Arrived message tag indicates to receive tetrads
             } else if (status.MPI_TAG >= TAG_TETRAD) {
                 worker.recv_Tetrads();
                 
+            // Arrived message tag indicates to do the ED force calculation
             } else if (status.MPI_TAG == TAG_ED) {
                 worker.ED_Calculation();
                 
+            // Arrived message tag indicates to do the NB force calculation
             } else if (status.MPI_TAG == TAG_NB) {
                 worker.NB_Calculation();
                 
+            // Arrived message tag indicates to stop work
             } else if (status.MPI_TAG == TAG_DEATH) {
                 MPI_Recv(&signal, 1, MPI_INT, 0, TAG_DEATH, MPI_COMM_WORLD, &status);
                 break;

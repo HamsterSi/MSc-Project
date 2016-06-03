@@ -42,8 +42,18 @@ public:
     
     ~Master_Management(void);
     
+    
+    // Functions of reading files & initialisation
+    void read_Cofig(void);
+    
+    void read_Prm(void);
+    
+    void read_Crd(void);
+    
     void initialise(void);
     
+    
+    // Functions of data passing & calculation
     void send_Parameters(void);
     
     void send_Tetrads(void);
@@ -54,6 +64,8 @@ public:
     
     void cal_Coordinate(void);
     
+    
+    // Functions of writing out data & finalisation
     void write_Energy(void);
     
     void write_Forces(void);
