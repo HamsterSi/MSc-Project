@@ -6,7 +6,11 @@
 
 
 /*
+ * Function:  The constructor of IO class. Set default parameters.
  *
+ * Parameter: None
+ *
+ * Return:    None
  */
 IO::IO(void) {
     
@@ -29,7 +33,11 @@ IO::IO(void) {
 
 
 /*
+ * Function:  The destructor of IO class. Deallocate memory of arrays.
  *
+ * Parameter: None
+ *
+ * Return:    None
  */
 IO::~IO(void) {
     
@@ -75,7 +83,7 @@ void IO::read_Cofig(void) {
     string s1, s2, s3;
     
     ifstream fin;
-    fin.open("./Config.md", ios_base::in);
+    fin.open("./Config.txt", ios_base::in);
     
     if (fin.is_open()) {
     
