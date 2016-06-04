@@ -15,7 +15,7 @@
 
 using namespace std;
 
-class Worker_Management {
+class Worker {
     
 public:
     
@@ -35,9 +35,9 @@ public:
     
 public:
     
-    Worker_Management(void);
+    Worker(void);
     
-    ~Worker_Management(void);
+    ~Worker(void);
     
     void recv_Parameters(void);
     
@@ -46,6 +46,8 @@ public:
     void ED_Calculation(void);
     
     void NB_Calculation(void);
+    
+    int  terminate(void);
     
 };
 

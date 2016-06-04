@@ -19,14 +19,13 @@ using namespace std;
 /*
  * This is the class that will be executed by the master process.
  */
-class Master_Management {
+class Master {
     
 public:
     
     int size;
     int max_Atoms;
-    int * displs;
-    
+
     float * velocities;
     float * coordinates;
     
@@ -38,9 +37,9 @@ public:
     
 public:
     
-    Master_Management(void);
+    Master(void);
     
-    ~Master_Management(void);
+    ~Master(void);
     
     
     // Functions of reading files & initialisation
@@ -58,7 +57,11 @@ public:
     
     void send_Tetrads(void);
     
+    void send_Worker_Pairlists(int* j, int num_Pairs, int source, int pair_List[][2]);
+    
     void force_Passing(void);
+    
+    void data_Processing(void);
     
     void cal_Velocities(void);
     

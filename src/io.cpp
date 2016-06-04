@@ -278,25 +278,39 @@ void IO::read_Crd(void) {
 
 
 /*
- * Function:   Read-in initial coordinates for every tetrads from crd
+ * Function:   Set up some book-keeping stuff. "displs" store the displacements of base pairs.
+ *             If 1st BP is 0, then 2nd BP displacement is 0+(3 * number of atoms in 1st BP)
  *
  * Parameters: None.
  *
  * Returns:    None.
  */
-void IO::read_Initial_Crds(void) {
+void IO::generate_Displacements(void) {
+
+    // Initialise the displacement array & generate diplacements of BP
+    displs = new int[crd.num_BP + 1];
+    displs[0] = 0;
+    for (int i = 1; i <= crd.num_BP; i++) {
+        displs[i] = displs[i - 1] + 3 * crd.num_Atoms_In_BP[i - 1];
+    }
+    
+}
+
+
+
+
+
+/*
+ * Function:   Initial coordinates for every tetrad from crd
+ *
+ * Parameters: None.
+ *
+ * Returns:    None.
+ */
+void IO::initialise_Tetrad_Crds(void) {
 
     int i, j, error_Code;
     int num_Atoms, start_Index, end_Index;
-    
-    /* next section sets up some book-keeping stuff and does some sanity checking
-     * displacement stores the displacement of base pairs. If the 1st pair is 1, then the
-     * 2nd pair displacement is 1 + (3 * the number of atoms in pair 1) */
-    // Initialise the displacement array & generate diplacements of BP
-    displs = new int[crd.num_BP + 1];
-    for (displs[0] = 0, i = 1; i <= crd.num_BP; i++) {
-        displs[i] = displs[i-1] + 3 * crd.num_Atoms_In_BP[i-1];
-    }
 
     for (i = 0; i < prm.num_Tetrads; i++) {
         
@@ -306,7 +320,7 @@ void IO::read_Initial_Crds(void) {
         
         // Get the start and end displacement of tetrads in crd.num_Atoms_In_BP
         start_Index = displs[i];
-        end_Index   = displs[i+4] - 1;
+        end_Index   = displs[i + 4] - 1;
 
         // Check if all data is matching
         if (num_Atoms != tetrad[i].num_Atoms) {
@@ -334,6 +348,34 @@ void IO::read_Initial_Crds(void) {
 
 
 /*
+ * Function: Write out all ED forces, random forces & NB forces
+ *
+ * Parameters: * fout -> The file stream pointer
+ *             * data -> The data needs to write out
+ *
+ * Returns: None.
+ */
+void IO::write_Template(ofstream* fout, float* data) {
+    
+    int i, j, index;
+    
+    for (i = 0; i < crd.num_BP; i++) {
+        for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+            (* fout) << setw(10) << data[index++] << " ";
+            if ((j + 1) % 10 == 0) (* fout) << endl;
+        }
+        (* fout) << endl;
+    }
+    (* fout) << endl;
+    
+}
+
+
+
+
+
+
+/*
  * Function: Write out energies & temperature of tetrads.
  *
  * Parameters: * energies -> Energies & temperature of tetrads
@@ -350,12 +392,12 @@ void IO::write_Energies(float* energies) {
         // Write out energies & temperature
         fout << "Energies:" << endl;
         fout << "ED Energy \tNB_Energy \tElectrostatic_Energy \tTemperature" << endl;
-        for (int i = 0; i < 4 * prm.num_Tetrads; ) {
-            fout << energies[i]   << "\t\t";
-            fout << energies[i+1] << "\t\t";
-            fout << energies[i+2] << "\t\t";
-            fout << energies[i+3] << endl;
-            i += 4;
+        for (int i = 0; i < prm.num_Tetrads; i++) {
+            fout << energies[4 * i]   << "\t\t";
+            fout << energies[4 * i + 1] << "\t\t";
+            fout << energies[4 * i + 2] << "\t\t";
+            fout << energies[4 * i + 3] << endl;
+
         }
         fout << endl;
         
@@ -367,6 +409,7 @@ void IO::write_Energies(float* energies) {
     }
 
 }
+
 
 
 
@@ -386,39 +429,20 @@ void IO::write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces) 
     fout.open(forces_File, ios_base::out);
     
     if (fout.is_open()) {
-        
-        int i, j, index;
-        
+    
         // Write out ED forces
         fout << "ED Forces:" << endl;
-        for (i = 0; i < crd.num_BP; i++) {
-            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << ED_Forces[index++] << " ";
-                if ((j + 1) % 10 == 0) fout << endl;
-            }
-            fout << endl;
-        }
+        write_Template(&fout, ED_Forces);
+        fout << endl;
         
         // Write out random forces
-        fout << "\n\nRandom Forces:" << endl;
-        for (i = 0; i < crd.num_BP; i++) {
-            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << random_Forces[index++] << " ";
-                if ((j + 1) % 10 == 0) fout << endl;
-            }
-            fout << endl;
-        }
+        fout << "Random Forces:" << endl;
+        write_Template(&fout, random_Forces);
+        fout << endl;
         
         // Write out NB forces
-        fout << "\n\nNB Forces:" << endl;
-        for (i = 0; i < crd.num_BP; i++) {
-            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << NB_Forces[index++] << " ";
-                if ((j + 1) % 10 == 0) fout << endl;
-            }
-            fout << endl;
-        }
-        fout << endl;
+        fout << "NB Forces:" << endl;
+        write_Template(&fout, NB_Forces);
         
         fout.close();
         
@@ -446,19 +470,8 @@ void IO::write_Trajectory(float* coordinates) {
     
     if (fout.is_open()) {
         
-        int i, j, index;
-        
-        // Write out coordinates
         fout << "Coordinates:" << endl;
-        
-        for (i = 0; i < crd.num_BP; i++) {
-            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << coordinates[index++] << " ";
-                if ((j + 1) % 10 == 0) fout << endl;
-            }
-            fout << endl;
-        }
-        fout << endl;
+        write_Template(&fout, coordinates);
         
         fout.close();
         
@@ -468,6 +481,8 @@ void IO::write_Trajectory(float* coordinates) {
     }
     
 }
+
+
 
 
 
@@ -486,34 +501,19 @@ void IO::update_Crd(float* velocities, float* coordinates) {
     
     if (fout.is_open()) {
         
-        int i, j, index;
-        
         // Write out the total number of base pairs
         fout << crd.num_BP << endl;
         
         // Write out the number of atoms in every base pairs
-        for (i = 0; i < crd.num_BP; i++) {
+        for (int i = 0; i < crd.num_BP; i++) {
             fout << crd.num_Atoms_In_BP[i] << endl;
         }
         
         // Write out velocities
-        for (i = 0; i < crd.num_BP; i++) {
-            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << velocities[index++] << " ";
-                if ((j + 1) % 10 == 0) fout << endl;
-            }
-            fout << endl;
-        }
+        write_Template(&fout, velocities);
         
         // Write out coordinates
-        for (i = 0; i < crd.num_BP; i++) {
-            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << coordinates[index++] << " ";
-                if ((j + 1) % 10 == 0) fout << endl;
-            }
-            fout << endl;
-        }
-        fout << endl;
+        write_Template(&fout, coordinates);
         
         fout.close();
         
@@ -523,25 +523,6 @@ void IO::update_Crd(float* velocities, float* coordinates) {
     }
     
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

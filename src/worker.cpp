@@ -3,18 +3,16 @@
 
 
 /*
- * Function:  The constructor of Master_Management class.
+ * Function:  The constructor of Worker class.
  *
  * Parameter: None
  *
  * Return:    None
  */
-Worker_Management::Worker_Management(void) {
+Worker::Worker(void) {
     
-    comm = MPI_COMM_WORLD;
-    
-    // Get the rank of worker process
-    MPI_Comm_rank(comm, &rank);
+    comm    =   MPI_COMM_WORLD;
+    MPI_Comm_rank(comm, &rank); // Get the rank of worker process
     
 }
 
@@ -22,14 +20,14 @@ Worker_Management::Worker_Management(void) {
 
 
 /*
- * Function:  The destructor of Master_Management class. 
+ * Function:  The destructor of Worker class. 
  *            Deallocate memory.
  *
  * Parameter: None
  *
  * Return:    None
  */
-Worker_Management::~Worker_Management(void) {
+Worker::~Worker(void) {
     
     // Deallocate memory spaces of tetrads
     for (int i = 0; i < num_Tetrads; i++) {
@@ -43,7 +41,6 @@ Worker_Management::~Worker_Management(void) {
             delete []tetrad[i].eigenvectors[j];
         }
         delete []tetrad[i].eigenvectors;
-        
         delete []tetrad[i].velocities;
         delete []tetrad[i].coordinates;
         
@@ -51,6 +48,7 @@ Worker_Management::~Worker_Management(void) {
         delete []tetrad[i].random_Forces;
         delete []tetrad[i].NB_Forces;
     }
+    
 }
 
 
@@ -64,7 +62,7 @@ Worker_Management::~Worker_Management(void) {
  *
  * Return:    None
  */
-void Worker_Management::recv_Parameters(void) {
+void Worker::recv_Parameters(void) {
     
     int i, j, signal = 1, parameters[2];
     
@@ -118,7 +116,7 @@ void Worker_Management::recv_Parameters(void) {
  *
  * Return:    None
  */
-void Worker_Management::recv_Tetrads(void) {
+void Worker::recv_Tetrads(void) {
     
     int i, signal = 1;
     MPI_Datatype MPI_Tetrad;
@@ -150,6 +148,7 @@ void Worker_Management::recv_Tetrads(void) {
     
     // Send feedback to master that has received all tetrads
     MPI_Send(&signal, 1, MPI_INT, 0, TAG_TETRAD, comm);
+    
 }
 
 
@@ -163,7 +162,7 @@ void Worker_Management::recv_Tetrads(void) {
  *
  * Return:    None
  */
-void Worker_Management::ED_Calculation(void) {
+void Worker::ED_Calculation(void) {
     
     int i, index;
     float ED_Forces[2][3 * max_Atoms + 2];
@@ -205,7 +204,7 @@ void Worker_Management::ED_Calculation(void) {
  *
  * Return:    None
  */
-void Worker_Management::NB_Calculation(void) {
+void Worker::NB_Calculation(void) {
     
     int i, indexes[2];
     float NB_Forces[2][3 * max_Atoms + 2];
@@ -234,8 +233,27 @@ void Worker_Management::NB_Calculation(void) {
     MPI_Send(&(NB_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, 0, TAG_NB, comm);
     
     //cout << "Rank " << setw(3) << rank << " computed NB forces on Tetrad " << setw(3) << indexes[0] << " and " << setw(3) << indexes[1] << endl;
+    
 }
 
+
+
+
+
+/*
+ * Function:  Receive the terminate signal from master & terminate work
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
+int Worker::terminate(void) {
+    
+    int signal;
+    MPI_Recv(&signal, 1, MPI_INT, 0, TAG_DEATH, MPI_COMM_WORLD, &status);
+
+    return signal;
+}
 
 
 

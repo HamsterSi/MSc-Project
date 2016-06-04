@@ -80,7 +80,11 @@ public:
     
     void read_Crd(void);
     
-    void read_Initial_Crds(void);
+    void generate_Displacements(void);
+    
+    void initialise_Tetrad_Crds(void);
+    
+    void write_Template(ofstream* fout, float* data);
     
     void write_Energies(float* energies);
     

@@ -6,35 +6,20 @@
  */
 void master_Code(void) {
     
-    Master_Management master;
+    Master master;
     
     clock_t begin_Time = clock();
-    
-    master.read_Cofig();
-    
-    master.read_Prm();
-    
-    master.read_Crd();
     
     master.initialise();
     
     master.send_Parameters();
-    
     master.send_Tetrads();
     
     master.force_Passing();
     
     master.cal_Velocities();
-    
     master.cal_Coordinate();
-    
-    master.write_Energy();
-    
-    master.write_Forces();
-    
-    master.write_Trajectory();
-    
-    master.update_Crd_File();
+    master.data_Processing();
     
     master.finalise();
     
@@ -51,11 +36,11 @@ void master_Code(void) {
  */
 void worker_Code() {
     
-    int flag, signal;
-    Worker_Management worker;
+    int flag, signal = 1;
+    Worker worker;
     MPI_Status status;
     
-    while (1)
+    while (signal == 1)
     {
         // Test if there is any message arrived
         MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &status);
@@ -79,8 +64,7 @@ void worker_Code() {
                 
             // Arrived message tag indicates to stop work
             } else if (status.MPI_TAG == TAG_DEATH) {
-                MPI_Recv(&signal, 1, MPI_INT, 0, TAG_DEATH, MPI_COMM_WORLD, &status);
-                break;
+                signal = worker.terminate();
                 
             }
         }
