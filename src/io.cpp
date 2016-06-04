@@ -42,6 +42,7 @@ IO::IO(void) {
 IO::~IO(void) {
     
     // Deallocate memory of crd
+    delete []displs;
     delete []crd.num_Atoms_In_BP;
     delete []crd.ini_BP_Crds;
     delete []crd.ini_BP_Vels;
@@ -285,14 +286,15 @@ void IO::read_Crd(void) {
  */
 void IO::read_Initial_Crds(void) {
 
-    int i, j, displs[crd.num_BP+1];
+    int i, j, error_Code;
     int num_Atoms, start_Index, end_Index;
-    int error_Code;
     
     /* next section sets up some book-keeping stuff and does some sanity checking
      * displacement stores the displacement of base pairs. If the 1st pair is 1, then the
      * 2nd pair displacement is 1 + (3 * the number of atoms in pair 1) */
-    for (displs[0] = 0, i = 1; i < crd.num_BP + 1; i++) {
+    // Initialise the displacement array & generate diplacements of BP
+    displs = new int[crd.num_BP + 1];
+    for (displs[0] = 0, i = 1; i <= crd.num_BP; i++) {
         displs[i] = displs[i-1] + 3 * crd.num_Atoms_In_BP[i-1];
     }
 
@@ -385,13 +387,13 @@ void IO::write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces) 
     
     if (fout.is_open()) {
         
-        int i, j;
+        int i, j, index;
         
         // Write out ED forces
         fout << "ED Forces:" << endl;
         for (i = 0; i < crd.num_BP; i++) {
-            for (j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << ED_Forces[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << ED_Forces[index++] << " ";
                 if ((j + 1) % 10 == 0) fout << endl;
             }
             fout << endl;
@@ -400,8 +402,8 @@ void IO::write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces) 
         // Write out random forces
         fout << "\n\nRandom Forces:" << endl;
         for (i = 0; i < crd.num_BP; i++) {
-            for (j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << random_Forces[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << random_Forces[index++] << " ";
                 if ((j + 1) % 10 == 0) fout << endl;
             }
             fout << endl;
@@ -410,8 +412,8 @@ void IO::write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces) 
         // Write out NB forces
         fout << "\n\nNB Forces:" << endl;
         for (i = 0; i < crd.num_BP; i++) {
-            for (j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << NB_Forces[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << NB_Forces[index++] << " ";
                 if ((j + 1) % 10 == 0) fout << endl;
             }
             fout << endl;
@@ -444,12 +446,14 @@ void IO::write_Trajectory(float* coordinates) {
     
     if (fout.is_open()) {
         
+        int i, j, index;
+        
         // Write out coordinates
         fout << "Coordinates:" << endl;
         
-        for (int i = 0; i < crd.num_BP; i++) {
-            for (int j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << coordinates[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+        for (i = 0; i < crd.num_BP; i++) {
+            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << coordinates[index++] << " ";
                 if ((j + 1) % 10 == 0) fout << endl;
             }
             fout << endl;
@@ -482,7 +486,7 @@ void IO::update_Crd(float* velocities, float* coordinates) {
     
     if (fout.is_open()) {
         
-        int i, j;
+        int i, j, index;
         
         // Write out the total number of base pairs
         fout << crd.num_BP << endl;
@@ -494,8 +498,8 @@ void IO::update_Crd(float* velocities, float* coordinates) {
         
         // Write out velocities
         for (i = 0; i < crd.num_BP; i++) {
-            for (j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << velocities[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << velocities[index++] << " ";
                 if ((j + 1) % 10 == 0) fout << endl;
             }
             fout << endl;
@@ -503,8 +507,8 @@ void IO::update_Crd(float* velocities, float* coordinates) {
         
         // Write out coordinates
         for (i = 0; i < crd.num_BP; i++) {
-            for (j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
-                fout << setw(10) << coordinates[i * 3 * crd.num_Atoms_In_BP[i] + j] << " ";
+            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << setw(10) << coordinates[index++] << " ";
                 if ((j + 1) % 10 == 0) fout << endl;
             }
             fout << endl;

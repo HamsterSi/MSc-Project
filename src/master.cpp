@@ -136,9 +136,9 @@ void Master_Management::initialise(void) {
     }
     
     // Initialise the displacement array & generate diplacements of BP
-    displs = new int[io.crd.num_BP];
-    for (displs[0] = 0, i = 1; i < io.crd.num_BP; i++) {
-        displs[i] = displs[i-1] + 3 * io.crd.num_Atoms_In_BP[i];
+    displs = new int[io.crd.num_BP + 1];
+    for (displs[0] = 0, i = 1; i <= io.crd.num_BP; i++) {
+        displs[i] = displs[i-1] + 3 * io.crd.num_Atoms_In_BP[i-1];
     }
     
 }
@@ -442,16 +442,22 @@ void Master_Management::cal_Coordinate(void) {
 void Master_Management::write_Energy(void) {
     
     int i, j;
+    float temp;
     float * energies = new float [4 * io.prm.num_Tetrads];
     
     cout << "Starting writint out...\n>>> Write out energies..." << endl;
+    
+    for (temp = 0, i = 0; i < io.prm.num_Tetrads; i++) {
+        temp += io.tetrad[i].temperature;
+    }
+    temp /= io.prm.num_Tetrads;
     
     // Gather all energies & temperature of tetrads together
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (j = 0; j < 3; j++) {
             energies[i * 4 + j] = io.tetrad[i].energies[j];
         }
-        energies[i * 4 + j] = io.tetrad[i].temperature;
+        energies[i * 4 + j] = temp;
     }
     
     // Wrtie out energies

@@ -53,6 +53,8 @@ public:
     int iteration;
     bool circular;
     
+    int * displs;
+    
     string prm_File;
     string crd_File;
     string energy_File;
