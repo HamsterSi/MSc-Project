@@ -374,15 +374,15 @@ void Master_Management::cal_Velocities(void) {
     
     // Needs to consider whether it's circular or linear
     for (i = 0; i < io.crd.num_BP; i++) {
-        for (j = 0; j < 3 * io.crd.num_Atoms_In_BP[i]; j++) {
-            velocities[j] /= 4;
+        for (index = displs[i], j = 0; j < 3 * io.crd.num_Atoms_In_BP[i]; index++, j++) {
             if (io.circular == false) {
-                if (i < 3) velocities[j] /= (i + 1);
-                if (i > io.crd.num_BP - 4) velocities[j] /= (io.crd.num_BP - i);
-            }
+                if (i < 3) velocities[index] /= (i + 1);
+                else if (i > io.crd.num_BP - 4) velocities[index] /= (io.crd.num_BP - i);
+                else velocities[index] /= 4;
+            } else { velocities[index] /= 4; }
         }
     }
-    
+
 }
 
 
@@ -416,12 +416,12 @@ void Master_Management::cal_Coordinate(void) {
     
     // Needs to consider whether it's circular or linear
     for (i = 0; i < io.crd.num_BP; i++) {
-        for (j = 0; j < 3 * io.crd.num_Atoms_In_BP[i]; j++) {
-            coordinates[j] /= 4;
+        for (index = displs[i], j = 0; j < 3 * io.crd.num_Atoms_In_BP[i]; index++, j++) {
             if (io.circular == false) {
-                if (i < 3) coordinates[j] /= (i + 1);
-                if (i > io.crd.num_BP - 4) coordinates[j] /= (io.crd.num_BP - i);
-            }
+                if (i < 3) coordinates[index] /= (i + 1);
+                else if (i > io.crd.num_BP - 4) coordinates[index] /= (io.crd.num_BP - i);
+                else coordinates[index] /= 4;
+            } else { coordinates[index] /= 4; }
         }
     }
     

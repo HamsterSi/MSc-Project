@@ -1,5 +1,5 @@
 iteration    = 0
-circular     = false
+circular     = flase
 prm_File     = ./data/GC90c12.prm
 crd_File     = ./data/GC90_6c.crd
 energy_File  = ./results/energies.eng
