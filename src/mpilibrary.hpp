@@ -27,10 +27,6 @@ class MPI_Library{
     
 public:
     
-    static void create_Tetrad_Package(Tetrad* tetrad, float* buffer, int* position);
-    
-    static void unpack_Tetrad_Package(Tetrad* tetrad, float* buffer, int num_Atoms, int total_Elements);
-    
     static void create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, Tetrad* tetrad);
     
     static void free_MPI_Tetrad(MPI_Datatype* MPI_Tetrad);

@@ -209,26 +209,10 @@ void Master::send_Tetrads(void) {
     for (i = 1; i < size; i++) {
         for (j = 0; j < io.prm.num_Tetrads; j++) {
             
-            MPI_Send(io.tetrad[j].avg_Structure, 3*io.tetrad[j].num_Atoms, MPI_FLOAT, i, TAG_TETRAD+i+j+1, comm);
-            
-            MPI_Send(io.tetrad[j].masses,        3*io.tetrad[j].num_Atoms, MPI_FLOAT, i, TAG_TETRAD+i+j+2, comm);
-            
-            MPI_Send(io.tetrad[j].abq,           3*io.tetrad[j].num_Atoms, MPI_FLOAT, i, TAG_TETRAD+i+j+3, comm);
-            
-            MPI_Send(io.tetrad[j].eigenvalues,   io.tetrad[j].num_Evecs,   MPI_FLOAT, i, TAG_TETRAD+i+j+4, comm);
-            
-            for (int k = 0; k < io.tetrad[j].num_Evecs; k++) {
-                MPI_Send(io.tetrad[j].eigenvectors[k],  3*io.tetrad[j].num_Atoms, MPI_FLOAT, i, TAG_TETRAD+i+j+5+k, comm);
-            }
-            
-            MPI_Send(io.tetrad[j].velocities,    3*io.tetrad[j].num_Atoms, MPI_FLOAT, i, TAG_TETRAD+i+j+6, comm);
-            
-            MPI_Send(io.tetrad[j].coordinates,   3*io.tetrad[j].num_Atoms, MPI_FLOAT, i, TAG_TETRAD+i+j+7, comm);
-
-            /*
             MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &io.tetrad[j]);
-            MPI_Send(&io.tetrad[j], 1, MPI_Tetrad, i, TAG_TETRAD+j, comm);
-            MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);*/
+            MPI_Send(&io.tetrad[j], 1, MPI_Tetrad, i, TAG_TETRAD+i+j, comm);
+            MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);
+            
         }
     }
     

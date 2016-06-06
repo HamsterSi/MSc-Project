@@ -123,27 +123,11 @@ void Worker::recv_Tetrads(void) {
     
     // Receive all tetrads from the master process
     for (i = 0; i < num_Tetrads; i++) {
-        
-        MPI_Recv(tetrad[i].avg_Structure, 3*tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+1, comm, &status);
-        
-        MPI_Recv(tetrad[i].masses,        3*tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+2, comm, &status);
-        
-        MPI_Recv(tetrad[i].abq,           3*tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+3, comm, &status);
-        
-        MPI_Recv(tetrad[i].eigenvalues,   tetrad[i].num_Evecs,   MPI_FLOAT, 0, TAG_TETRAD+rank+i+4, comm, &status);
-        
-        for (int j = 0; j < tetrad[i].num_Evecs; j++) {
-            MPI_Recv(tetrad[i].eigenvectors[j],  3 * tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+5+j, comm, &status);
-        }
-        
-        MPI_Recv(tetrad[i].velocities,    3*tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+6, comm, &status);
-        
-        MPI_Recv(tetrad[i].coordinates,   3*tetrad[i].num_Atoms, MPI_FLOAT, 0, TAG_TETRAD+rank+i+7, comm, &status);
 
-        /*
         MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &tetrad[i]);
-        MPI_Recv(&tetrad[i], 1, MPI_Tetrad, 0, TAG_TETRAD+i, comm, &status);
-        MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);*/
+        MPI_Recv(&tetrad[i], 1, MPI_Tetrad, 0, TAG_TETRAD+rank+i, comm, &status);
+        MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);
+        
     }
     
     // Send feedback to master that has received all tetrads

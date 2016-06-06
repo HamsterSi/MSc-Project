@@ -14,7 +14,7 @@ using namespace std;
 
 /* Initial parameters of tetrads are read from "prm" file */
 
-// It still needs to be discussed whether it is better to use structure or class for tetrads
+/*
 typedef struct _Tetrad {
     
     int num_Atoms;        // The number of atoms in tetrads
@@ -45,9 +45,9 @@ typedef struct _Tetrad {
     
     float temperature;    // The acerage temperature of tetrad
     
-}Tetrad;
+}Tetrad; */
 
-/*
+
 class Tetrad {
     
 public:
@@ -76,12 +76,11 @@ public:
     
     float *NB_Forces;
     
-public:
+    float energies[3];    // ED_Energy, NB_Energy, Electrostatic_Energy
     
-    Tetrad(void);
+    float temperature;    // The acerage temperature of tetrad
     
-    ~Tetrad(void);
-};*/
+};
 
 
 
