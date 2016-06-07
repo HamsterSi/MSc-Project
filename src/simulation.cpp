@@ -6,26 +6,42 @@
  */
 void master_Code(void) {
     
+    int nsteps = 2;//100000;
     Master master;
     
     clock_t begin_Time = clock();
     
     master.initialise();
     
-    master.send_Parameters();
-    master.send_Tetrads();
-    
-    master.force_Passing();
-    
-    master.cal_Velocities();
-    master.cal_Coordinate();
-    master.data_Processing();
+    for (; master.io.iteration < nsteps; master.io.iteration++) {
+
+        cout << "\nIteration: " << master.io.iteration << endl << endl;
+        cout << "Sending data..." << endl;
+        cout << ">>> Master sending parameters..." << endl;
+        master.send_Parameters();
+        cout << ">>> Master sending tetrads..." << endl;
+        master.send_Tetrads();
+        
+        cout << "Calculation starting..." << endl;
+        cout << ">>> Calculating ED & NB forces..." << endl;
+        master.force_Calculation();
+        
+        cout << ">>> Calculating Velocities..." << endl;
+        master.cal_Velocities();
+        cout << ">>> Calculating Coordinates..." << endl;
+        master.cal_Coordinate();
+        cout << ">>> Velocities & Coordinates processing..." << endl;
+        master.data_Processing();
+        
+        cout << "Writing files..." << endl << endl;
+        if (master.io.iteration == 0)master.write_Files();
+    }
     
     master.finalise();
     
     clock_t end_Time = clock();
     double time_Usage = double(end_Time - begin_Time) / CLOCKS_PER_SEC;
-    cout << "Time usage for the simualtion: " << time_Usage << "\n" << endl;
+    cout << "Time usage for simualtion: " << time_Usage << endl << endl;
     
 }
 

@@ -46,7 +46,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, float scaled) {
     // Allocate memory for temp arrays
     double * temp_Crds   = new double[3 * tetrad->num_Atoms];
     double * temp_Forces = new double[3 * tetrad->num_Atoms];
-    double * proj = new double[tetrad->num_Evecs];
+    double * proj        = new double[tetrad->num_Evecs];
     
     // Two arrays used in QCP rotation calculation
     double **avg_Crds  = new double *[3];
@@ -232,18 +232,21 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
  */
 void EDMD::generate_Pair_Lists(int pair_List[][2], int* effective_Pairs, int num_Tetrads, Tetrad* tetrad) {
     
-    float mole_Cutoff = 40.0; // Molecular cutoffs
+    float mole_Cutoff = 30.0; // Molecular cutoffs
     float atom_Cutoff = 10.0; // Atomic cutoffs
-    float mole_Least  = 4.0;  // Molecules less than NB_Cutoff won't have NB ints.
+    float mole_Least  = 5.0;  // Molecules less than NB_Cutoff won't have NB ints.
     
     int i, j, k, num_Pairs;
-    float r, com[num_Tetrads][3];
+    float r, ** com = new float * [num_Tetrads]; //com[num_Tetrads][3] = {0.0};
+    for (i = 0; i < num_Tetrads; i++) { com[i] = new float[3]; }
     
     // The centre of mass (actually, centre of geom)
     // com(1) = sum(x(1:(3*natoms-2):3))/natoms
     // com(2) = sum(x(2:(3*natoms-1):3))/natoms
     // com(3) = sum(x(3:(3*natoms):3))  /natoms
     for (i = 0; i < num_Tetrads; i++) {
+        
+        com[i][0] = com[i][1] = com[i][2] = 0.0;
         for (j = 0; j < 3 * tetrad[i].num_Atoms; ) {
             com[i][0] += tetrad[i].coordinates[j];
             com[i][1] += tetrad[i].coordinates[j + 1];
@@ -256,7 +259,8 @@ void EDMD::generate_Pair_Lists(int pair_List[][2], int* effective_Pairs, int num
     }
     
     // Loop to generate pairlists
-    for (num_Pairs = 0, * effective_Pairs = 0, i = 0; i < num_Tetrads; i++) {
+    num_Pairs = 0; (* effective_Pairs) = 0;
+    for (i = 0; i < num_Tetrads; i++) {
         for (j = i + 1; j < num_Tetrads; j++, num_Pairs++) {
 
             // If r exceeds mole_Cutoff then no interaction between these two mols
@@ -280,6 +284,9 @@ void EDMD::generate_Pair_Lists(int pair_List[][2], int* effective_Pairs, int num
             
         }
     }
+    
+    for (i = 0; i < num_Tetrads; i++) { delete []com[i]; }
+    delete []com;
     
 }
 
@@ -384,7 +391,7 @@ void EDMD::update_Velocities(Tetrad* tetrad) {
     
     // Update velocities
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        tetrad->velocities[i] = tetrad->velocities[i] * tscal;
+        tetrad->velocities[i] *= tscal;
     }
 }
 

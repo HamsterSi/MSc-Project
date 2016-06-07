@@ -19,6 +19,8 @@ class Worker {
     
 public:
     
+    int iteration;
+    
     int rank;           // The rank of worker process
     
     int num_Tetrads;    // The number of total tetrads

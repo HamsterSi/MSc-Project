@@ -174,9 +174,6 @@ void IO::read_Prm(void) {
             tetrad[i].random_Forces = new float[3 * tetrad[i].num_Atoms];
             tetrad[i].NB_Forces     = new float[3 * tetrad[i].num_Atoms];
             
-            tetrad[i].energies[0] = tetrad[i].energies[1] = tetrad[i].energies[2] = 0.0;
-            tetrad[i].temperature = 0.0;
-            
             // Line 3 onwards: Reference (average) structure for the tetrad (x1,y1,z1,x2,y2,z2, etc as in .crd file)
             for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {
                 fin >> tetrad[i].avg_Structure[j];
@@ -315,8 +312,8 @@ void IO::initialise_Tetrad_Crds(void) {
     for (i = 0; i < prm.num_Tetrads; i++) {
         
         // Sum the number of atoms in 4 BPs in crd.num_Atoms_In_BP
-        num_Atoms = crd.num_Atoms_In_BP[i] + crd.num_Atoms_In_BP[i+1] +
-            crd.num_Atoms_In_BP[i+2] + crd.num_Atoms_In_BP[i+3];
+        num_Atoms = crd.num_Atoms_In_BP[i] + crd.num_Atoms_In_BP[i + 1] +
+            crd.num_Atoms_In_BP[i + 2] + crd.num_Atoms_In_BP[i + 3];
         
         // Get the start and end displacement of tetrads in crd.num_Atoms_In_BP
         start_Index = displs[i];
@@ -339,6 +336,9 @@ void IO::initialise_Tetrad_Crds(void) {
             tetrad[i].coordinates[j] = crd.ini_BP_Crds[start_Index++];
             tetrad[i].ED_Forces[j] = tetrad[i].random_Forces[j] = tetrad[i].NB_Forces[j] = 0.0;
         }
+        
+        tetrad[i].energies[0] = tetrad[i].energies[1] = tetrad[i].energies[2] = 0.0;
+        tetrad[i].temperature = 0.0;
     }
     
 }
@@ -361,11 +361,14 @@ void IO::write_Template(ofstream* fout, float* data) {
     
     for (i = 0; i < crd.num_BP; i++) {
         for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+            
             (* fout) << setw(10) << data[index++] << " ";
             if ((j + 1) % 10 == 0) (* fout) << endl;
+            
         }
         (* fout) << endl;
     }
+    
     (* fout) << endl;
     
 }
@@ -382,7 +385,7 @@ void IO::write_Template(ofstream* fout, float* data) {
  *
  * Returns: None.
  */
-void IO::write_Energies(float* energies) {
+void IO::write_Energies(float energies[]) {
     
     ofstream fout;
     fout.open(energy_File, ios_base::out);
@@ -390,16 +393,10 @@ void IO::write_Energies(float* energies) {
     if (fout.is_open()) {
         
         // Write out energies & temperature
-        fout << "Energies:" << endl;
-        fout << "ED Energy \tNB_Energy \tElectrostatic_Energy \tTemperature" << endl;
-        for (int i = 0; i < prm.num_Tetrads; i++) {
-            fout << energies[4 * i]   << "\t\t";
-            fout << energies[4 * i + 1] << "\t\t";
-            fout << energies[4 * i + 2] << "\t\t";
-            fout << energies[4 * i + 3] << endl;
-
-        }
-        fout << endl;
+        fout << "Iteration, ED Energy, NB_Energy, ELE_Energy, Temperature: ";
+        fout << iteration   << ", ";
+        fout << energies[0] << ", " << energies[1] << ", ";
+        fout << energies[2] << ", " << energies[3] << endl;
         
         fout.close();
         
@@ -501,19 +498,21 @@ void IO::update_Crd(float* velocities, float* coordinates) {
     
     if (fout.is_open()) {
         
+        int i, j, index;
+        
         // Write out the total number of base pairs
         fout << crd.num_BP << endl;
         
         // Write out the number of atoms in every base pairs
-        for (int i = 0; i < crd.num_BP; i++) {
+        for (i = 0; i < crd.num_BP; i++) {
             fout << crd.num_Atoms_In_BP[i] << endl;
         }
         
-        // Write out velocities
-        write_Template(&fout, velocities);
-        
         // Write out coordinates
         write_Template(&fout, coordinates);
+        
+        // Write out velocities
+        write_Template(&fout, velocities);
         
         fout.close();
         

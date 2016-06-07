@@ -86,7 +86,7 @@ public:
     
     void write_Template(ofstream* fout, float* data);
     
-    void write_Energies(float* energies);
+    void write_Energies(float energies[]);
     
     void write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces);
     
