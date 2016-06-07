@@ -23,9 +23,11 @@ EDMD::EDMD(void) {
     tautp *= constants.timefac;
     
     temperature = 300.0;
-    
-    // Scale factor
     scaled = constants.Boltzmann * temperature;
+    
+    mole_Cutoff = 30.0;
+    atom_Cutoff = 10.0;
+    mole_Least  = 5.0; 
 }
 
 
@@ -232,10 +234,6 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
  */
 void EDMD::generate_Pair_Lists(int pair_List[][2], int* effective_Pairs, int num_Tetrads, Tetrad* tetrad) {
     
-    float mole_Cutoff = 30.0; // Molecular cutoffs
-    float atom_Cutoff = 10.0; // Atomic cutoffs
-    float mole_Least  = 5.0;  // Molecules less than NB_Cutoff won't have NB ints.
-    
     int i, j, k, num_Pairs;
     float r, ** com = new float * [num_Tetrads]; //com[num_Tetrads][3] = {0.0};
     for (i = 0; i < num_Tetrads; i++) { com[i] = new float[3]; }
@@ -285,8 +283,8 @@ void EDMD::generate_Pair_Lists(int pair_List[][2], int* effective_Pairs, int num
         }
     }
     
-    for (i = 0; i < num_Tetrads; i++) { delete []com[i]; }
-    delete []com;
+    for (i = 0; i < num_Tetrads; i++) { delete [] com[i]; }
+    delete [] com;
     
 }
 
@@ -393,6 +391,7 @@ void EDMD::update_Velocities(Tetrad* tetrad) {
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         tetrad->velocities[i] *= tscal;
     }
+
 }
 
 

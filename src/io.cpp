@@ -17,6 +17,8 @@ IO::IO(void) {
     // The number of iteration, default shape of DNA &
     // default file paths, can be changed in "Config" file
     iteration = 0;
+    nsteps    = 2;
+    frequency = 1;
     circular  = false;
     
     prm_File     = "./data//GC90c12.prm";
@@ -88,31 +90,51 @@ void IO::read_Cofig(void) {
     
     if (fin.is_open()) {
     
-        for (int i = 0; i < 8; i++) {
+        for (int i = 1; i < 11; i++) {
             fin.getline(line, sizeof(line));
             stringstream file_Path(line);
             
             switch (i) {
-                case 0:
-                    file_Path >> s1 >> s2 >> s3;
-                    iteration = stoi(s3); break;
-                case 1:
-                    file_Path >> s1 >> s2 >> s3;
+                case  1: file_Path >> s1 >> s2 >> s3; iteration = stoi(s3); break;
+                case  2: file_Path >> s1 >> s2 >> s3; nsteps    = stoi(s3); break;
+                case  3: file_Path >> s1 >> s2 >> s3; frequency = stoi(s3); break;
+                case  4: file_Path >> s1 >> s2 >> s3;
                     istringstream(s3) >> boolalpha >> circular; break;
-                case 2:
-                    file_Path >> s1 >> s2 >> prm_File;     break;
-                case 3:
-                    file_Path >> s1 >> s2 >> crd_File;     break;
-                case 4:
-                    file_Path >> s1 >> s2 >> energy_File;  break;
-                case 5:
-                    file_Path >> s1 >> s2 >> forces_File;  break;
-                case 6:
-                    file_Path >> s1 >> s2 >> trj_File;     break;
-                case 7:
-                    file_Path >> s1 >> s2 >> new_Crd_File; break;
+                case  5: file_Path >> s1 >> s2 >> prm_File;     break;
+                case  6: file_Path >> s1 >> s2 >> crd_File;     break;
+                case  7: file_Path >> s1 >> s2 >> energy_File;  break;
+                case  8: file_Path >> s1 >> s2 >> forces_File;  break;
+                case  9: file_Path >> s1 >> s2 >> trj_File;     break;
+                case 10: file_Path >> s1 >> s2 >> new_Crd_File; break;
             }
         }
+        /*
+        for (int i = 1; i < 18; i++) {
+            fin.getline(line, sizeof(line));
+            stringstream file_Path(line);
+            
+            switch (i) {
+                case  1: file_Path >> s1 >> s2 >> s3; iteration = stoi(s3); break;
+                case  2: file_Path >> s1 >> s2 >> s3; nsteps    = stoi(s3); break;
+                case  3: file_Path >> s1 >> s2 >> s3; frequency = stoi(s3); break;
+                case  4: file_Path >> s1 >> s2 >> s3;
+                    istringstream(s3) >> boolalpha >> circular; break;
+                case  5: file_Path >> s1 >> s2 >> s3; edmd->dt    = stoi(s3); break;
+                case  6: file_Path >> s1 >> s2 >> s3; edmd->gamma = stoi(s3); break;
+                case  7: file_Path >> s1 >> s2 >> s3; edmd->tautp = stoi(s3); break;
+                case  8: file_Path >> s1 >> s2 >> s3; edmd->temperature = stoi(s3);
+                    edmd->scaled = edmd->constants.Boltzmann * edmd->temperature;   break;
+                case  9: file_Path >> s1 >> s2 >> s3; edmd->mole_Cutoff = stoi(s3); break;
+                case 10: file_Path >> s1 >> s2 >> s3; edmd->atom_Cutoff = stoi(s3); break;
+                case 11: file_Path >> s1 >> s2 >> s3; edmd->mole_Least  = stoi(s3); break;
+                case 12: file_Path >> s1 >> s2 >> prm_File;     break;
+                case 13: file_Path >> s1 >> s2 >> crd_File;     break;
+                case 14: file_Path >> s1 >> s2 >> energy_File;  break;
+                case 15: file_Path >> s1 >> s2 >> forces_File;  break;
+                case 16: file_Path >> s1 >> s2 >> trj_File;     break;
+                case 17: file_Path >> s1 >> s2 >> new_Crd_File; break;
+            }
+        }*/
         
         fin.close();
         

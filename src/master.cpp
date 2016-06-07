@@ -160,12 +160,11 @@ void Master::send_Tetrads(void) {
                 // Only send velocities & coordinates to workers.
                 MPI_Send(io.tetrad[j].velocities,  3 * io.tetrad[j].num_Atoms, MPI_FLOAT, i, TAG_TETRAD+i+j+1, comm);
                 MPI_Send(io.tetrad[j].coordinates, 3 * io.tetrad[j].num_Atoms, MPI_FLOAT, i, TAG_TETRAD+i+j+2, comm);
-                
             }
             
         }
     }
-
+    
     // Feedback that all worker processes have finished receiving tetrads
     for (int signal, i = 0; i < size-1; i++) {
         MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_TETRAD, comm, &status);
@@ -194,7 +193,7 @@ void Master::send_Worker_Pairlists(int* j, int num_Pairs, int source, int pair_L
             MPI_Send(indexes, 2, MPI_INT, source, TAG_NB, comm);
             (* j)++; break;
             
-        } else (* j)++;
+        } else { (* j)++; }
     }
 }
 
@@ -287,7 +286,7 @@ void Master::force_Calculation(void) {
             io.tetrad[i].NB_Forces[j] += io.tetrad[i].random_Forces[j];
         }
     }
-
+    
 }
 
 

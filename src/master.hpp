@@ -41,10 +41,8 @@ public:
     
     ~Master(void);
     
-    
     void initialise(void);
     
-    // Functions of data passing & calculation
     void send_Parameters(void);
     
     void send_Tetrads(void);

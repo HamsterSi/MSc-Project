@@ -1,4 +1,6 @@
 iteration    = 0
+nsteps       = 2
+frequency    = 1
 circular     = flase
 prm_File     = ./data/GC90c12.prm
 crd_File     = ./data/GC90_6c.crd

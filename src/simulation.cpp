@@ -5,15 +5,14 @@
  * Function: Manage the master working progress
  */
 void master_Code(void) {
-    
-    int nsteps = 2;//100000;
+
     Master master;
     
     clock_t begin_Time = clock();
     
     master.initialise();
     
-    for (; master.io.iteration < nsteps; master.io.iteration++) {
+    for (; master.io.iteration < master.io.nsteps; master.io.iteration++) {
 
         cout << "\nIteration: " << master.io.iteration << endl << endl;
         cout << "Sending data..." << endl;
@@ -22,7 +21,7 @@ void master_Code(void) {
         cout << ">>> Master sending tetrads..." << endl;
         master.send_Tetrads();
         
-        cout << "Calculation starting..." << endl;
+        cout << "Calculation..." << endl;
         cout << ">>> Calculating ED & NB forces..." << endl;
         master.force_Calculation();
         
@@ -34,7 +33,9 @@ void master_Code(void) {
         master.data_Processing();
         
         cout << "Writing files..." << endl << endl;
-        if (master.io.iteration == 0)master.write_Files();
+        if (master.io.iteration % master.io.frequency == 0) {
+            master.write_Files();
+        }
     }
     
     master.finalise();

@@ -13,6 +13,7 @@
 #include <sstream>
 #include "mpi.h"
 
+#include "edmd.hpp"
 #include "tetrad.hpp"
 
 using namespace std;
@@ -51,9 +52,12 @@ class IO {
 public:
     
     int iteration;
-    bool circular;
+    int nsteps;    // The total steps of iterations
+    int frequency; // The frequency of writing files
     
-    int * displs;
+    bool circular; // The Shape of DNA
+    
+    int * displs;  // The displacement of Base Pairs
     
     string prm_File;
     string crd_File;

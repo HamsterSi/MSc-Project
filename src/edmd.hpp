@@ -50,6 +50,10 @@ public:
     float temperature; // Temperature, in Kelvin
     float scaled;      // Scale factor to scale ED forces
     
+    float mole_Cutoff; // Molecular cutoffs
+    float atom_Cutoff; // Atomic cutoffs
+    float mole_Least;  // Molecules less than NB_Cutoff won't have NB ints.
+    
 public:
     
     EDMD(void);
