@@ -11,6 +11,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <cstdio>
 #include "mpi.h"
 
 #include "edmd.hpp"

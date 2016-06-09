@@ -169,7 +169,7 @@ void Worker::ED_Calculation(void) {
     
     // Calculate ED forces (ED energy) & random forces
     edmd.calculate_ED_Forces(&tetrad[index], edmd.scaled);
-    edmd.calculate_Random_Forces(&tetrad[index]);
+    edmd.calculate_Random_Forces(&tetrad[index], rank);
     
     // Assign ED forces & random Forces to the 2D array for sending once
     for (i = 0; i < 3 * tetrad[index].num_Atoms; i++) {
@@ -213,7 +213,7 @@ void Worker::NB_Calculation(void) {
     // Assign NB forces to the 2D array to send back once
     for (i = 0; i < 3 * max_Atoms; i++) {
         NB_Forces[0][i] = tetrad[indexes[0]].NB_Forces[i];
-        NB_Forces[0][i] = tetrad[indexes[1]].NB_Forces[i];
+        NB_Forces[1][i] = tetrad[indexes[1]].NB_Forces[i];
     }
     
     // Need to send NB Energy & Electrostatic Energy back (bacause the energies in both tetrads are the same when calculation, so only need to send one set)

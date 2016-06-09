@@ -1,7 +1,7 @@
 iteration    = 0
-nsteps       = 2
+nsteps       = 50
 frequency    = 1
-circular     = flase
+circular     = false
 prm_File     = ./data/GC90c12.prm
 crd_File     = ./data/GC90_6c.crd
 energy_File  = ./results/energies.eng

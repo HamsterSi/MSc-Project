@@ -164,14 +164,13 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, float scaled) {
  *
  * Return:    None
  */
-void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
+void EDMD::calculate_Random_Forces(Tetrad* tetrad, int rank) {
     
-    int i, j, rank, RNG_Seed = 13579;
+    int i, j, RNG_Seed = 13579;
     float random, s = 0.449871, t = -0.386595, a = 0.19600, b = 0.25472;
     float half = 0.5, r1 = 0.27597, r2 = 0.27846, u, v, x, y, q;
     float* noise_Factor = new float[3 * tetrad->num_Atoms];
-    
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     srand((unsigned)RNG_Seed + rank);
     
     // Noise factors
@@ -213,9 +212,11 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
                 // Reject P if outside acceptance region
                 if (v*v < -4.0 * log(u) * (u*u)) { break; }
             }
+            
             // Return ratio of P's coordinates as the normal deviate
             random = v/u;
         }
+        
         tetrad->random_Forces[i] = random * noise_Factor[i];
     }
     
@@ -259,7 +260,8 @@ void EDMD::generate_Pair_Lists(int pair_List[][2], int* effective_Pairs, int num
     // Loop to generate pairlists
     num_Pairs = 0; (* effective_Pairs) = 0;
     for (i = 0; i < num_Tetrads; i++) {
-        for (j = i + 1; j < num_Tetrads; j++, num_Pairs++) {
+        for (j = 0; j < num_Tetrads; j++, num_Pairs++) {
+        //for (j = i + 1; j < num_Tetrads; j++, num_Pairs++) {
 
             // If r exceeds mole_Cutoff then no interaction between these two mols
             // r = sum( (com(:,i)-com(:,j)) * (com(:,i)-com(:,j)) )
@@ -303,9 +305,9 @@ void EDMD::calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2) {
     int i, j;
     float dx, dy, dz, sqdist;
     float a, pair_Force;
-    float krep = 100.0;   // krep: soft repulsion constant
-    float q;              // q: num_atoms vectors of charges
-    float qfac = 332.064; // qfac: electrostatics factor
+    float krep = 100.0; // krep: soft repulsion constant
+    float q;            // q: num_atoms vectors of charges
+    float qfac = 0.0;   // qfac: electrostatics factor, set up for dd-dielectric constant of 4r, qfac=332.064/4.0, no electrostatics...
     
     // Initialise energies & NB forces
     tetrad1->energies[1] = tetrad1->energies[2] = 0.0;
@@ -327,24 +329,29 @@ void EDMD::calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2) {
             // Avoid div0 (full atom overlap, almost impossible)
             sqdist = max(dx*dx + dy*dy + dz*dz, (float) 1e-9);
             
-            a = max(0.0, (2.0 - sqdist));
-            q = tetrad1->abq[3*i+2] * tetrad2->abq[3*j+2];
+            // If this is the 1st cycle, cull the pairlist
+            if (sqdist < (atom_Cutoff * atom_Cutoff)) {
+
+                a = max(0.0, (2.0 - sqdist));
+                q = tetrad1->abq[3*i+2] * tetrad2->abq[3*j+2];
+                
+                // NB Energy & Electrostatic Energy
+                tetrad1->energies[1] += 0.25 * krep * a * a;
+                tetrad2->energies[1] += 0.25 * krep * a * a;
+                tetrad1->energies[2] += 0.5 * qfac * q * sqdist;
+                tetrad2->energies[2] += 0.5 * qfac * q * sqdist;
+                
+                // NB forces
+                pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
+                tetrad1->NB_Forces[3*i]   -= dx * pair_Force;
+                tetrad1->NB_Forces[3*i+1] -= dy * pair_Force;
+                tetrad1->NB_Forces[3*i+2] -= dz * pair_Force;
+                
+                tetrad2->NB_Forces[3*j]   += dx * pair_Force;
+                tetrad2->NB_Forces[3*j+1] += dy * pair_Force;
+                tetrad2->NB_Forces[3*j+2] += dz * pair_Force;
+            }
             
-            // NB Energy & Electrostatic Energy
-            tetrad1->energies[1] += 0.25 * krep * a * a;
-            tetrad2->energies[1] += 0.25 * krep * a * a;
-            tetrad1->energies[2] += 0.5 * qfac * q * sqdist;
-            tetrad2->energies[2] += 0.5 * qfac * q * sqdist;
-            
-            // NB forces
-            pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
-            tetrad1->NB_Forces[3*i]   -= dx * pair_Force;
-            tetrad1->NB_Forces[3*i+1] -= dy * pair_Force;
-            tetrad1->NB_Forces[3*i+2] -= dz * pair_Force;
-            
-            tetrad2->NB_Forces[3*j]   += dx * pair_Force;
-            tetrad2->NB_Forces[3*j+1] += dy * pair_Force;
-            tetrad2->NB_Forces[3*j+2] += dz * pair_Force;
         }
     }
     
@@ -386,6 +393,8 @@ void EDMD::update_Velocities(Tetrad* tetrad) {
     // Calculate temperature of tetrad
     tetrad->temperature = kentical_Energy * 2 / (constants.Boltzmann * 3 * tetrad->num_Atoms);
     tetrad->temperature *= tscal * tscal;
+    
+    cout << kentical_Energy << " " << tscal << " " << tetrad->temperature << endl;
     
     // Update velocities
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {

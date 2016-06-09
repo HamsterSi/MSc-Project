@@ -33,9 +33,9 @@ void master_Code(void) {
         master.data_Processing();
         
         cout << "Writing files..." << endl << endl;
-        if (master.io.iteration % master.io.frequency == 0) {
+        //if (master.io.iteration % master.io.frequency == 0) {
             master.write_Files();
-        }
+        //}
     }
     
     master.finalise();

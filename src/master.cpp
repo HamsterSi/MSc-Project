@@ -212,8 +212,20 @@ void Master::send_Worker_Pairlists(int* j, int num_Pairs, int source, int pair_L
 void Master::force_Calculation(void) {
     
     int i, j, k, flag, index, effective_Pairs;
-    int num_Pairs = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
+    //int num_Pairs = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
+    int num_Pairs = io.prm.num_Tetrads * io.prm.num_Tetrads;
     float max_Forces = 1.0, temp_Forces[2][3 * max_Atoms + 2];
+    
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
+            io.tetrad[i].ED_Forces[j]     = 0.0;
+            io.tetrad[i].random_Forces[j] = 0.0;
+            io.tetrad[i].NB_Forces[j]     = 0.0;
+        }
+        io.tetrad[i].energies[0]      = 0.0;
+        io.tetrad[i].energies[1]      = 0.0;
+        io.tetrad[i].energies[2]      = 0.0;
+    }
     
     // Generate pair lists of tetrads for NB forces
     int pair_List[num_Pairs][2];
@@ -393,7 +405,7 @@ void Master::data_Processing(void) {
  */
 void Master::write_Energy(void) {
     
-    float temp = 0, energies[4] = {0.0};
+    float energies[4] = {0.0, 0.0, 0.0, 0.0};
     
     // Gather energies & temperature of tetrads together
     for (int i = 0; i < io.prm.num_Tetrads; i++) {

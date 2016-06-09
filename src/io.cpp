@@ -108,33 +108,6 @@ void IO::read_Cofig(void) {
                 case 10: file_Path >> s1 >> s2 >> new_Crd_File; break;
             }
         }
-        /*
-        for (int i = 1; i < 18; i++) {
-            fin.getline(line, sizeof(line));
-            stringstream file_Path(line);
-            
-            switch (i) {
-                case  1: file_Path >> s1 >> s2 >> s3; iteration = stoi(s3); break;
-                case  2: file_Path >> s1 >> s2 >> s3; nsteps    = stoi(s3); break;
-                case  3: file_Path >> s1 >> s2 >> s3; frequency = stoi(s3); break;
-                case  4: file_Path >> s1 >> s2 >> s3;
-                    istringstream(s3) >> boolalpha >> circular; break;
-                case  5: file_Path >> s1 >> s2 >> s3; edmd->dt    = stoi(s3); break;
-                case  6: file_Path >> s1 >> s2 >> s3; edmd->gamma = stoi(s3); break;
-                case  7: file_Path >> s1 >> s2 >> s3; edmd->tautp = stoi(s3); break;
-                case  8: file_Path >> s1 >> s2 >> s3; edmd->temperature = stoi(s3);
-                    edmd->scaled = edmd->constants.Boltzmann * edmd->temperature;   break;
-                case  9: file_Path >> s1 >> s2 >> s3; edmd->mole_Cutoff = stoi(s3); break;
-                case 10: file_Path >> s1 >> s2 >> s3; edmd->atom_Cutoff = stoi(s3); break;
-                case 11: file_Path >> s1 >> s2 >> s3; edmd->mole_Least  = stoi(s3); break;
-                case 12: file_Path >> s1 >> s2 >> prm_File;     break;
-                case 13: file_Path >> s1 >> s2 >> crd_File;     break;
-                case 14: file_Path >> s1 >> s2 >> energy_File;  break;
-                case 15: file_Path >> s1 >> s2 >> forces_File;  break;
-                case 16: file_Path >> s1 >> s2 >> trj_File;     break;
-                case 17: file_Path >> s1 >> s2 >> new_Crd_File; break;
-            }
-        }*/
         
         fin.close();
         
@@ -142,6 +115,11 @@ void IO::read_Cofig(void) {
         cout << ">>> ERROR: Can not open the Config file!" << endl;
         exit(1);
     }
+    
+    const char * file = energy_File.c_str(); remove(file);
+    file = forces_File.c_str();  remove(file);
+    file = trj_File.c_str();     remove(file);
+    file = new_Crd_File.c_str(); remove(file);
     
 }
 
@@ -384,7 +362,7 @@ void IO::write_Template(ofstream* fout, float* data) {
     for (i = 0; i < crd.num_BP; i++) {
         for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
             
-            (* fout) << setw(10) << data[index++] << " ";
+            (* fout) << fixed << setw(10) << setprecision(4) << data[index++] << " ";
             if ((j + 1) % 10 == 0) (* fout) << endl;
             
         }
@@ -410,7 +388,7 @@ void IO::write_Template(ofstream* fout, float* data) {
 void IO::write_Energies(float energies[]) {
     
     ofstream fout;
-    fout.open(energy_File, ios_base::out);
+    fout.open(energy_File, ios_base::app);
     
     if (fout.is_open()) {
         
@@ -530,11 +508,21 @@ void IO::update_Crd(float* velocities, float* coordinates) {
             fout << crd.num_Atoms_In_BP[i] << endl;
         }
         
-        // Write out coordinates
-        write_Template(&fout, coordinates);
-        
-        // Write out velocities
-        write_Template(&fout, velocities);
+        // Write out coordinates & velocities
+        for (i = 0; i < crd.num_BP; i++) {
+            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << fixed << setw(10) << setprecision(4) << coordinates[index++] << " ";
+                if ((j + 1) % 10 == 0) fout << endl;
+            }
+            fout << endl;
+            
+            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+                fout << fixed << setw(10) << setprecision(4) << velocities[index++] << " ";
+                if ((j + 1) % 10 == 0) fout << endl;
+            }
+            fout << endl;
+        }
+        fout << endl;
         
         fout.close();
         
