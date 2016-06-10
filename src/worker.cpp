@@ -73,17 +73,23 @@ void Worker::recv_Parameters(void) {
     
     if (iteration == 0) {
         
-        int * num_Atoms_n_Evecs = new int[2 * num_Tetrads];;
+        float edmd_Para[8];
+        int * tetrad_Para = new int[2 * num_Tetrads];;
+        
+        // Receive edmd parameters & assignment
+        MPI_Recv(edmd_Para, 8, MPI_INT, 0, TAG_DATA, comm, &status);
+        edmd.initialise(edmd_Para[0], edmd_Para[1], edmd_Para[2], edmd_Para[3],
+                        edmd_Para[4], edmd_Para[5], edmd_Para[6], edmd_Para[7]);
         
         // Receive the number of atoms & evecs in tetrads
-        MPI_Recv(num_Atoms_n_Evecs, 2 * num_Tetrads, MPI_INT, 0, TAG_DATA, comm, &status);
+        MPI_Recv(tetrad_Para, 2 * num_Tetrads, MPI_INT, 0, TAG_DATA, comm, &status);
         
         // Allocate memory for all tetrads
         tetrad = new Tetrad[num_Tetrads];
         
         for (i = 0; i < num_Tetrads; i++) {
-            tetrad[i].num_Atoms = num_Atoms_n_Evecs[2*i];
-            tetrad[i].num_Evecs = num_Atoms_n_Evecs[2*i+1];
+            tetrad[i].num_Atoms = tetrad_Para[2*i];
+            tetrad[i].num_Evecs = tetrad_Para[2*i+1];
             
             tetrad[i].avg_Structure = new float[3 * tetrad[i].num_Atoms];
             tetrad[i].masses        = new float[3 * tetrad[i].num_Atoms];
@@ -104,7 +110,7 @@ void Worker::recv_Parameters(void) {
             tetrad[i].energies[2] = tetrad[i].temperature = 0.0;
         }
         
-        delete []num_Atoms_n_Evecs;
+        delete []tetrad_Para;
     }
     
     // Send feedback to master that has received all parameters.

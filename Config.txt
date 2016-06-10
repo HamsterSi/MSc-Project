@@ -1,7 +1,14 @@
 iteration    = 0
-nsteps       = 50
+nsteps       = 1
 frequency    = 1
 circular     = false
+dt           = 0.002
+gamma        = 2.0
+tautp        = 0.2
+temperature  = 300.0
+mole_Cutoff  = 30.0
+atom_Cutoff  = 10.0
+mole_Least   =  5.0
 prm_File     = ./data/GC90c12.prm
 crd_File     = ./data/GC90_6c.crd
 energy_File  = ./results/energies.eng

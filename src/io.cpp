@@ -45,7 +45,7 @@ IO::~IO(void) {
     
     // Deallocate memory of crd
     delete []displs;
-    delete []crd.num_Atoms_In_BP;
+    delete []crd.num_BP_Atoms;
     delete []crd.ini_BP_Crds;
     delete []crd.ini_BP_Vels;
     
@@ -80,7 +80,7 @@ IO::~IO(void) {
  *
  * Returns:    None.
  */
-void IO::read_Cofig(void) {
+void IO::read_Cofig(EDMD* edmd) {
     
     char line[100] = {0};
     string s1, s2, s3;
@@ -90,6 +90,37 @@ void IO::read_Cofig(void) {
     
     if (fin.is_open()) {
     
+        for (int i = 1; i < 18; i++) {
+            fin.getline(line, sizeof(line));
+            stringstream file_Path(line);
+            
+            switch (i) {
+                case  1: file_Path >> s1 >> s2 >> s3; iteration = stoi(s3); break;
+                case  2: file_Path >> s1 >> s2 >> s3; nsteps    = stoi(s3); break;
+                case  3: file_Path >> s1 >> s2 >> s3; frequency = stoi(s3); break;
+                case  4: file_Path >> s1 >> s2 >> s3;
+                    istringstream(s3) >> boolalpha >> circular; break;
+                case  5: file_Path >> s1 >> s2 >> s3; edmd->dt    = stof(s3);
+                    edmd->dt    *= edmd->constants.timefac; break;
+                case  6: file_Path >> s1 >> s2 >> s3; edmd->gamma = stof(s3);
+                    edmd->gamma /= edmd->constants.timefac; break;
+                case  7: file_Path >> s1 >> s2 >> s3; edmd->tautp = stof(s3);
+                    edmd->tautp *= edmd->constants.timefac; break;
+                case  8: file_Path >> s1 >> s2 >> s3; edmd->temperature = stof(s3);
+                    edmd->scaled = edmd->constants.Boltzmann * edmd->temperature;   break;
+                case  9: file_Path >> s1 >> s2 >> s3; edmd->mole_Cutoff = stof(s3); break;
+                case 10: file_Path >> s1 >> s2 >> s3; edmd->atom_Cutoff = stof(s3); break;
+                case 11: file_Path >> s1 >> s2 >> s3; edmd->mole_Least  = stof(s3); break;
+                case 12: file_Path >> s1 >> s2 >> prm_File;     break;
+                case 13: file_Path >> s1 >> s2 >> crd_File;     break;
+                case 14: file_Path >> s1 >> s2 >> energy_File;  break;
+                case 15: file_Path >> s1 >> s2 >> forces_File;  break;
+                case 16: file_Path >> s1 >> s2 >> trj_File;     break;
+                case 17: file_Path >> s1 >> s2 >> new_Crd_File; break;
+            }
+        }
+        
+        /*
         for (int i = 1; i < 11; i++) {
             fin.getline(line, sizeof(line));
             stringstream file_Path(line);
@@ -107,7 +138,7 @@ void IO::read_Cofig(void) {
                 case  9: file_Path >> s1 >> s2 >> trj_File;     break;
                 case 10: file_Path >> s1 >> s2 >> new_Crd_File; break;
             }
-        }
+        }*/
         
         fin.close();
         
@@ -239,12 +270,12 @@ void IO::read_Crd(void) {
         fin >> crd.num_BP;
         
         // Line 2 - numBP+something: numbers of atoms in each base pair (in this case always 63, as either a GC base pair  or a CG base pair)
-        crd.num_Atoms_In_BP = new int[crd.num_BP];
+        crd.num_BP_Atoms = new int[crd.num_BP];
         crd.total_Atoms = 0;
         
         for (int i = 0; i < crd.num_BP; i++) {
-            fin >> crd.num_Atoms_In_BP[i];
-            crd.total_Atoms += crd.num_Atoms_In_BP[i];
+            fin >> crd.num_BP_Atoms[i];
+            crd.total_Atoms += crd.num_BP_Atoms[i];
         }
         
         // Lines 65 - : Initial coordinates for each base pair (x1,y1,z1,x2,y2,z2...x63,y63,z63) 10 floats per line, new line before the start of each subsequent base pair, values in angstroms
@@ -288,7 +319,7 @@ void IO::generate_Displacements(void) {
     displs = new int[crd.num_BP + 1];
     displs[0] = 0;
     for (int i = 1; i <= crd.num_BP; i++) {
-        displs[i] = displs[i - 1] + 3 * crd.num_Atoms_In_BP[i - 1];
+        displs[i] = displs[i - 1] + 3 * crd.num_BP_Atoms[i - 1];
     }
     
 }
@@ -311,11 +342,11 @@ void IO::initialise_Tetrad_Crds(void) {
 
     for (i = 0; i < prm.num_Tetrads; i++) {
         
-        // Sum the number of atoms in 4 BPs in crd.num_Atoms_In_BP
-        num_Atoms = crd.num_Atoms_In_BP[i] + crd.num_Atoms_In_BP[i + 1] +
-            crd.num_Atoms_In_BP[i + 2] + crd.num_Atoms_In_BP[i + 3];
+        // Sum the number of atoms in 4 BPs in crd.num_BP_Atoms
+        num_Atoms = crd.num_BP_Atoms[i] + crd.num_BP_Atoms[i + 1] +
+            crd.num_BP_Atoms[i + 2] + crd.num_BP_Atoms[i + 3];
         
-        // Get the start and end displacement of tetrads in crd.num_Atoms_In_BP
+        // Get the start and end displacement of tetrads in crd.num_BP_Atoms
         start_Index = displs[i];
         end_Index   = displs[i + 4] - 1;
 
@@ -360,7 +391,7 @@ void IO::write_Template(ofstream* fout, float* data) {
     int i, j, index;
     
     for (i = 0; i < crd.num_BP; i++) {
-        for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+        for (index = displs[i], j = 0; j < 3 * crd.num_BP_Atoms[i]; j++) {
             
             (* fout) << fixed << setw(10) << setprecision(4) << data[index++] << " ";
             if ((j + 1) % 10 == 0) (* fout) << endl;
@@ -368,7 +399,6 @@ void IO::write_Template(ofstream* fout, float* data) {
         }
         (* fout) << endl;
     }
-    
     (* fout) << endl;
     
 }
@@ -505,18 +535,18 @@ void IO::update_Crd(float* velocities, float* coordinates) {
         
         // Write out the number of atoms in every base pairs
         for (i = 0; i < crd.num_BP; i++) {
-            fout << crd.num_Atoms_In_BP[i] << endl;
+            fout << crd.num_BP_Atoms[i] << endl;
         }
         
         // Write out coordinates & velocities
         for (i = 0; i < crd.num_BP; i++) {
-            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+            for (index = displs[i], j = 0; j < 3 * crd.num_BP_Atoms[i]; j++) {
                 fout << fixed << setw(10) << setprecision(4) << coordinates[index++] << " ";
                 if ((j + 1) % 10 == 0) fout << endl;
             }
             fout << endl;
             
-            for (index = displs[i], j = 0; j < 3 * crd.num_Atoms_In_BP[i]; j++) {
+            for (index = displs[i], j = 0; j < 3 * crd.num_BP_Atoms[i]; j++) {
                 fout << fixed << setw(10) << setprecision(4) << velocities[index++] << " ";
                 if ((j + 1) % 10 == 0) fout << endl;
             }

@@ -58,15 +58,17 @@ public:
     
     EDMD(void);
     
+    void initialise(float _dt, float _gamma, float _tautp, float _temperature, float _scaled, float _mole_Cutoff, float _atom_Cutoff, float _mole_Least);
+    
     void calculate_ED_Forces(Tetrad* tetrad, float scaled);
     
     void calculate_Random_Forces(Tetrad* tetrad, int rank);
     
     void generate_Pair_Lists(int pair_List[][2], int* effective_Pairs, int num_Tetrads, Tetrad* tetrad);
     
-    void calculate_NB_Forces(Tetrad* tetrad1, Tetrad* tetrad2);
+    void calculate_NB_Forces(Tetrad* t1, Tetrad* t2);
     
-    void update_Velocities(Tetrad* tetrad);
+    void update_Velocities(Tetrad* tetrad, int index);
     
     void update_Coordinates(Tetrad* tetrad);
     
