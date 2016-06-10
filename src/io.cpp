@@ -120,26 +120,6 @@ void IO::read_Cofig(EDMD* edmd) {
             }
         }
         
-        /*
-        for (int i = 1; i < 11; i++) {
-            fin.getline(line, sizeof(line));
-            stringstream file_Path(line);
-            
-            switch (i) {
-                case  1: file_Path >> s1 >> s2 >> s3; iteration = stoi(s3); break;
-                case  2: file_Path >> s1 >> s2 >> s3; nsteps    = stoi(s3); break;
-                case  3: file_Path >> s1 >> s2 >> s3; frequency = stoi(s3); break;
-                case  4: file_Path >> s1 >> s2 >> s3;
-                    istringstream(s3) >> boolalpha >> circular; break;
-                case  5: file_Path >> s1 >> s2 >> prm_File;     break;
-                case  6: file_Path >> s1 >> s2 >> crd_File;     break;
-                case  7: file_Path >> s1 >> s2 >> energy_File;  break;
-                case  8: file_Path >> s1 >> s2 >> forces_File;  break;
-                case  9: file_Path >> s1 >> s2 >> trj_File;     break;
-                case 10: file_Path >> s1 >> s2 >> new_Crd_File; break;
-            }
-        }*/
-        
         fin.close();
         
     } else {
@@ -365,7 +345,9 @@ void IO::initialise_Tetrad_Crds(void) {
             else tetrad[i].velocities[j] = crd.ini_BP_Vels[start_Index];
             
             tetrad[i].coordinates[j] = crd.ini_BP_Crds[start_Index++];
-            tetrad[i].ED_Forces[j] = tetrad[i].random_Forces[j] = tetrad[i].NB_Forces[j] = 0.0;
+            tetrad[i].ED_Forces[j] = 0.0;
+            tetrad[i].random_Forces[j] = 0.0;
+            tetrad[i].NB_Forces[j] = 0.0;
         }
         
         tetrad[i].energies[0] = tetrad[i].energies[1] = tetrad[i].energies[2] = 0.0;

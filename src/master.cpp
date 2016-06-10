@@ -293,7 +293,6 @@ void Master::force_Calculation(void) {
         for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
             io.tetrad[i].NB_Forces[j]  = min( max_Forces, io.tetrad[i].NB_Forces[j]);
             io.tetrad[i].NB_Forces[j]  = max(-max_Forces, io.tetrad[i].NB_Forces[j]);
-            io.tetrad[i].NB_Forces[j] += io.tetrad[i].random_Forces[j];
         }
     }
     
@@ -391,6 +390,14 @@ void Master::data_Processing(void) {
                 velocities [index] /= 4;
                 coordinates[index] /= 4;
             }
+        }
+    }
+    
+    // Restore the velocities & coordinates back to tetrads
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        for (index = io.displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; index++, j++) {
+            io.tetrad[i].velocities [j] = velocities [index];
+            io.tetrad[i].coordinates[j] = coordinates[index];
         }
     }
     

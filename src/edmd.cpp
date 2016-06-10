@@ -392,13 +392,16 @@ void EDMD::update_Velocities(Tetrad* tetrad, int index) {
     float target_KE;
     float tscal;  // Berendsen T-coupling factor
     float gamfac; // Velocity scale factor
+    float max_Velocity = 10.0;
     
     gamfac = 1.0 / (1.0 + gamma * dt);
     
     // Simple Langevin dynamics
     float v1 = 0.0, v2 = 0.0;
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + tetrad->NB_Forces[i] * dt / tetrad->masses[i]) * gamfac;
+        tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
+        //tetrad->velocities[i] = min( max_Velocity, tetrad->velocities[i]);
+        //tetrad->velocities[i] = max(-max_Velocity, tetrad->velocities[i]);
         v1 += tetrad->velocities[i];
     }
     
@@ -426,7 +429,7 @@ void EDMD::update_Velocities(Tetrad* tetrad, int index) {
     for (int j = 0; j < 3 * tetrad->num_Atoms; j++) {
         ed  += tetrad->ED_Forces[j];
         ran += tetrad->random_Forces[j];
-        nb  += tetrad->NB_Forces[j] - tetrad->random_Forces[j];
+        nb  += tetrad->NB_Forces[j];
     }
     cout << "Index: "   << fixed << setw(2) << index
         << ", ED: "     << fixed << setprecision(4) << ed
