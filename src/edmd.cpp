@@ -192,11 +192,11 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad, int rank) {
     float half = 0.5, r1 = 0.27597, r2 = 0.27846, u, v, x, y, q;
     float* noise_Factor = new float[3 * tetrad->num_Atoms];
 
-    srand((unsigned)RNG_Seed + rank);
+    srand((unsigned)(RNG_Seed + rank + time(0)));
     
     // Noise factors, sum(noise_Factor) = 3594.75 when gmma = 2.0
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        noise_Factor[i]  = sqrt(2.0 * gamma * scaled * tetrad->masses[i] / dt);
+        noise_Factor[i] = sqrt(2.0 * gamma * scaled * tetrad->masses[i] / dt);
         tetrad->random_Forces[i] = 0.0;
     }
     
