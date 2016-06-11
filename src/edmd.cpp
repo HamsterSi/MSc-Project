@@ -65,13 +65,11 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
     
     int i, j;
     double temp_Forces1, temp_Forces2, temp_Forces3;
-    double rotmat[9], rmsd, temp = 0;
+    double rotmat[9], rmsd;
     
     // Allocate memory for temp arrays
-    double * temp_Crds   = new double[3 * tetrad->num_Atoms];
-    double * proj        = new double[tetrad->num_Evecs];
-    
-    // Two arrays used in QCP rotation calculation
+    double * temp_Crds = new double [3 * tetrad->num_Atoms];
+    double * proj      = new double [tetrad->num_Evecs];
     double **avg_Crds  = new double *[3];
     double **crds      = new double *[3];
     for (i = 0; i < 3; i++) {
@@ -93,10 +91,8 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
     double xmid = 0.0, xold = 0.0, xnew = 0.0, fold = 0.0;
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) { xold += tetrad->coordinates[i]; }
     
-    // Call QCP functions
-    rmsd = CalcRMSDRotationalMatrix((double **) avg_Crds, (double **) crds, tetrad->num_Atoms, rotmat, NULL);
-    
     // Step 1: rotate x into the pcz frame of reference & remove average structure
+    rmsd = CalcRMSDRotationalMatrix((double **) avg_Crds, (double **) crds, tetrad->num_Atoms, rotmat, NULL); // Call QCP functions
     for (i = 0; i < tetrad->num_Atoms; i++) {
         temp_Crds[3 * i] = rotmat[0] * crds[0][i] + rotmat[1] * crds[1][i] + rotmat[2] * crds[2][i] - avg_Crds[0][i];
         temp_Crds[3*i+1] = rotmat[3] * crds[0][i] + rotmat[4] * crds[1][i] + rotmat[5] * crds[2][i] - avg_Crds[1][i];
@@ -127,8 +123,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
     }
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         for (j = 0; j < tetrad->num_Evecs; j++) {
-            // Step 3: re-embed the input coordinates in PC space - a sort of 'shake' procedure.
-            //         Ideally this step is not needed, as stuff above should ensure all moves remain in PC subspace...
+            // Step 3: re-embed the input coordinates in PC space - a sort of 'shake' procedure. Ideally this step is not needed, as stuff above should ensure all moves remain in PC subspace...
             temp_Crds[i] += tetrad->eigenvectors[j][i] * proj[j];
             
             // Step 4: calculate ED forces
@@ -143,11 +138,6 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
     for (i = 0; i < tetrad->num_Atoms; i++) {
         
         // Step 5: rotate 'shaken' coordinates back into right frame
-        /*
-        tetrad->coordinates[3 * i] = rotmat[0] * crds[0][i] + rotmat[3] * crds[1][i] + rotmat[6] * crds[2][i];
-        tetrad->coordinates[3*i+1] = rotmat[1] * crds[0][i] + rotmat[4] * crds[1][i] + rotmat[7] * crds[2][i];
-        tetrad->coordinates[3*i+2] = rotmat[2] * crds[0][i] + rotmat[5] * crds[1][i] + rotmat[8] * crds[2][i];*/
-        
         tetrad->coordinates[3 * i] = rotmat[0] * temp_Crds[3*i] + rotmat[3] * temp_Crds[3*i+1] + rotmat[6] * temp_Crds[3*i+2];
         tetrad->coordinates[3*i+1] = rotmat[1] * temp_Crds[3*i] + rotmat[4] * temp_Crds[3*i+1] + rotmat[7] * temp_Crds[3*i+2];
         tetrad->coordinates[3*i+2] = rotmat[2] * temp_Crds[3*i] + rotmat[5] * temp_Crds[3*i+1] + rotmat[8] * temp_Crds[3*i+2];
@@ -170,9 +160,11 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
     
     // Deallocate memory
     for (i = 0; i < 3; i++) {
-        delete [] avg_Crds[i]; delete [] crds[i];
+        delete [] avg_Crds[i];
+        delete [] crds[i];
     }
-    delete [] avg_Crds; delete [] crds;
+    delete [] avg_Crds;
+    delete [] crds;
     delete [] temp_Crds;
     delete [] proj;
     
@@ -182,6 +174,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
     for (i = 0; i < tetrad->num_Evecs; i++) { pro += proj[i]; }
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) { f += tetrad->ED_Forces[i]; }
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) { xnew += tetrad->coordinates[i]; }
+    if (index+1 == 1) for (i = 0; i < 9; i++) cout << rotmat[i] << " "; cout << endl;
     cout << index+1 << ", R: " << r << ", Proj: " << pro << ", fold: " << fold << ", f: " << f << ", xold: " << xold << ", xmid: " << xmid << ", xnew: " << xnew << endl;
     
 }
