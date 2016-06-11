@@ -168,22 +168,22 @@ void IO::read_Prm(void) {
             fin >> tetrad[i].num_Evecs;
             
             // Allocate memory for arrays in tetrads
-            tetrad[i].avg_Structure = new float[3 * tetrad[i].num_Atoms];
-            tetrad[i].masses        = new float[3 * tetrad[i].num_Atoms];
-            tetrad[i].abq           = new float[3 * tetrad[i].num_Atoms];
+            tetrad[i].avg_Structure = new double[3 * tetrad[i].num_Atoms];
+            tetrad[i].masses        = new double[3 * tetrad[i].num_Atoms];
+            tetrad[i].abq           = new double[3 * tetrad[i].num_Atoms];
             
-            tetrad[i].eigenvalues   = new float[tetrad[i].num_Evecs];
-            tetrad[i].eigenvectors  = new float* [tetrad[i].num_Evecs];
+            tetrad[i].eigenvalues   = new double[tetrad[i].num_Evecs];
+            tetrad[i].eigenvectors  = new double* [tetrad[i].num_Evecs];
             for (j = 0; j < tetrad[i].num_Evecs; j++) {
-                tetrad[i].eigenvectors[j] = new float[3 * tetrad[i].num_Atoms];
+                tetrad[i].eigenvectors[j] = new double[3 * tetrad[i].num_Atoms];
             }
             
-            tetrad[i].velocities    = new float[3 * tetrad[i].num_Atoms];
-            tetrad[i].coordinates   = new float[3 * tetrad[i].num_Atoms];
+            tetrad[i].velocities    = new double[3 * tetrad[i].num_Atoms];
+            tetrad[i].coordinates   = new double[3 * tetrad[i].num_Atoms];
             
-            tetrad[i].ED_Forces     = new float[3 * tetrad[i].num_Atoms];
-            tetrad[i].random_Forces = new float[3 * tetrad[i].num_Atoms];
-            tetrad[i].NB_Forces     = new float[3 * tetrad[i].num_Atoms];
+            tetrad[i].ED_Forces     = new double[3 * tetrad[i].num_Atoms];
+            tetrad[i].random_Forces = new double[3 * tetrad[i].num_Atoms];
+            tetrad[i].NB_Forces     = new double[3 * tetrad[i].num_Atoms];
             
             // Line 3 onwards: Reference (average) structure for the tetrad (x1,y1,z1,x2,y2,z2, etc as in .crd file)
             for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {
@@ -258,14 +258,14 @@ void IO::read_Crd(void) {
             crd.total_Atoms += crd.num_BP_Atoms[i];
         }
         
-        // Lines 65 - : Initial coordinates for each base pair (x1,y1,z1,x2,y2,z2...x63,y63,z63) 10 floats per line, new line before the start of each subsequent base pair, values in angstroms
-        crd.ini_BP_Crds = new float[3 * crd.total_Atoms];
+        // Lines 65 - : Initial coordinates for each base pair (x1,y1,z1,x2,y2,z2...x63,y63,z63) 10 doubles per line, new line before the start of each subsequent base pair, values in angstroms
+        crd.ini_BP_Crds = new double[3 * crd.total_Atoms];
         for (int i = 0; i < 3 * crd.total_Atoms; i++) {
             fin >> crd.ini_BP_Crds[i];
         }
         
         // Lines ? - : If this is the new crd file & not the 1st time to run the simulation, then there are velocities to read
-        crd.ini_BP_Vels = new float[3 * crd.total_Atoms];
+        crd.ini_BP_Vels = new double[3 * crd.total_Atoms];
         if (iteration != 0) {
             for (int i = 0; i < 3 * crd.total_Atoms; i++) {
                 fin >> crd.ini_BP_Vels[i];
@@ -350,8 +350,8 @@ void IO::initialise_Tetrad_Crds(void) {
             tetrad[i].NB_Forces[j] = 0.0;
         }
         
-        tetrad[i].energies[0] = tetrad[i].energies[1] = tetrad[i].energies[2] = 0.0;
-        tetrad[i].temperature = 0.0;
+        tetrad[i].ED_Energy = tetrad[i].NB_Energy   = 0.0;
+        tetrad[i].EL_Energy = tetrad[i].temperature = 0.0;
     }
     
 }
@@ -368,7 +368,7 @@ void IO::initialise_Tetrad_Crds(void) {
  *
  * Returns: None.
  */
-void IO::write_Template(ofstream* fout, float* data) {
+void IO::write_Template(ofstream* fout, double* data) {
     
     int i, j, index;
     
@@ -397,7 +397,7 @@ void IO::write_Template(ofstream* fout, float* data) {
  *
  * Returns: None.
  */
-void IO::write_Energies(float energies[]) {
+void IO::write_Energies(double energies[]) {
     
     ofstream fout;
     fout.open(energy_File, ios_base::app);
@@ -432,7 +432,7 @@ void IO::write_Energies(float energies[]) {
  *
  * Returns: None.
  */
-void IO::write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces) {
+void IO::write_Forces(double* ED_Forces, double* random_Forces, double* NB_Forces) {
     
     ofstream fout;
     fout.open(forces_File, ios_base::out);
@@ -472,7 +472,7 @@ void IO::write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces) 
  *
  * Returns: None.
  */
-void IO::write_Trajectory(float* coordinates) {
+void IO::write_Trajectory(double* coordinates) {
     
     ofstream fout;
     fout.open(trj_File, ios_base::out);
@@ -503,7 +503,7 @@ void IO::write_Trajectory(float* coordinates) {
  *
  * Returns: None.
  */
-void IO::update_Crd(float* velocities, float* coordinates) {
+void IO::update_Crd(double* velocities, double* coordinates) {
     
     ofstream fout;
     fout.open(new_Crd_File, ios_base::out);

@@ -21,29 +21,29 @@ typedef struct _Tetrad {
     
     int num_Evecs;        // The number of eigenvectors & eigenvalues
     
-    float *avg_Structure; // The average structure (coordinates) of tetrad
+    double *avg_Structure; // The average structure (coordinates) of tetrad
     
-    float *masses;        // The masses of atoms of tetrads
+    double *masses;        // The masses of atoms of tetrads
     
-    float *abq;           // The abq
+    double *abq;           // The abq
     
-    float *eigenvalues;   // The eigenvalues
+    double *eigenvalues;   // The eigenvalues
     
-    float **eigenvectors; // The eigenvectors
+    double **eigenvectors; // The eigenvectors
     
-    float *velocities;    // The velocities of tetrads
+    double *velocities;    // The velocities of tetrads
 
-    float *coordinates;   // The coordinates of tetrads
+    double *coordinates;   // The coordinates of tetrads
     
-    float *ED_Forces;
+    double *ED_Forces;
     
-    float *random_Forces;
+    double *random_Forces;
     
-    float *NB_Forces;
+    double *NB_Forces;
     
-    float energies[3];    // ED_Energy, NB_Energy, Electrostatic_Energy
+    double energies[3];    // ED_Energy, NB_Energy, Electrostatic_Energy
     
-    float temperature;    // The acerage temperature of tetrad
+    double temperature;    // The acerage temperature of tetrad
     
 }Tetrad; */
 
@@ -56,29 +56,33 @@ public:
     
     int num_Evecs;           // The number of eigenvectors & eigenvalues
     
-    float *avg_Structure;   // The average structure (coordinates) of tetrad
+    double *avg_Structure;   // The average structure (coordinates) of tetrad
     
-    float *masses;          // The masses of atoms of tetrads
+    double *masses;          // The masses of atoms of tetrads
     
-    float *abq;             // The abq
+    double *abq;             // The abq
     
-    float *eigenvalues;     // The eigenvalues
+    double *eigenvalues;     // The eigenvalues
     
-    float **eigenvectors;   // The eigenvectors
+    double **eigenvectors;   // The eigenvectors
     
-    float *velocities;      // The velocities of tetrads
+    double *velocities;      // The velocities of tetrads
     
-    float *coordinates;     // The coordinates of tetrads
+    double *coordinates;     // The coordinates of tetrads
     
-    float *ED_Forces;
+    double *ED_Forces;
     
-    float *random_Forces;
+    double *random_Forces;
     
-    float *NB_Forces;
+    double *NB_Forces;
     
-    float energies[3];    // ED_Energy, NB_Energy, Electrostatic_Energy
+    double ED_Energy;
     
-    float temperature;    // The acerage temperature of tetrad
+    double NB_Energy;
+    
+    double EL_Energy;
+    
+    double temperature;    // The acerage temperature of tetrad
     
 };
 

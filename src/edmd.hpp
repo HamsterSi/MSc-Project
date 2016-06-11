@@ -27,9 +27,9 @@ using namespace std;
  */
 typedef struct _Constants {
     
-    float Boltzmann; // Boltzmann constant in internal units
+    double Boltzmann; // Boltzmann constant in internal units
     
-    float timefac;   // Factor to convert time-realted parameter to internal units
+    double timefac;   // Factor to convert time-realted parameter to internal units
 
 }Constants;
 
@@ -43,24 +43,24 @@ public:
     
     Constants  constants;
     
-    float dt;          // Timestep, in ps
-    float gamma;       // The friction coefficient, in ps⁻¹
-    float tautp;       // Berendsen temperature coupling parameter
+    double dt;          // Timestep, in ps
+    double gamma;       // The friction coefficient, in ps⁻¹
+    double tautp;       // Berendsen temperature coupling parameter
     
-    float temperature; // Temperature, in Kelvin
-    float scaled;      // Scale factor to scale ED forces
+    double temperature; // Temperature, in Kelvin
+    double scaled;      // Scale factor to scale ED forces
     
-    float mole_Cutoff; // Molecular cutoffs
-    float atom_Cutoff; // Atomic cutoffs
-    float mole_Least;  // Molecules less than NB_Cutoff won't have NB ints.
+    double mole_Cutoff; // Molecular cutoffs
+    double atom_Cutoff; // Atomic cutoffs
+    double mole_Least;  // Molecules less than NB_Cutoff won't have NB ints.
     
 public:
     
     EDMD(void);
     
-    void initialise(float _dt, float _gamma, float _tautp, float _temperature, float _scaled, float _mole_Cutoff, float _atom_Cutoff, float _mole_Least);
+    void initialise(double _dt, double _gamma, double _tautp, double _temperature, double _scaled, double _mole_Cutoff, double _atom_Cutoff, double _mole_Least);
     
-    void calculate_ED_Forces(Tetrad* tetrad, float scaled);
+    void calculate_ED_Forces(Tetrad* tetrad, double scaled, int index);
     
     void calculate_Random_Forces(Tetrad* tetrad, int rank);
     

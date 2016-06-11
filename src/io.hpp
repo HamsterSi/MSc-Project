@@ -28,9 +28,9 @@ typedef struct _Crd {
     
     int total_Atoms;     // Total number of atoms in DNA
     
-    float * ini_BP_Vels; // Initial BP velocities;
+    double * ini_BP_Vels; // Initial BP velocities;
     
-    float * ini_BP_Crds; // Initial BP coordinates;
+    double * ini_BP_Crds; // Initial BP coordinates;
     
 }Crd;
 
@@ -89,15 +89,15 @@ public:
     
     void initialise_Tetrad_Crds(void);
     
-    void write_Template(ofstream* fout, float* data);
+    void write_Template(ofstream* fout, double* data);
     
-    void write_Energies(float energies[]);
+    void write_Energies(double energies[]);
     
-    void write_Forces(float* ED_Forces, float* random_Forces, float* NB_Forces);
+    void write_Forces(double* ED_Forces, double* random_Forces, double* NB_Forces);
     
-    void write_Trajectory(float* coordinates);
+    void write_Trajectory(double* coordinates);
     
-    void update_Crd(float* velocities, float* coordinates);
+    void update_Crd(double* velocities, double* coordinates);
     
 };
 

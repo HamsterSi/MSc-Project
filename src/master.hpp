@@ -26,8 +26,8 @@ public:
     int size;
     int max_Atoms;
 
-    float * velocities;
-    float * coordinates;
+    double * velocities;
+    double * coordinates;
     
     EDMD edmd;
     IO io;

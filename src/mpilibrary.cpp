@@ -35,7 +35,7 @@ void MPI_Library::create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, Tetrad* tetrad) {
         if (i + 2 == 5) counts[i + 2] = tetrad->num_Evecs;
         else counts[i + 2] = num_Atoms;
         
-        old_Types[i + 2] = MPI_FLOAT;
+        old_Types[i + 2] = MPI_DOUBLE;
     }
     
     // Get the memory address of every elements in tetrad

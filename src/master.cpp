@@ -67,8 +67,8 @@ void Master::initialise(void) {
     }
     
     // Allocate memory for storing velocities & coordinates of the whole DNA
-    velocities  = new float [3 * io.crd.total_Atoms];
-    coordinates = new float [3 * io.crd.total_Atoms];
+    velocities  = new double [3 * io.crd.total_Atoms];
+    coordinates = new double [3 * io.crd.total_Atoms];
     
     cout << endl << "Simulation starting..." << endl;
     cout << ">>> MPI Processes: " << size << endl;
@@ -96,8 +96,8 @@ void Master::initialise(void) {
  */
 void Master::send_Parameters(void) {
     
-    float edmd_Para[8] = {edmd.dt, edmd.gamma, edmd.tautp, edmd.temperature,
-          edmd.scaled, edmd.mole_Cutoff, edmd.atom_Cutoff, edmd.mole_Least};
+    double edmd_Para[8] = {edmd.dt, edmd.gamma, edmd.tautp, edmd.temperature,
+           edmd.scaled, edmd.mole_Cutoff, edmd.atom_Cutoff, edmd.mole_Least};
     int parameters[3] = {io.prm.num_Tetrads, max_Atoms, io.iteration};
     int i, signal, * tetrad_Para = new int[2 * io.prm.num_Tetrads];
     
@@ -117,7 +117,7 @@ void Master::send_Parameters(void) {
         
         // Send the edmd parameters & tetrad parameters to workers
         for (i = 0; i < size - 1; i++) {
-            MPI_Send(edmd_Para, 8, MPI_INT, i + 1, TAG_DATA, comm);
+            MPI_Send(edmd_Para, 8, MPI_DOUBLE, i + 1, TAG_DATA, comm);
             MPI_Send(tetrad_Para, 2 * io.prm.num_Tetrads, MPI_INT, i + 1, TAG_DATA, comm);
         }
     }
@@ -161,8 +161,8 @@ void Master::send_Tetrads(void) {
             } else {
                 
                 // Only send velocities & coordinates to workers.
-                MPI_Send(io.tetrad[j].velocities,  3 * io.tetrad[j].num_Atoms, MPI_FLOAT, i, TAG_TETRAD+i+j+1, comm);
-                MPI_Send(io.tetrad[j].coordinates, 3 * io.tetrad[j].num_Atoms, MPI_FLOAT, i, TAG_TETRAD+i+j+2, comm);
+                MPI_Send(io.tetrad[j].velocities,  3 * io.tetrad[j].num_Atoms, MPI_DOUBLE, i, TAG_TETRAD+i+j+1, comm);
+                MPI_Send(io.tetrad[j].coordinates, 3 * io.tetrad[j].num_Atoms, MPI_DOUBLE, i, TAG_TETRAD+i+j+2, comm);
             }
             
         }
@@ -216,7 +216,7 @@ void Master::force_Calculation(void) {
     
     int i, j, k, flag, index, effective_Pairs;
     int num_Pairs = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
-    float max_Forces = 1.0, temp_Forces[2][3 * max_Atoms + 2];
+    double max_Forces = 1.0, temp_Forces[2][3 * max_Atoms + 2];
     
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
@@ -224,9 +224,9 @@ void Master::force_Calculation(void) {
             io.tetrad[i].random_Forces[j] = 0.0;
             io.tetrad[i].NB_Forces[j]     = 0.0;
         }
-        io.tetrad[i].energies[0] = 0.0;
-        io.tetrad[i].energies[1] = 0.0;
-        io.tetrad[i].energies[2] = 0.0;
+        io.tetrad[i].ED_Energy = 0.0;
+        io.tetrad[i].NB_Energy = 0.0;
+        io.tetrad[i].EL_Energy = 0.0;
     }
     
     // Generate pair lists of tetrads for NB forces
@@ -248,12 +248,12 @@ void Master::force_Calculation(void) {
     while (i < effective_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs) {
 
         // Receive ED/NB forces from workers
-        MPI_Recv(&(temp_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_FLOAT, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status);
+        MPI_Recv(&(temp_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status);
         
         // If the MPI Tag indicates it's ED forces then store ED forces & random forces
         if (status.MPI_TAG == TAG_ED) {
             index = (int) temp_Forces[0][3 * max_Atoms + 1];
-            io.tetrad[index].energies[0] = temp_Forces[0][3 * max_Atoms];
+            io.tetrad[index].ED_Energy = temp_Forces[0][3 * max_Atoms];
             for (k = 0; k < 3 * io.tetrad[index].num_Atoms; k++) {
                 io.tetrad[index].ED_Forces[k]     += temp_Forces[0][k];
                 io.tetrad[index].random_Forces[k] += temp_Forces[1][k];
@@ -262,15 +262,15 @@ void Master::force_Calculation(void) {
         // The MPI Tag shows it's NB forces, stroe NB forces in tetrads
         } else if (status.MPI_TAG == TAG_NB) {
             index = (int) temp_Forces[0][3 * max_Atoms + 1];
-            io.tetrad[index].energies[1] += temp_Forces[0][3 * max_Atoms];
-            io.tetrad[index].energies[2] += temp_Forces[1][3 * max_Atoms];
+            io.tetrad[index].NB_Energy += temp_Forces[0][3 * max_Atoms];
+            io.tetrad[index].EL_Energy += temp_Forces[1][3 * max_Atoms];
             for (k = 0; k < 3 * io.tetrad[index].num_Atoms; k++) {
                 io.tetrad[index].NB_Forces[k] += temp_Forces[0][k];
             }
             
             index = (int) temp_Forces[1][3 * max_Atoms + 1];
-            io.tetrad[index].energies[1] += temp_Forces[0][3 * max_Atoms];
-            io.tetrad[index].energies[2] += temp_Forces[1][3 * max_Atoms];
+            io.tetrad[index].NB_Energy += temp_Forces[0][3 * max_Atoms];
+            io.tetrad[index].EL_Energy += temp_Forces[1][3 * max_Atoms];
             for (k = 0; k < 3 * io.tetrad[index].num_Atoms; k++) {
                 io.tetrad[index].NB_Forces[k] += temp_Forces[1][k];
             }
@@ -416,13 +416,13 @@ void Master::data_Processing(void) {
  */
 void Master::write_Energy(void) {
     
-    float energies[4] = {0.0};
+    double energies[4] = {0.0};
     
     // Gather energies & temperature of tetrads together
     for (int i = 0; i < io.prm.num_Tetrads; i++) {
-        energies[0] += io.tetrad[i].energies[0];
-        energies[1] += io.tetrad[i].energies[1];
-        energies[2] += io.tetrad[i].energies[2];
+        energies[0] += io.tetrad[i].ED_Energy;
+        energies[1] += io.tetrad[i].NB_Energy;
+        energies[2] += io.tetrad[i].EL_Energy;
         energies[3] += io.tetrad[i].temperature;
     }
     
@@ -448,9 +448,9 @@ void Master::write_Energy(void) {
 void Master::write_Forces(void) {
     
     int i, j, index;
-    float * ED_Forces     = new float [3 * io.crd.total_Atoms];
-    float * random_Forces = new float [3 * io.crd.total_Atoms];
-    float * NB_Forces     = new float [3 * io.crd.total_Atoms];
+    double * ED_Forces     = new double [3 * io.crd.total_Atoms];
+    double * random_Forces = new double [3 * io.crd.total_Atoms];
+    double * NB_Forces     = new double [3 * io.crd.total_Atoms];
     
     // Initialise arrays
     for (i = 0; i < 3 * io.crd.total_Atoms; i++) {

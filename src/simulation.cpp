@@ -12,6 +12,7 @@ void master_Code(void) {
     
     master.initialise();
     
+    
     for (; master.io.iteration < master.io.nsteps; master.io.iteration++) {
 
         cout << "\nIteration: " << master.io.iteration << endl << endl;
