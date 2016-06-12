@@ -1,5 +1,5 @@
 iteration    = 0
-nsteps       = 1
+nsteps       = 80
 frequency    = 1
 circular     = false
 dt           = 0.002
