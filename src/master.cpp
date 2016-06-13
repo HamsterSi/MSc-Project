@@ -351,7 +351,8 @@ void Master::cal_Coordinate(void) {
  */
 void Master::data_Processing(void) {
     
-    int i, j, index;
+    int i, j, index, endex;
+    float temp = 0.0;
 
     // Initialise velocities & coordinates array
     for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
@@ -361,36 +362,32 @@ void Master::data_Processing(void) {
     // Gather all velocities & coordinates into a single array
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (index = io.displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; index++, j++) {
-            velocities [index] += io.tetrad[i].velocities[j];
+            velocities [index] += io.tetrad[i].velocities [j];
             coordinates[index] += io.tetrad[i].coordinates[j];
         }
     }
     
+    for (temp = 0.0, i = 0; i < 3 * io.crd.total_Atoms; i++) {
+        temp += coordinates[i];
+    }cout << "Total before:" << temp << endl;
+    for (temp = 0.0, i = 0; i < 3 * io.tetrad[76].num_Atoms; i++) {
+        temp += io.tetrad[76].coordinates[i];
+    } cout << "77, C: " << temp << endl;
+    for (temp = 0.0, i = 0, index = io.displs[76]; i < 3 * io.tetrad[76].num_Atoms; index++, i++) {
+        temp += coordinates[index];
+    } cout << "77, Crecv: " << io.displs[76] << " " << io.displs[77] - 1 << " " << temp << endl;
+    
     // Needs to consider whether the DNA is circular or linear
-    for (i = 0; i < io.crd.num_BP; i++) {
-        for (index = io.displs[i], j = 0; j < 3 * io.crd.num_BP_Atoms[i]; index++, j++) {
-            
-            // The DNA is linear, the calculation of the beginning & end is different
-            if (io.circular == false) {
-                if (i < 3) {
-                    velocities [index] /= (i + 1);
-                    coordinates[index] /= (i + 1);
-                }
-                else if (i > io.crd.num_BP - 4) {
-                    velocities [index] /= (io.crd.num_BP - i);
-                    coordinates[index] /= (io.crd.num_BP - i);
-                }
-                else {
-                    velocities [index] /= 4;
-                    coordinates[index] /= 4;
-                }
-                
-            // Circular DNA, all velocities & coordinates needs to be divided by 4
-            }  else  {
-                velocities [index] /= 4;
-                coordinates[index] /= 4;
-            }
-        }
+    index = io.displs[io.crd.num_BP - 3];
+    endex = io.displs[io.crd.num_BP];
+    for (i = 0; index < endex; index++, i++) {
+        velocities [index] += velocities [i];
+        coordinates[index] += coordinates[i];
+        velocities [i] = velocities [index];
+        coordinates[i] = coordinates[index];
+    }
+    for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
+        velocities[i] *= 0.25; coordinates[i] *= 0.25;
     }
     
     // Restore the velocities & coordinates back to tetrads
@@ -400,6 +397,13 @@ void Master::data_Processing(void) {
             io.tetrad[i].coordinates[j] = coordinates[index];
         }
     }
+    
+    for (temp = 0.0, i = 0; i < 3 * io.tetrad[76].num_Atoms; i++) {
+        temp += io.tetrad[76].coordinates[i];
+    } cout << "77, Csend: " << temp << endl;
+    for (temp = 0.0, i = 0; i < 3 * io.crd.total_Atoms; i++) {
+        temp += coordinates[i];
+    }cout << "Total after:" << temp << endl;
     
 }
 

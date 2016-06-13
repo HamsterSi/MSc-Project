@@ -13,41 +13,7 @@
 using namespace std;
 
 /* Initial parameters of tetrads are read from "prm" file */
-
-/*
-typedef struct _Tetrad {
-    
-    int num_Atoms;        // The number of atoms in tetrads
-    
-    int num_Evecs;        // The number of eigenvectors & eigenvalues
-    
-    double *avg_Structure; // The average structure (coordinates) of tetrad
-    
-    double *masses;        // The masses of atoms of tetrads
-    
-    double *abq;           // The abq
-    
-    double *eigenvalues;   // The eigenvalues
-    
-    double **eigenvectors; // The eigenvectors
-    
-    double *velocities;    // The velocities of tetrads
-
-    double *coordinates;   // The coordinates of tetrads
-    
-    double *ED_Forces;
-    
-    double *random_Forces;
-    
     double *NB_Forces;
-    
-    double energies[3];    // ED_Energy, NB_Energy, Electrostatic_Energy
-    
-    double temperature;    // The acerage temperature of tetrad
-    
-}Tetrad; */
-
-
 class Tetrad {
     
 public:

@@ -29,7 +29,7 @@ void master_Code(void) {
         cout << ">>> Calculating Velocities..." << endl;
         master.cal_Velocities();
         cout << ">>> Calculating Coordinates..." << endl;
-        master.cal_Coordinate();
+        //master.cal_Coordinate();
         cout << ">>> Velocities & Coordinates processing..." << endl;
         master.data_Processing();
         

@@ -326,7 +326,7 @@ void IO::initialise_Tetrad_Crds(void) {
         num_Atoms = crd.num_BP_Atoms[i] + crd.num_BP_Atoms[i + 1] +
             crd.num_BP_Atoms[i + 2] + crd.num_BP_Atoms[i + 3];
         
-        // Get the start and end displacement of tetrads in crd.num_BP_Atoms
+        // Get the start & end displacement of tetrads in crd.num_BP_Atoms
         start_Index = displs[i];
         end_Index   = displs[i + 4] - 1;
 
@@ -521,20 +521,8 @@ void IO::update_Crd(double* velocities, double* coordinates) {
         }
         
         // Write out coordinates & velocities
-        for (i = 0; i < crd.num_BP; i++) {
-            for (index = displs[i], j = 0; j < 3 * crd.num_BP_Atoms[i]; j++) {
-                fout << fixed << setw(10) << setprecision(4) << coordinates[index++] << " ";
-                if ((j + 1) % 10 == 0) fout << endl;
-            }
-            fout << endl;
-            
-            for (index = displs[i], j = 0; j < 3 * crd.num_BP_Atoms[i]; j++) {
-                fout << fixed << setw(10) << setprecision(4) << velocities[index++] << " ";
-                if ((j + 1) % 10 == 0) fout << endl;
-            }
-            fout << endl;
-        }
-        fout << endl;
+        write_Template(&fout, coordinates);
+        write_Template(&fout, velocities );
         
         fout.close();
         
