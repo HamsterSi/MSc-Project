@@ -13,7 +13,6 @@
 using namespace std;
 
 /* Initial parameters of tetrads are read from "prm" file */
-    double *NB_Forces;
 class Tetrad {
     
 public:
