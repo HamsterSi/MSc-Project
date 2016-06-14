@@ -62,7 +62,7 @@ public:
     
     void calculate_ED_Forces(Tetrad* tetrad, double scaled, int index);
     
-    void calculate_Random_Forces(Tetrad* tetrad, int rank);
+    void calculate_Random_Forces(Tetrad* tetrad);
     
     void generate_Pair_Lists(int pair_List[][2], int* effective_Pairs, int num_Tetrads, Tetrad* tetrad);
     

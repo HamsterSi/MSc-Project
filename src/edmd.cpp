@@ -64,7 +64,7 @@ void EDMD::initialise(double _dt, double _gamma, double _tautp, double _temperat
 void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
     
     int i, j;
-    double temp_Forces[3], rotmat[9], rmsd;
+    double temp_Forces[3], rotmat[9], v[3], rmsd;
     
     // Allocate memory for temp arrays
     double * temp_Crds = new double [3 * tetrad->num_Atoms];
@@ -105,31 +105,52 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
     }
     
     // Step 3 & Step 4
-    /*
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         temp_Crds[i] = tetrad->avg_Structure[i];
         tetrad->ED_Forces[i] = 0.0;
-    }*/
+    }
+    /*
+    if(index == 0) { cout << "1 xtmp: ";
+        for (i = 0; i < 10; i++) {
+            cout << temp_Crds[i] << " ";
+        } cout << endl; }*/
+    
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        tetrad->ED_Forces[i] = 0.0;
         
+        tetrad->ED_Forces[i] = 0.0;
         for (j = 0; j < tetrad->num_Evecs; j++) {
             // Step 3: re-embed the input coordinates in PC space - a sort of 'shake' procedure. Ideally this step is not needed, as stuff above should ensure all moves remain in PC subspace...
-            // temp_Crds[i] += tetrad->eigenvectors[j][i] * proj[j];
+            temp_Crds[i] += tetrad->eigenvectors[j][i] * proj[j];
             
             // Step 4: calculate ED forces
             tetrad->ED_Forces[i] -= (tetrad->eigenvectors[j][i] * proj[j] * scaled / tetrad->eigenvalues[j]);
         }
     }
     
+    // The offset vector of tetrads
+    v[0] = v[1] = v[2] = 0.0;
+    for (i = 0; i < tetrad->num_Atoms; i++) {
+        v[0] += (tetrad->avg_Structure[3 * i] - (rotmat[0] * tetrad->coordinates[3*i] + rotmat[1] * tetrad->coordinates[3*i+1] + rotmat[2] * tetrad->coordinates[3*i+2]));
+        v[1] += (tetrad->avg_Structure[3*i+1] - (rotmat[3] * tetrad->coordinates[3*i] + rotmat[4] * tetrad->coordinates[3*i+1] + rotmat[5] * tetrad->coordinates[3*i+2]));
+        v[2] += (tetrad->avg_Structure[3*i+2] - (rotmat[6] * tetrad->coordinates[3*i] + rotmat[7] * tetrad->coordinates[3*i+1] + rotmat[8] * tetrad->coordinates[3*i+2]));
+    }
+    v[0] /= tetrad->num_Atoms; v[1] /= tetrad->num_Atoms; v[2] /= tetrad->num_Atoms;
+    
+    
+    //if(index == 90) { cout << "2 xtmp: ";
+    //    for (i = 0; i < 10; i++) { cout << temp_Crds[i] << " "; } cout << endl << "R: ";
+    //    for (i = 0; i <  9; i++) { cout << rotmat[i] << " "; } cout << endl << "V: ";
+    //    cout <<index << ", " << setprecision(8) << v[0] << " " << setprecision(8) << v[1] << " " << setprecision(8) << v[2] << endl;
+    //}
+    
     // Step 5 & Step 6
     for (i = 0; i < tetrad->num_Atoms; i++) {
         
         // Step 5: rotate 'shaken' coordinates back into right frame
-        /*
+        temp_Crds[3*i] -= v[0]; temp_Crds[3*i+1] -= v[1]; temp_Crds[3*i+2] -= v[2];
         tetrad->coordinates[3 * i] = rotmat[0] * temp_Crds[3*i] + rotmat[3] * temp_Crds[3*i+1] + rotmat[6] * temp_Crds[3*i+2];
         tetrad->coordinates[3*i+1] = rotmat[1] * temp_Crds[3*i] + rotmat[4] * temp_Crds[3*i+1] + rotmat[7] * temp_Crds[3*i+2];
-        tetrad->coordinates[3*i+2] = rotmat[2] * temp_Crds[3*i] + rotmat[5] * temp_Crds[3*i+1] + rotmat[8] * temp_Crds[3*i+2];*/
+        tetrad->coordinates[3*i+2] = rotmat[2] * temp_Crds[3*i] + rotmat[5] * temp_Crds[3*i+1] + rotmat[8] * temp_Crds[3*i+2];
         
         // Step 6: rotate forces back to original orientation of coordinates
         temp_Forces[0] = rotmat[0] * tetrad->ED_Forces[3*i] + rotmat[3] * tetrad->ED_Forces[3*i+1] + rotmat[6] * tetrad->ED_Forces[3*i+2];
@@ -140,6 +161,9 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
         tetrad->ED_Forces[3*i+1] = temp_Forces[1];
         tetrad->ED_Forces[3*i+2] = temp_Forces[2];
     }
+    
+    if(index == 90) { cout << "3 xtmp: ";
+        for (i = 0; i < 10; i++) cout << tetrad->coordinates[i] << " "; cout << endl; }
     
     // Step 7: calculate the 'potential energy' (in units of kT)
     tetrad->ED_Energy = 0.0;
@@ -159,15 +183,17 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
     delete [] proj;
     
     ////////////Test///
+    /*
     double r = 0.0, pro = 0.0, f = 0.0, c = 0.0;
     for (i = 0; i < 9; i++) r += rotmat[i];
     for (i = 0; i < tetrad->num_Evecs; i++) { pro += proj[i]; }
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) { f += tetrad->ED_Forces[i]; }
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) { c += tetrad->coordinates[i]; }
+    if (index == 0)
     cout << setw(2) << index+1 << ",\tE: " << fixed << setprecision(4) << tetrad->ED_Energy
          << ",\tR: " << fixed << setprecision(4) << r
          << ",\tProj: " << fixed << setprecision(4) << pro
-         << ",\tF: " << fixed << setprecision(4) << f << ",\tC: " << c << endl;
+         << ",\tF: " << fixed << setprecision(4) << f << ",\tC: " << c << endl;*/
     
 }
 
@@ -182,7 +208,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double scaled, int index) {
  *
  * Return:    None
  */
-void EDMD::calculate_Random_Forces(Tetrad* tetrad, int rank) {
+void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
     
     int i, j;
     static int RNG_Seed = 3579;
@@ -190,7 +216,7 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad, int rank) {
     double half = 0.5, r1 = 0.27597, r2 = 0.27846, u, v, x, y, q;
     double * noise_Factor = new double[3 * tetrad->num_Atoms];
 
-    srand((unsigned)((RNG_Seed++) + rank + time(0)));
+    srand((unsigned)((RNG_Seed++) + time(0)));
     
     // Noise factors, sum(noise_Factor) = 3594.75 when gmma = 2.0
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
@@ -416,28 +442,35 @@ void EDMD::update_Velocities(Tetrad* tetrad, int index) {
     tetrad->temperature = kentical_Energy * 2 / (constants.Boltzmann * 3 * tetrad->num_Atoms);
     tetrad->temperature *= tscal * tscal;
     
+    
+    if(index == 90) { cout << "ccccc before: ";
+    for (i = 0; i < 10; i++) cout << tetrad->coordinates[i] << " "; cout << endl; }
+    
     // Update velocities
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         tetrad->velocities[i] *= tscal;
         v2 += tetrad->velocities[i];
     }
     
-    
     ///////////////////////////Test///
-    
     double ed = 0.0, ran = 0.0, nb = 0.0, v = 0.0, c = 0.0;
     for (int i = 0; i < 3 * tetrad->num_Atoms; i++) {
         tetrad->coordinates[i] += tetrad->velocities[i] * dt;
         c += tetrad->coordinates[i];
     }
     
+    /*
+    if(index == 90) { cout << "ccccc after: ";
+        for (i = 0; i < 10; i++) cout << tetrad->coordinates[i] << " "; cout << endl; }
+    
     for (int j = 0; j < 3 * tetrad->num_Atoms; j++) {
         ed  += tetrad->ED_Forces[j];
         ran += tetrad->random_Forces[j];
         nb  += tetrad->NB_Forces[j];
     }
+    //if (index == 0)
     cout << "Index: "   << fixed << setw(2) << index+1
-        << ",\tED: "     << fixed << setprecision(4) << ed
+        << ",\tED: "    << fixed << setprecision(4) << ed
         << ",\tRan: "   << fixed << setprecision(3) << ran
         << ",\tNB: "    << fixed << setprecision(4) << nb
         << ",\tKE: "    << fixed << setprecision(4) << kentical_Energy
@@ -446,7 +479,7 @@ void EDMD::update_Velocities(Tetrad* tetrad, int index) {
         << ",\tVPre: "  << fixed << setprecision(4) << v0
         << ",\tVold: "  << fixed << setprecision(4) << v1
         << ",\tVnew: "  << fixed << setprecision(4) << v2
-        << ",\tCrd: "   << fixed << setprecision(4) << c << endl;
+        << ",\tCrd: "   << fixed << setprecision(4) << c << endl;*/
 
 }
 

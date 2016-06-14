@@ -173,14 +173,13 @@ void Worker::ED_Calculation(void) {
     // Receive the tetrad index from the master process
     MPI_Recv(&index, 1, MPI_INT, 0, TAG_ED, comm, &status);
     
-    // Calculate ED forces (ED energy) & random forces
+    // Calculate ED forces (ED energy)
     edmd.calculate_ED_Forces(&tetrad[index], edmd.scaled, index);
-    edmd.calculate_Random_Forces(&tetrad[index], rank);
     
     // Assign ED forces & random Forces to the 2D array for sending once
     for (i = 0; i < 3 * tetrad[index].num_Atoms; i++) {
         ED_Forces[0][i] = tetrad[index].ED_Forces[i];
-        ED_Forces[1][i] = tetrad[index].random_Forces[i];
+        ED_Forces[1][i] = tetrad[index].coordinates[i];
     }
     
     // Need to send the ED Energy back

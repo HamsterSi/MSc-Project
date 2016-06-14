@@ -298,7 +298,7 @@ void IO::generate_Displacements(void) {
     // Initialise the displacement array & generate diplacements of BP
     displs = new int[crd.num_BP + 1];
     displs[0] = 0;
-    for (int i = 1; i <= crd.num_BP; i++) {
+    for (int i = 1; i < crd.num_BP + 1; i++) {
         displs[i] = displs[i - 1] + 3 * crd.num_BP_Atoms[i - 1];
     }
     
@@ -407,8 +407,8 @@ void IO::write_Energies(double energies[]) {
         // Write out energies & temperature
         fout << "Iteration, ED Energy, NB_Energy, ELE_Energy, Temperature: ";
         fout << iteration   << ", ";
-        fout << energies[0] << ", " << energies[1] << ", ";
-        fout << energies[2] << ", " << energies[3] << endl;
+        fout << setprecision(8) << energies[0] << ", " << setprecision(8) << energies[1] << ", ";
+        fout << setprecision(8) << energies[2] << ", " << setprecision(8) << energies[3] << endl;
         
         fout.close();
         
