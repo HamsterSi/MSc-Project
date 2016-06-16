@@ -60,7 +60,7 @@ public:
     
     void initialise(double _dt, double _gamma, double _tautp, double _temperature, double _scaled, double _mole_Cutoff, double _atom_Cutoff, double _mole_Least);
     
-    void calculate_ED_Forces(Tetrad* tetrad, double scaled, int index);
+    void calculate_ED_Forces(Tetrad* tetrad);
     
     void calculate_Random_Forces(Tetrad* tetrad);
     

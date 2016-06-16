@@ -359,12 +359,6 @@ void Master::data_Processing(void) {
     
     int i, j, index;
     
-    /*
-    for (i = 0; i < io.prm.num_Tetrads; i++) {
-        cout << i+1 << ": ";
-        for (j = 0; j < 10; j++) cout << io.tetrad[i].coordinates[j] << ", "; cout << endl;
-    }*/
-    
     // Initialise velocities & coordinates array
     for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
         velocities[i] = coordinates[i] = 0.0;
@@ -378,38 +372,20 @@ void Master::data_Processing(void) {
         }
     }
     
-    if(index == 90) { cout << "old: ";
-        for (i = 0; i < 10; i++) cout << io.tetrad[90].coordinates[i] << " "; cout << endl; }
-    /*
-    cout << "-1 x(1:10): ";
-    for (i = 0; i < 10; i++)  cout << setprecision(8) << coordinates[i] << " ";
-    cout << endl << "0 x(xp1:xp1+10): ";index = io.displs[io.crd.num_BP - 3];
-    for (i = 0; i < 10; i++)  cout << setprecision(8) << coordinates[index++] << " ";
-    */
     // Process the beginning & end tetrads
     index = io.displs[io.crd.num_BP - 3];
-    //cout << index << " " << io.displs[io.crd.num_BP] << " " << io.displs[io.crd.num_BP]-index << endl;
     for (i = 0; index < io.displs[io.crd.num_BP]; index++, i++) {
         velocities [index] += velocities [i];
         coordinates[index] += coordinates[i];
         velocities [i] = velocities [index];
         coordinates[i] = coordinates[index];
     }
-    /*
-    cout << endl << "1 x(1:10): ";
-    for (i = 0; i < 10; i++) cout << coordinates[i] << " ";
-    cout << endl << "2 x(xp1:xp1+10): ";index = io.displs[io.crd.num_BP - 3];
-    for (i = 0; i < 10; i++) cout << coordinates[index++] << " ";
-    */
-    
+
     // Divide velocities & coordinates by 4
     for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
         velocities[i] *= 0.25; coordinates[i] *= 0.25;
     }
-    /*
-    cout << endl << "3 0.25 * x: ";
-    for (i = 0; i < 10; i++) cout << coordinates[i] << " ";
-    */
+
     // Restore the velocities & coordinates back to tetrads
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (index = io.displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; index++, j++) {
@@ -418,8 +394,6 @@ void Master::data_Processing(void) {
         }
     }
     
-    if(index == 90) { cout << "new: ";
-        for (i = 0; i < 10; i++) cout << io.tetrad[90].coordinates[i] << " "; cout << endl; }
 }
 
 

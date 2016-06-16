@@ -174,7 +174,7 @@ void Worker::ED_Calculation(void) {
     MPI_Recv(&index, 1, MPI_INT, 0, TAG_ED, comm, &status);
     
     // Calculate ED forces (ED energy)
-    edmd.calculate_ED_Forces(&tetrad[index], edmd.scaled, index);
+    edmd.calculate_ED_Forces(&tetrad[index]);
     
     // Assign ED forces & random Forces to the 2D array for sending once
     for (i = 0; i < 3 * tetrad[index].num_Atoms; i++) {
