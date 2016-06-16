@@ -36,7 +36,14 @@ EDMD::EDMD(void) {
 /*
  * Function:  Assign EDMD parameters
  *
- * Parameter:
+ * Parameter: _dt          -> Timestep, in ps
+ *            _gamma       -> The friction coefficient, in ps⁻¹
+ *            _tautp       -> Berendsen temperature coupling parameter
+ *            _temperature -> Temperature, in Kelvin
+ *            _scaled      -> Scale factor to scale ED forces
+ *            _mole_Cutoff -> Molecular cutoffs
+ *            _atom_Cutoff -> Atomic cutoffs
+ *            _mole_Least  -> Molecules less than NB_Cutoff won't have NB ints.
  *
  * Return:    None
  */
@@ -54,10 +61,11 @@ void EDMD::initialise(double _dt, double _gamma, double _tautp, double _temperat
 
 
 
+
 /*
  * Function:  Calculate ED forces
  *
- * Parameter:
+ * Parameter: * tetrad -> The instance of Tetrad cleass
  *
  * Return:    None
  */
@@ -172,7 +180,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
  * Function:  Calculate the LV random forces.
  *            Generate the Gaussian stochastic term. Assuming unitless.
  *
- * Parameter:
+ * Parameter: * tetrad -> The instance of Tetrad cleass
  *
  * Return:    None
  */
@@ -242,7 +250,10 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
 /*
  * Function:  Generate the pair list of tetrads.
  *
- * Parameter:
+ * Parameter: pair_List[][2]    -> The pair list that two tetrads has NB forces
+ *            * effective_Pairs -> The number of tetrads that has NB forces
+ *            num_Tetrads       -> The total number tetrads
+ *            * tetrad          -> The instance of Tetrad cleass
  *
  * Return:    None
  */
@@ -308,7 +319,8 @@ void EDMD::generate_Pair_Lists(int pair_List[][2], int* effective_Pairs, int num
 /*
  * Function:  Calculate NB forces
  *
- * Parameter:
+ * Parameter: * t1 -> The instance of Tetrad cleass
+ *            * t2 -> The instance of Tetrad cleass
  *
  * Return:    None
  */
@@ -373,7 +385,7 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
 /*
  * Function:  Update velocities & Berendsen temperature control
  *
- * Parameter:
+ * Parameter:  * tetrad -> The instance of Tetrad cleass
  *
  * Return:    None
  */
@@ -457,7 +469,7 @@ void EDMD::update_Velocities(Tetrad* tetrad, int index) {
 /*
  * Function:  Update Coordinates of tetrads
  *
- * Parameter:
+ * Parameter: * tetrad -> The instance of Tetrad cleass
  *
  * Return:    None
  */
