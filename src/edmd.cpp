@@ -404,9 +404,9 @@ void EDMD::update_Velocities(Tetrad* tetrad, int index) {
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         v0 += tetrad->velocities[i];
         //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt) * gamfac;
-        tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + tetrad->random_Forces[i] * dt / tetrad->masses[i]) * gamfac;
+        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + tetrad->random_Forces[i] * dt / tetrad->masses[i]) * gamfac;
         //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + tetrad->NB_Forces[i] * dt / tetrad->masses[i]) * gamfac;
-        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
+        tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
         v1 += tetrad->velocities[i];
     }
     

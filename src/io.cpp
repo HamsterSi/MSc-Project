@@ -21,12 +21,12 @@ IO::IO(void) {
     frequency = 1;
     circular  = false;
     
-    prm_File     = "./data//GC90c12.prm";
-    crd_File     = "./data//GC90_6c.crd";
-    energy_File  = "./results/energies.eng";
-    forces_File  = "./results/forces.fcs";
-    trj_File     = "./results/trajectory.trj";
-    new_Crd_File = "./results/crd.crd";
+    prm_File     = "./test/GC90c12.prm";
+    crd_File     = "./test/GC90_6c.crd";
+    energy_File  = "./data/energies.eng";
+    forces_File  = "./data/forces.fcs";
+    trj_File     = "./data/trajectory.trj";
+    new_Crd_File = "./data/crd.crd";
     
 }
 
@@ -86,31 +86,32 @@ void IO::read_Cofig(EDMD* edmd) {
     string s1, s2, s3;
     
     ifstream fin;
-    fin.open("./Config.txt", ios_base::in);
+    fin.open("./config.txt", ios_base::in);
     
     if (fin.is_open()) {
     
         for (int i = 1; i < 18; i++) {
             fin.getline(line, sizeof(line));
             stringstream file_Path(line);
+            istringstream iss;
             
             switch (i) {
-                case  1: file_Path >> s1 >> s2 >> s3; iteration = stoi(s3); break;
-                case  2: file_Path >> s1 >> s2 >> s3; nsteps    = stoi(s3); break;
-                case  3: file_Path >> s1 >> s2 >> s3; frequency = stoi(s3); break;
-                case  4: file_Path >> s1 >> s2 >> s3;
-                    istringstream(s3) >> boolalpha >> circular; break;
-                case  5: file_Path >> s1 >> s2 >> s3; edmd->dt    = stof(s3);
-                    edmd->dt    *= edmd->constants.timefac; break;
-                case  6: file_Path >> s1 >> s2 >> s3; edmd->gamma = stof(s3);
-                    edmd->gamma /= edmd->constants.timefac; break;
-                case  7: file_Path >> s1 >> s2 >> s3; edmd->tautp = stof(s3);
-                    edmd->tautp *= edmd->constants.timefac; break;
-                case  8: file_Path >> s1 >> s2 >> s3; edmd->temperature = stof(s3);
+                case  1: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> iteration; break;
+                case  2: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> nsteps;    break;
+                case  3: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> frequency; break;
+                case  4: file_Path >> s1 >> s2 >> s3; iss.str(s3);
+                    iss >> boolalpha >> circular; break;
+                case  5: file_Path >> s1 >> s2 >> s3; iss.str(s3);
+                    iss >> edmd->dt   ; edmd->dt    *= edmd->constants.timefac; break;
+                case  6: file_Path >> s1 >> s2 >> s3; iss.str(s3);
+                    iss >> edmd->gamma; edmd->gamma /= edmd->constants.timefac; break;
+                case  7: file_Path >> s1 >> s2 >> s3; iss.str(s3);
+                    iss >> edmd->tautp; edmd->tautp *= edmd->constants.timefac; break;
+                case  8: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->temperature;
                     edmd->scaled = edmd->constants.Boltzmann * edmd->temperature;   break;
-                case  9: file_Path >> s1 >> s2 >> s3; edmd->mole_Cutoff = stof(s3); break;
-                case 10: file_Path >> s1 >> s2 >> s3; edmd->atom_Cutoff = stof(s3); break;
-                case 11: file_Path >> s1 >> s2 >> s3; edmd->mole_Least  = stof(s3); break;
+                case  9: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Cutoff; break;
+                case 10: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->atom_Cutoff; break;
+                case 11: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Least ; break;
                 case 12: file_Path >> s1 >> s2 >> prm_File;     break;
                 case 13: file_Path >> s1 >> s2 >> crd_File;     break;
                 case 14: file_Path >> s1 >> s2 >> energy_File;  break;
@@ -151,7 +152,7 @@ void IO::read_Prm(void) {
     int i, j, k;
 
     ifstream fin;
-    fin.open(prm_File, ios_base::in);
+    fin.open(prm_File.c_str(), ios_base::in);
     
     if (fin.is_open()) {
         
@@ -241,8 +242,8 @@ void IO::read_Prm(void) {
 void IO::read_Crd(void) {
     
     ifstream fin;
-    if (iteration == 0) fin.open(crd_File, ios_base::in);
-    else fin.open(new_Crd_File, ios_base::in);
+    if (iteration == 0) fin.open(crd_File.c_str(), ios_base::in);
+    else fin.open(new_Crd_File.c_str(), ios_base::in);
     
     if (fin.is_open()) {
         
@@ -317,7 +318,7 @@ void IO::generate_Displacements(void) {
  */
 void IO::initialise_Tetrad_Crds(void) {
 
-    int i, j, error_Code;
+    int i, j, error_Code = 0;
     int num_Atoms, start_Index, end_Index;
 
     for (i = 0; i < prm.num_Tetrads; i++) {
@@ -400,7 +401,7 @@ void IO::write_Template(ofstream* fout, double* data) {
 void IO::write_Energies(double energies[]) {
     
     ofstream fout;
-    fout.open(energy_File, ios_base::app);
+    fout.open(energy_File.c_str(), ios_base::app);
     
     if (fout.is_open()) {
         
@@ -435,7 +436,7 @@ void IO::write_Energies(double energies[]) {
 void IO::write_Forces(double* ED_Forces, double* random_Forces, double* NB_Forces) {
     
     ofstream fout;
-    fout.open(forces_File, ios_base::out);
+    fout.open(forces_File.c_str(), ios_base::out);
     
     if (fout.is_open()) {
     
@@ -475,7 +476,7 @@ void IO::write_Forces(double* ED_Forces, double* random_Forces, double* NB_Force
 void IO::write_Trajectory(double* coordinates) {
     
     ofstream fout;
-    fout.open(trj_File, ios_base::out);
+    fout.open(trj_File.c_str(), ios_base::out);
     
     if (fout.is_open()) {
         
@@ -506,7 +507,7 @@ void IO::write_Trajectory(double* coordinates) {
 void IO::update_Crd(double* velocities, double* coordinates) {
     
     ofstream fout;
-    fout.open(new_Crd_File, ios_base::out);
+    fout.open(new_Crd_File.c_str(), ios_base::out);
     
     if (fout.is_open()) {
         
