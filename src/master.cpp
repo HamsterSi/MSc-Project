@@ -218,6 +218,7 @@ void Master::force_Calculation(void) {
     int num_Pairs = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
     double max_Forces = 1.0, temp_Forces[2][3 * max_Atoms + 2];
     
+    // Initialise the forces & energies
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
             io.tetrad[i].ED_Forces[j]     = 0.0;
@@ -242,13 +243,13 @@ void Master::force_Calculation(void) {
             edmd.calculate_Random_Forces(&io.tetrad[i]);
         } else {
             // i >= num_Tetrads, send tetrad indexes for NB calculation
-            send_Worker_Pairlists(&j, num_Pairs, i, pair_List);
+            send_Worker_Pairlists(&j, num_Pairs, i + 1, pair_List);
         }
     }
     
     // When there are still forces waiting for calculating,
     // receive ED/NB forces from workers & send new tetrad indexes to workers
-    while (i < effective_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs) {
+    for (; i < effective_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs; i++) {
 
         // Receive ED/NB forces from workers
         MPI_Recv(&(temp_Forces[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status);
@@ -289,8 +290,6 @@ void Master::force_Calculation(void) {
             // i >= num_Tetrads, send tetrad indexes for NB calculation
             send_Worker_Pairlists(&j, num_Pairs, status.MPI_SOURCE, pair_List);
         }
-        
-        i++;
         
     }
     
