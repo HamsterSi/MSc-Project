@@ -208,7 +208,7 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
          !      THIS WORK PUBLISHED IN TRANSACTIONS ON MATHEMATICAL SOFTWARE,
          !      VOL. 18, NO. 4, DECEMBER, 1992, PP. 434-435.
          
-         !  The function random_normal() returns a normally distributed pseudo-random
+         !  The function returns a normally distributed pseudo-random
          !  number with zero mean and unit variance.
          
          !  The algorithm uses the ratio of uniforms method of A.J. Kinderman
