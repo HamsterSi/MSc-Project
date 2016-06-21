@@ -248,75 +248,6 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
 
 
 /*
- * Function:  Generate the pair list of tetrads.
- *
- * Parameter: pair_List[][2]    -> The pair list that two tetrads has NB forces
- *            * effective_Pairs -> The number of tetrads that has NB forces
- *            num_Tetrads       -> The total number tetrads
- *            * tetrad          -> The instance of Tetrad cleass
- *
- * Return:    None
- */
-void EDMD::generate_Pair_Lists(int pair_List[][2], int* effective_Pairs, int num_Tetrads, Tetrad* tetrad) {
-    
-    int i, j, k, num_Pairs;
-    double r, ** com = new double * [num_Tetrads];
-    for (i = 0; i < num_Tetrads; i++) { com[i] = new double[3]; }
-    
-    // The centre of mass (actually, centre of geom)
-    // com(1) = sum(x(1:(3*natoms-2):3))/natoms
-    // com(2) = sum(x(2:(3*natoms-1):3))/natoms
-    // com(3) = sum(x(3:(3*natoms):3))  /natoms
-    for (i = 0; i < num_Tetrads; i++) {
-        
-        com[i][0] = com[i][1] = com[i][2] = 0.0;
-        for (j = 0; j < 3 * tetrad[i].num_Atoms; ) {
-            com[i][0] += tetrad[i].coordinates[ j ];
-            com[i][1] += tetrad[i].coordinates[j+1];
-            com[i][2] += tetrad[i].coordinates[j+2];
-            j += 3;
-        }
-        com[i][0] /= tetrad[i].num_Atoms;
-        com[i][1] /= tetrad[i].num_Atoms;
-        com[i][2] /= tetrad[i].num_Atoms;
-    }
-    
-    // Loop to generate pairlists
-    num_Pairs = 0; (* effective_Pairs) = 0;
-    for (i = 0; i < num_Tetrads; i++) {
-        for (j = i + 1; j < num_Tetrads; j++, num_Pairs++) {
-
-            // If r exceeds mole_Cutoff then no interaction between these two mols
-            // r = sum( (com(:,i)-com(:,j)) * (com(:,i)-com(:,j)) )
-            for (r = 0.0, k = 0; k < 3; k++) {
-                r += (com[i][k] - com[j][k]) * (com[i][k] - com[j][k]);
-            }
-            
-            if ((r < (mole_Cutoff * mole_Cutoff)) && (abs(i - j) > mole_Least) &&
-                (abs(i - j) < (num_Tetrads - mole_Least))) {
-                
-                pair_List[num_Pairs][0] = i;
-                pair_List[num_Pairs][1] = j;
-                
-                (* effective_Pairs)++;
-                
-            } else {
-                pair_List[num_Pairs][0] = -1;
-                pair_List[num_Pairs][1] = -1;
-            }
-            
-        }
-    }
-    
-    for (i = 0; i < num_Tetrads; i++) { delete [] com[i]; }
-    delete [] com;
-    
-}
-
-
-
-
-/*
  * Function:  Calculate NB forces
  *
  * Parameter: * t1 -> The instance of Tetrad cleass
@@ -433,13 +364,13 @@ void EDMD::update_Velocities(Tetrad* tetrad, int index) {
     }
     
     ///////////////////////////Test///
+    /*
     double ed = 0.0, ran = 0.0, nb = 0.0, v = 0.0, c = 0.0;
     for (int i = 0; i < 3 * tetrad->num_Atoms; i++) {
         tetrad->coordinates[i] += tetrad->velocities[i] * dt;
         c += tetrad->coordinates[i];
     }
     
-    /*
     if(index == 90) { cout << "ccccc after: ";
         for (i = 0; i < 10; i++) cout << tetrad->coordinates[i] << " "; cout << endl; }
     

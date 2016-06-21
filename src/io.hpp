@@ -52,9 +52,12 @@ class IO {
     
 public:
     
-    int iteration;
+    int irest;     // Indicates to read which crd file
     int nsteps;    // The total steps of iterations
-    int frequency; // The frequency of writing files
+    int ntsync;    // The frequency of snyc
+    int ntwt;      // The frequency of writing of traj
+    int ntpr;      // The frequency of writing of info (Energies & temperature)
+    int ncycs;     // Total cycles
     
     bool circular; // The Shape of DNA
     
@@ -91,7 +94,7 @@ public:
     
     void write_Template(ofstream* fout, double* data);
     
-    void write_Energies(double energies[]);
+    void write_Energies(int istep, double energies[]);
     
     void write_Forces(double* ED_Forces, double* random_Forces, double* NB_Forces);
     

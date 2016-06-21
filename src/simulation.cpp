@@ -12,31 +12,50 @@ void master_Code(void) {
     
     master.initialise();
     
+    cout << "\nSending data...\n>>> Master sending parameters..." << endl;
+    master.send_Parameters();
     
-    for (; master.io.iteration < master.io.nsteps; master.io.iteration++) {
+    cout << ">>> Master sending tetrads..." << endl;
+    master.send_Tetrads();
+    
+    for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {
 
-        cout << "\nIteration: " << master.io.iteration << endl << endl;
-        cout << "Sending data..." << endl;
-        cout << ">>> Master sending parameters..." << endl;
-        master.send_Parameters();
-        cout << ">>> Master sending tetrads..." << endl;
-        master.send_Tetrads();
+        cout << "\nIteration: " << icyc << endl << endl;
+        cout << "Generate pair lists..." << endl;
+        master.generate_Pair_Lists();
         
-        cout << "Calculation..." << endl;
-        cout << ">>> Calculating ED & NB forces..." << endl;
-        master.force_Calculation();
+        //for (int i = 0; i < master.io.ntsync; i++) {
+
+            cout << "Calculation...\n>>> Calculating ED & NB forces..." << endl;
+            master.cal_Forces();
+            
+            cout << ">>> Calculating Velocities..." << endl;
+            master.cal_Velocities();
+            
+            cout << ">>> Calculating Coordinates..." << endl;
+            master.cal_Coordinate();
+            
+            cout << ">>> Velocities & Coordinates processing..." << endl;
+            master.data_Processing();
+    
+        //}
         
-        cout << ">>> Calculating Velocities..." << endl;
-        master.cal_Velocities();
-        cout << ">>> Calculating Coordinates..." << endl;
-        //master.cal_Coordinate();
-        cout << ">>> Velocities & Coordinates processing..." << endl;
-        master.data_Processing();
+        istep += master.io.ntsync;
         
         cout << "Writing files..." << endl << endl;
-        //if (master.io.iteration % master.io.frequency == 0) {
-            master.write_Files();
-        //}
+        master.write_Energy(istep);
+        master.write_Forces();
+        master.write_Trajectories();
+        /*
+        if (istep % master.io.ntwt == 0) {
+            master.write_Energy(istep);
+            master.write_Forces();
+        }
+        if (istep % master.io.ntpr == 0) {
+            master.write_Trajectories();
+        }*/
+        
+        master.send_Vels_n_Crds();
     }
     
     master.finalise();
@@ -68,19 +87,23 @@ void worker_Code() {
             if (status.MPI_TAG == TAG_DATA) {
                 worker.recv_Parameters();
                 
-            // Arrived message tag indicates to receive tetrads
-            } else if (status.MPI_TAG >= TAG_TETRAD) {
+            // Receive the parameters of all tetrads
+            } else if (status.MPI_TAG >= TAG_TETRAD && status.MPI_TAG <= TAG_CRDS) {
                 worker.recv_Tetrads();
                 
-            // Arrived message tag indicates to do the ED force calculation
+            // Receive the velocities and coordinates of tetrads
+            } else if (status.MPI_TAG >= TAG_CRDS) {
+                worker.recv_Vels_n_Crds();
+                
+            // Message tag indicates to do the ED force calculation
             } else if (status.MPI_TAG == TAG_ED) {
                 worker.ED_Calculation();
                 
-            // Arrived message tag indicates to do the NB force calculation
+            // Message tag indicates to do the NB force calculation
             } else if (status.MPI_TAG == TAG_NB) {
                 worker.NB_Calculation();
                 
-            // Arrived message tag indicates to stop work
+            // Indicates to stop work
             } else if (status.MPI_TAG == TAG_DEATH) {
                 signal = worker.terminate();
                 

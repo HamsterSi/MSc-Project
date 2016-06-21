@@ -15,6 +15,7 @@
 
 #include "tetrad.hpp"
 
+#define TAG_CRDS   2000
 #define TAG_TETRAD 5
 #define TAG_DATA   1
 #define TAG_ED     2

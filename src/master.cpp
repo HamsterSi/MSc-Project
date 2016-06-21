@@ -13,6 +13,8 @@
 Master::Master(void) {
     
     max_Atoms = 0;
+    num_Pairs = 0;
+    effective_Pairs = 0;
     
     comm      = MPI_COMM_WORLD;
     MPI_Comm_size(comm, &size); // Get size of MPI processes
@@ -32,6 +34,7 @@ Master::Master(void) {
  */
 Master::~Master(void) {
     
+    delete [] pair_List;
     delete [] velocities;
     delete [] coordinates;
     
@@ -60,6 +63,11 @@ void Master::initialise(void) {
     
     // Initialise coordinates (velocities) of tetrads from crd file
     io.initialise_Tetrad_Crds();
+    
+    // Inintialise the frequencies of iterations and writing out files
+    io.ncycs = io.nsteps/io.ntsync;
+    io.ntpr -= io.ntpr % io.ntsync; if (io.ntpr == 0) io.ntpr = 1;
+    io.ntwt -= io.ntwt % io.ntsync; if (io.ntwt == 0) io.ntwt = 1;
     
     // Pick out the maximum number of atoms in tetrads
     for (int i = 0; i < io.prm.num_Tetrads; i++) {
@@ -96,45 +104,38 @@ void Master::initialise(void) {
  */
 void Master::send_Parameters(void) {
     
+    int i, signal, parameters[2] = {io.prm.num_Tetrads, max_Atoms};
+    int * tetrad_Para = new int[2 * io.prm.num_Tetrads];
     double edmd_Para[8] = {edmd.dt, edmd.gamma, edmd.tautp, edmd.temperature,
            edmd.scaled, edmd.mole_Cutoff, edmd.atom_Cutoff, edmd.mole_Least};
-    int parameters[3] = {io.prm.num_Tetrads, max_Atoms, io.iteration};
-    int i, signal, * tetrad_Para = new int[2 * io.prm.num_Tetrads];
     
-    // Send parameters to worker processes
-    for (i = 0; i < size - 1; i++) {
-        MPI_Send(parameters, 3, MPI_INT, i + 1, TAG_DATA, comm);
+    // Assign the number of atoms & evecs of tetrads into the sending array
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        tetrad_Para[2 * i] = io.tetrad[i].num_Atoms;
+        tetrad_Para[2*i+1] = io.tetrad[i].num_Evecs;
     }
     
-    // If it is the 1st iteration then need to send the number of atoms & evecs of tetrads
-    if (io.iteration == 0) {
-        
-        // Assign the number of atoms & evecs of all tetrads into array
-        for (i = 0; i < io.prm.num_Tetrads; i++) {
-            tetrad_Para[2 * i] = io.tetrad[i].num_Atoms;
-            tetrad_Para[2*i+1] = io.tetrad[i].num_Evecs;
-        }
-        
-        // Send the edmd parameters & tetrad parameters to workers
-        for (i = 0; i < size - 1; i++) {
-            MPI_Send(edmd_Para, 8, MPI_DOUBLE, i + 1, TAG_DATA, comm);
-            MPI_Send(tetrad_Para, 2 * io.prm.num_Tetrads, MPI_INT, i + 1, TAG_DATA, comm);
-        }
+    // Send all the parameters to workers
+    for (i = 0; i < size - 1; i++) {
+        MPI_Send(parameters, 2, MPI_INT,    i + 1, TAG_DATA, comm);
+        MPI_Send(edmd_Para,  8, MPI_DOUBLE, i + 1, TAG_DATA, comm);
+        MPI_Send(tetrad_Para, 2 * io.prm.num_Tetrads, MPI_INT, i + 1, TAG_DATA, comm);
     }
 
+    delete [] tetrad_Para;
+    
     // Feedback from worker processes that they have received parameters
     for (i = 0; i < size - 1; i++) {
         MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
     }
     
-    delete [] tetrad_Para;
 }
 
 
 
 
 /*
- * Function:  Master sends tetrads to worker processes
+ * Function:  Master sends tetrads to workers
  *
  * Parameter: None
  *
@@ -145,26 +146,13 @@ void Master::send_Tetrads(void) {
     int i, j, signal;
     MPI_Datatype MPI_Tetrad;
     
-    // Send tetrads to worker. The 1st iteration needs to send all parameters
-    // of tetrads to workers, but the following iterations only needs to send
-    // the velocities & coordinates of tetrads to workers.
     for (i = 1; i < size; i++) {
         for (j = 0; j < io.prm.num_Tetrads; j++) {
             
-            if (io.iteration == 0) {
-                
-                // Create MPI_Datatype for every Tetrad instance & send them to workers
-                MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &io.tetrad[j]);
-                MPI_Send(&io.tetrad[j], 1, MPI_Tetrad, i, TAG_TETRAD+i+j, comm);
-                MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);
-                
-            } else {
-                
-                // Only send velocities & coordinates to workers.
-                MPI_Send(io.tetrad[j].velocities,  3 * io.tetrad[j].num_Atoms, MPI_DOUBLE, i, TAG_TETRAD+i+j+1, comm);
-                MPI_Send(io.tetrad[j].coordinates, 3 * io.tetrad[j].num_Atoms, MPI_DOUBLE, i, TAG_TETRAD+i+j+2, comm);
-            }
-            
+            // Create MPI_Datatype for every Tetrad instance & send them to workers
+            MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &io.tetrad[j]);
+            MPI_Send(&io.tetrad[j], 1, MPI_Tetrad, i, TAG_TETRAD+j, comm);
+            MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);
         }
     }
     
@@ -180,24 +168,120 @@ void Master::send_Tetrads(void) {
 
 
 /*
- * Function:  Find pair list that needs to calculate Nb forces & send them to workers
+ * Function:  Master sends the velocities and coordinates of tetrads to workers
  *
  * Parameter: None
  *
  * Return:    None
  */
-void Master::send_Worker_Pairlists(int* j, int num_Pairs, int source, int pair_List[][2]) {
+void Master::send_Vels_n_Crds(void) {
     
-    while ((*j) < num_Pairs) {
-        
-        if (pair_List[(*j)][0] + pair_List[(*j)][1] != -2) {
+    int i, j, signal;
+    
+    for (i = 1; i < size; i++) {
+        for (j = 0; j < io.prm.num_Tetrads; j++) {
             
-            int indexes[2] = { pair_List[(*j)][0], pair_List[(*j)][1] };
-            MPI_Send(indexes, 2, MPI_INT, source, TAG_NB, comm);
-            (*j)++; break;
-            
-        } else { (*j)++; }
+            MPI_Send(io.tetrad[j].velocities,  3 * io.tetrad[j].num_Atoms, MPI_DOUBLE, i, TAG_CRDS+j+1, comm);
+            MPI_Send(io.tetrad[j].coordinates, 3 * io.tetrad[j].num_Atoms, MPI_DOUBLE, i, TAG_CRDS+j+2, comm);
+        }
     }
+    
+    // Feedback that all worker processes have finished receiving tetrads
+    for (i = 0; i < size - 1; i++) {
+        MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_CRDS, comm, &status);
+    }
+    
+}
+
+
+
+
+
+/*
+ * Function:  Generate the pair list of tetrads for non-bonded forces calculation
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
+void Master::generate_Pair_Lists(void) {
+    
+    num_Pairs = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
+    pair_List = new int [2 * num_Pairs];
+    
+    int i, j, k, pairs;
+    double r, ** com = new double * [io.prm.num_Tetrads];
+    for (i = 0; i < io.prm.num_Tetrads; i++) { com[i] = new double[3]; }
+    
+    // The centre of mass (actually, centre of geom)
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        
+        com[i][0] = com[i][1] = com[i][2] = 0.0;
+        for (j = 0; j < 3 * io.tetrad[i].num_Atoms; ) {
+            com[i][0] += io.tetrad[i].coordinates[ j ];
+            com[i][1] += io.tetrad[i].coordinates[j+1];
+            com[i][2] += io.tetrad[i].coordinates[j+2];
+            j += 3;
+        }
+        com[i][0] /= io.tetrad[i].num_Atoms;
+        com[i][1] /= io.tetrad[i].num_Atoms;
+        com[i][2] /= io.tetrad[i].num_Atoms;
+    }
+    
+    // Loop to generate pairlists
+    for (pairs = 0, effective_Pairs = 0, i = 0; i < io.prm.num_Tetrads; i++) {
+        for (j = i + 1; j < io.prm.num_Tetrads; pairs++, j++) {
+            
+            // If r exceeds mole_Cutoff then no interaction between these two mols
+            for (r = 0.0, k = 0; k < 3; k++) {
+                r += (com[i][k] - com[j][k]) * (com[i][k] - com[j][k]);
+            }
+            
+            if ((r < (edmd.mole_Cutoff * edmd.mole_Cutoff)) && (abs(i - j) > edmd.mole_Least) &&
+                (abs(i - j) < (io.prm.num_Tetrads - edmd.mole_Least))) {
+                
+                pair_List[2 * pairs] = i; pair_List[2*pairs+1] = j;
+                effective_Pairs++;
+                
+            } else { pair_List[2 * pairs] = -1; pair_List[2*pairs+1] = -1; }
+            
+        }
+    }
+    
+    for (i = 0; i < io.prm.num_Tetrads; i++) { delete [] com[i]; }
+    delete [] com;
+    
+}
+
+
+
+
+
+/*
+ * Function:  Master send the index of Tetrads to workers for ED & NB forces calculation &
+ *            Calculate the random forces.
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
+void Master::send_Tetrad_Index(int* i, int* j, int source) {
+    
+    // Send tetrad index for ED calculation & Calculate random forces
+    if ((*i) < io.prm.num_Tetrads) {
+        MPI_Send(i, 1, MPI_INT, source, TAG_ED, comm);
+        edmd.calculate_Random_Forces(&io.tetrad[(*i)]);
+        
+    // i >= num_Tetrads, send tetrad indexes for NB calculation
+    } else {
+        for (; (*j) < num_Pairs; (*j)++) {
+            if (pair_List[2 * (*j)] != -1) {
+                int indexes[2] = { pair_List[2 * (*j)],  pair_List[2 * (*j) + 1] };
+                MPI_Send(indexes, 2, MPI_INT, source, TAG_NB, comm); (*j)++; break;
+            }
+        }
+    }
+    
 }
 
 
@@ -212,10 +296,9 @@ void Master::send_Worker_Pairlists(int* j, int num_Pairs, int source, int pair_L
  *
  * Return:    None
  */
-void Master::force_Calculation(void) {
+void Master::cal_Forces(void) {
     
-    int i, j, k, flag, index, effective_Pairs;
-    int num_Pairs = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
+    int i, j, k, flag, index;
     double max_Forces = 1.0, temp_Forces[2][3 * max_Atoms + 2];
     
     // Initialise the forces & energies
@@ -230,21 +313,9 @@ void Master::force_Calculation(void) {
         io.tetrad[i].EL_Energy = 0.0;
     }
     
-    // Generate pair lists of tetrads for NB forces
-    int pair_List[num_Pairs][2];
-    edmd.generate_Pair_Lists(pair_List, &effective_Pairs, io.prm.num_Tetrads, io.tetrad);
-    cout << ">>> Generating pair lists: Total Pairlists: " << num_Pairs << ", Effective pairs: " << effective_Pairs << endl;
-    
     // Send tetrad indexes for ED/NB forces calculation at the beginning
     for (i = 0, j = 0; i < size - 1; i++) {
-        if (i < io.prm.num_Tetrads) {
-            // Send tetrad index for ED calculation & calculate random forces
-            MPI_Send(&i, 1, MPI_INT, i + 1, TAG_ED, comm);
-            edmd.calculate_Random_Forces(&io.tetrad[i]);
-        } else {
-            // i >= num_Tetrads, send tetrad indexes for NB calculation
-            send_Worker_Pairlists(&j, num_Pairs, i + 1, pair_List);
-        }
+        send_Tetrad_Index(&i, &j, i + 1);
     }
     
     // When there are still forces waiting for calculating,
@@ -282,22 +353,15 @@ void Master::force_Calculation(void) {
         }
         
         // If there are some more need to be calculated, send indexes.
-        if (i < io.prm.num_Tetrads) {
-            // Send tetrad index for ED calculation & calculate random forces
-            MPI_Send(&i, 1, MPI_INT, status.MPI_SOURCE, TAG_ED, comm);
-            edmd.calculate_Random_Forces(&io.tetrad[i]);
-        } else {
-            // i >= num_Tetrads, send tetrad indexes for NB calculation
-            send_Worker_Pairlists(&j, num_Pairs, status.MPI_SOURCE, pair_List);
-        }
+        send_Tetrad_Index(&i, &j, status.MPI_SOURCE);
         
     }
     
     // Clip NB forces & add random forces into the NB forces
     for (i  = 0; i < io.prm.num_Tetrads; i++) {
         for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            io.tetrad[i].NB_Forces[j]  = min( max_Forces, io.tetrad[i].NB_Forces[j]);
-            io.tetrad[i].NB_Forces[j]  = max(-max_Forces, io.tetrad[i].NB_Forces[j]);
+            io.tetrad[i].NB_Forces[j] = min( max_Forces, io.tetrad[i].NB_Forces[j]);
+            io.tetrad[i].NB_Forces[j] = max(-max_Forces, io.tetrad[i].NB_Forces[j]);
         }
     }
     
@@ -406,7 +470,7 @@ void Master::data_Processing(void) {
  *
  * Return:    None
  */
-void Master::write_Energy(void) {
+void Master::write_Energy(int istep) {
     
     double energies[4] = {0.0};
     
@@ -422,7 +486,7 @@ void Master::write_Energy(void) {
     energies[3] /= io.prm.num_Tetrads;
     
     // Wrtie out energies
-    io.write_Energies(energies);
+    io.write_Energies(istep, energies);
     
 }
 
@@ -477,11 +541,7 @@ void Master::write_Forces(void) {
  *
  * Return:    None
  */
-void Master::write_Files(void) {
-    
-    write_Energy();
-    
-    write_Forces();
+void Master::write_Trajectories(void) {
     
     io.write_Trajectory(coordinates);
     

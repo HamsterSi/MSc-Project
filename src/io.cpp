@@ -13,12 +13,14 @@
  * Return:    None
  */
 IO::IO(void) {
+
+    irest  = 0;
+    nsteps = 100000;
+    ntsync = 100;
+    ntwt   = 100;
+    ntpr   = 1000;
+    ncycs  = 1000;
     
-    // The number of iteration, default shape of DNA &
-    // default file paths, can be changed in "Config" file
-    iteration = 0;
-    nsteps    = 2;
-    frequency = 1;
     circular  = false;
     
     prm_File     = "./test/GC90c12.prm";
@@ -90,34 +92,36 @@ void IO::read_Cofig(EDMD* edmd) {
     
     if (fin.is_open()) {
     
-        for (int i = 1; i < 18; i++) {
+        for (int i = 1; i < 20; i++) {
             fin.getline(line, sizeof(line));
             stringstream file_Path(line);
             istringstream iss;
             
             switch (i) {
-                case  1: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> iteration; break;
-                case  2: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> nsteps;    break;
-                case  3: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> frequency; break;
-                case  4: file_Path >> s1 >> s2 >> s3; iss.str(s3);
-                    iss >> boolalpha >> circular; break;
-                case  5: file_Path >> s1 >> s2 >> s3; iss.str(s3);
-                    iss >> edmd->dt   ; edmd->dt    *= edmd->constants.timefac; break;
+                case  1: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> irest;  break;
+                case  2: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> nsteps; break;
+                case  3: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> ntsync; break;
+                case  4: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> ntwt;   break;
+                case  5: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> ntpr;   break;
                 case  6: file_Path >> s1 >> s2 >> s3; iss.str(s3);
-                    iss >> edmd->gamma; edmd->gamma /= edmd->constants.timefac; break;
+                    iss >> boolalpha >> circular; break;
                 case  7: file_Path >> s1 >> s2 >> s3; iss.str(s3);
+                    iss >> edmd->dt   ; edmd->dt    *= edmd->constants.timefac; break;
+                case  8: file_Path >> s1 >> s2 >> s3; iss.str(s3);
+                    iss >> edmd->gamma; edmd->gamma /= edmd->constants.timefac; break;
+                case  9: file_Path >> s1 >> s2 >> s3; iss.str(s3);
                     iss >> edmd->tautp; edmd->tautp *= edmd->constants.timefac; break;
-                case  8: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->temperature;
+                case 10: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->temperature;
                     edmd->scaled = edmd->constants.Boltzmann * edmd->temperature;   break;
-                case  9: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Cutoff; break;
-                case 10: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->atom_Cutoff; break;
-                case 11: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Least ; break;
-                case 12: file_Path >> s1 >> s2 >> prm_File;     break;
-                case 13: file_Path >> s1 >> s2 >> crd_File;     break;
-                case 14: file_Path >> s1 >> s2 >> energy_File;  break;
-                case 15: file_Path >> s1 >> s2 >> forces_File;  break;
-                case 16: file_Path >> s1 >> s2 >> trj_File;     break;
-                case 17: file_Path >> s1 >> s2 >> new_Crd_File; break;
+                case 11: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Cutoff; break;
+                case 12: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->atom_Cutoff; break;
+                case 13: file_Path >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Least ; break;
+                case 14: file_Path >> s1 >> s2 >> prm_File;     break;
+                case 15: file_Path >> s1 >> s2 >> crd_File;     break;
+                case 16: file_Path >> s1 >> s2 >> energy_File;  break;
+                case 17: file_Path >> s1 >> s2 >> forces_File;  break;
+                case 18: file_Path >> s1 >> s2 >> trj_File;     break;
+                case 19: file_Path >> s1 >> s2 >> new_Crd_File; break;
             }
         }
         
@@ -242,7 +246,7 @@ void IO::read_Prm(void) {
 void IO::read_Crd(void) {
     
     ifstream fin;
-    if (iteration == 0) fin.open(crd_File.c_str(), ios_base::in);
+    if (irest == 0) fin.open(crd_File.c_str(), ios_base::in);
     else fin.open(new_Crd_File.c_str(), ios_base::in);
     
     if (fin.is_open()) {
@@ -267,7 +271,7 @@ void IO::read_Crd(void) {
         
         // Lines ? - : If this is the new crd file & not the 1st time to run the simulation, then there are velocities to read
         crd.ini_BP_Vels = new double[3 * crd.total_Atoms];
-        if (iteration != 0) {
+        if (irest != 0) {
             for (int i = 0; i < 3 * crd.total_Atoms; i++) {
                 fin >> crd.ini_BP_Vels[i];
             }
@@ -342,7 +346,7 @@ void IO::initialise_Tetrad_Crds(void) {
         
         // Read in the initial coordinates
         for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {
-            if (iteration == 0) tetrad[i].velocities[j] = 0.0;
+            if (irest == 0) tetrad[i].velocities[j] = 0.0;
             else tetrad[i].velocities[j] = crd.ini_BP_Vels[start_Index];
             
             tetrad[i].coordinates[j] = crd.ini_BP_Crds[start_Index++];
@@ -394,11 +398,12 @@ void IO::write_Template(ofstream* fout, double* data) {
 /*
  * Function: Write out energies & temperature of tetrads.
  *
- * Parameters: * energies -> Energies & temperature of tetrads
+ * Parameters: istep      -> The number of iterations
+ *             * energies -> Energies & temperature of tetrads
  *
  * Returns: None.
  */
-void IO::write_Energies(double energies[]) {
+void IO::write_Energies(int istep, double energies[]) {
     
     ofstream fout;
     fout.open(energy_File.c_str(), ios_base::app);
@@ -407,7 +412,7 @@ void IO::write_Energies(double energies[]) {
         
         // Write out energies & temperature
         fout << "Iteration, ED Energy, NB_Energy, ELE_Energy, Temperature: ";
-        fout << iteration   << ", ";
+        fout << istep << ", ";
         fout << setprecision(8) << energies[0] << ", " << setprecision(8) << energies[1] << ", ";
         fout << setprecision(8) << energies[2] << ", " << setprecision(8) << energies[3] << endl;
         

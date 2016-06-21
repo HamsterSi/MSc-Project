@@ -9,7 +9,7 @@
 #include <string>
 #include "mpi.h"
 
-#include "mpilibrary.hpp"
+#include "mpilib.hpp"
 #include "master.hpp"
 #include "worker.hpp"
 

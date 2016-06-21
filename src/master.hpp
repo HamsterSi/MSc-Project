@@ -9,7 +9,7 @@
 #include <string>
 #include "mpi.h"
 
-#include "mpilibrary.hpp"
+#include "mpilib.hpp"
 #include "edmd.hpp"
 #include "tetrad.hpp"
 #include "io.hpp"
@@ -25,6 +25,10 @@ public:
     
     int size;
     int max_Atoms;
+    
+    int num_Pairs;
+    int effective_Pairs;
+    int * pair_List;
 
     double * velocities;
     double * coordinates;
@@ -47,9 +51,13 @@ public:
     
     void send_Tetrads(void);
     
-    void send_Worker_Pairlists(int* j, int num_Pairs, int source, int pair_List[][2]);
+    void send_Vels_n_Crds(void);
     
-    void force_Calculation(void);
+    void generate_Pair_Lists(void);
+    
+    void send_Tetrad_Index(int* i, int* j, int source);
+    
+    void cal_Forces(void);
     
     void cal_Velocities(void);
     
@@ -57,11 +65,11 @@ public:
     
     void data_Processing(void);
     
-    void write_Energy(void);
+    void write_Energy(int istep);
     
     void write_Forces(void);
     
-    void write_Files(void);
+    void write_Trajectories(void);
     
     void finalise(void);
     

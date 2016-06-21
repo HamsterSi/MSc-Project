@@ -8,7 +8,7 @@
 #include <string>
 #include "mpi.h"
 
-#include "mpilibrary.hpp"
+#include "mpilib.hpp"
 #include "edmd.hpp"
 #include "tetrad.hpp"
 #include "io.hpp"
@@ -18,8 +18,6 @@ using namespace std;
 class Worker {
     
 public:
-    
-    int iteration;
     
     int rank;           // The rank of worker process
     
@@ -44,6 +42,8 @@ public:
     void recv_Parameters(void);
     
     void recv_Tetrads(void);
+    
+    void recv_Vels_n_Crds(void);
     
     void ED_Calculation(void);
     
