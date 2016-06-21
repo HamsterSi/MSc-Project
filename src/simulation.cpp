@@ -12,48 +12,44 @@ void master_Code(void) {
     
     master.initialise();
     
-    cout << "\nSending data...\n>>> Master sending parameters..." << endl;
+    //cout << "\nSending data...\n>>> Master sending parameters..." << endl;
     master.send_Parameters();
     
-    cout << ">>> Master sending tetrads..." << endl;
+    //cout << ">>> Master sending tetrads..." << endl;
     master.send_Tetrads();
     
     for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {
 
-        cout << "\nIteration: " << icyc << endl << endl;
-        cout << "Generate pair lists..." << endl;
+        //cout << "\nIteration: " << icyc << "\n\nGenerate pair lists..." << endl;
         master.generate_Pair_Lists();
         
         //for (int i = 0; i < master.io.ntsync; i++) {
 
-            cout << "Calculation...\n>>> Calculating ED & NB forces..." << endl;
+            //cout << "Calculation...\n>>> Calculating ED & NB forces..." << endl;
             master.cal_Forces();
             
-            cout << ">>> Calculating Velocities..." << endl;
+            //cout << ">>> Calculating Velocities..." << endl;
             master.cal_Velocities();
             
-            cout << ">>> Calculating Coordinates..." << endl;
+            //cout << ">>> Calculating Coordinates..." << endl;
             master.cal_Coordinate();
             
-            cout << ">>> Velocities & Coordinates processing..." << endl;
+            //cout << ">>> Velocities & Coordinates processing..." << endl;
             master.data_Processing();
     
         //}
         
         istep += master.io.ntsync;
         
-        cout << "Writing files..." << endl << endl;
-        master.write_Energy(istep);
-        master.write_Forces();
-        master.write_Trajectories();
-        /*
-        if (istep % master.io.ntwt == 0) {
+        //cout << "Writing files..." << endl << endl;
+        //if (istep % master.io.ntwt == 0) {
             master.write_Energy(istep);
             master.write_Forces();
-        }
-        if (istep % master.io.ntpr == 0) {
-            master.write_Trajectories();
-        }*/
+            master.write_Trajectories(istep-master.io.ntsync);
+        //}
+        //if (istep % master.io.ntpr == 0) {
+            master.write_Crds();
+        //}
         
         master.send_Vels_n_Crds();
     }
@@ -71,7 +67,7 @@ void master_Code(void) {
 /*
  * Function: Manage the worker working progress
  */
-void worker_Code() {
+void worker_Code(void) {
     
     int flag, signal = 1;
     Worker worker;

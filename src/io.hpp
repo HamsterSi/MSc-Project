@@ -22,11 +22,11 @@ using namespace std;
 /* Parameters read from crd file */
 typedef struct _Crd {
     
-    int num_BP;          // Number of DNA Base Pairs
+    int num_BP;           // Number of DNA Base Pairs
     
-    int * num_BP_Atoms;  // Number of atoms in each base pair
+    int * num_BP_Atoms;   // Number of atoms in each base pair
     
-    int total_Atoms;     // Total number of atoms in DNA
+    int total_Atoms;      // Total number of atoms in DNA
     
     double * ini_BP_Vels; // Initial BP velocities;
     
@@ -98,7 +98,7 @@ public:
     
     void write_Forces(double* ED_Forces, double* random_Forces, double* NB_Forces);
     
-    void write_Trajectory(double* coordinates);
+    void write_Trajectory(int istep, int total_Atoms, int index, double* coordinates);
     
     void update_Crd(double* velocities, double* coordinates);
     

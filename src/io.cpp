@@ -78,7 +78,7 @@ IO::~IO(void) {
 /*
  * Function:   Read-in the config file.
  *
- * Parameters: Config   -> path to the configuration fle.
+ * Parameters: Config -> path to the configuration fle.
  *
  * Returns:    None.
  */
@@ -212,8 +212,7 @@ void IO::read_Prm(void) {
             // Line ?: The eigenvalue for the 1st (largest) eigenvector
             // Line ? onwards: Coefficients of the 1st eigenvector
             // Line ?: The eigenvalue for the 2nd eigenvector
-            // Line ? onwards: Coefficients of the 2nd eigenvector
-            // (etc to the last eigenvector of this tetrad)
+            // Line ? onwards: Coefficients of the 2nd eigenvector (etc to the last eigenvector of this tetrad)
             for (j = 0; j < tetrad[i].num_Evecs; j++) {
                 fin >> tetrad[i].eigenvalues[j];
                 for (k = 0; k < 3 * tetrad[i].num_Atoms; k++) {
@@ -366,12 +365,12 @@ void IO::initialise_Tetrad_Crds(void) {
 
 
 /*
- * Function: Write out all ED forces, random forces & NB forces
+ * Function:   Write out all ED forces, random forces & NB forces
  *
  * Parameters: * fout -> The file stream pointer
  *             * data -> The data needs to write out
  *
- * Returns: None.
+ * Returns:    None.
  */
 void IO::write_Template(ofstream* fout, double* data) {
     
@@ -396,12 +395,12 @@ void IO::write_Template(ofstream* fout, double* data) {
 
 
 /*
- * Function: Write out energies & temperature of tetrads.
+ * Function:   Write out energies & temperature of tetrads.
  *
- * Parameters: istep      -> The number of iterations
+ * Parameters: istep      -> The iterations of simulation
  *             * energies -> Energies & temperature of tetrads
  *
- * Returns: None.
+ * Returns:    None.
  */
 void IO::write_Energies(int istep, double energies[]) {
     
@@ -430,13 +429,13 @@ void IO::write_Energies(int istep, double energies[]) {
 
 
 /*
- * Function: Write out all ED forces, random forces & NB forces
+ * Function:   Write out all ED forces, random forces & NB forces
  *
  * Parameters: * ED_Forces     -> The total ED forces
  *             * random_Forces -> The total random forces
  *             * NB_Forces     -> The total NB forces
  *
- * Returns: None.
+ * Returns:    None.
  */
 void IO::write_Forces(double* ED_Forces, double* random_Forces, double* NB_Forces) {
     
@@ -472,21 +471,28 @@ void IO::write_Forces(double* ED_Forces, double* random_Forces, double* NB_Force
 
 
 /*
- * Function: Write out velocities & coordinates
+ * Function:   Write out velocities & coordinates
  *
- * Parameters: * coordinates -> The whole coordinates of DNA
+ * Parameters: int istep       -> The iterations of simulation
+ *             int total_Atoms -> Total atoms in all base pairs
+ *             int index       -> The index of writing trajectory to which place
+ *             * coordinates   -> The whole coordinates of DNA
  *
- * Returns: None.
+ * Returns:    None.
  */
-void IO::write_Trajectory(double* coordinates) {
+void IO::write_Trajectory(int istep, int total_Atoms, int index, double* coordinates) {
     
     ofstream fout;
-    fout.open(trj_File.c_str(), ios_base::out);
+    fout.open(trj_File.c_str(), ios_base::app);
     
     if (fout.is_open()) {
         
-        fout << "Coordinates:" << endl;
-        write_Template(&fout, coordinates);
+        if (istep == 0) { fout << total_Atoms << endl; }
+
+        for (int i = 0; i < index; i++) {
+            fout << fixed << setw(10) << setprecision(4) << coordinates[i] << " ";
+            if ((i + 1) % 10 == 0) fout << endl;
+        }
         
         fout.close();
         
@@ -502,12 +508,12 @@ void IO::write_Trajectory(double* coordinates) {
 
 
 /*
- * Function: Update the crd file for next iteration
+ * Function:   Update the crd file for next iteration
  *
  * Parameters: * velocities  -> The whole velocities of DNA
  *             * coordinates -> The whole coordinates of DNA
  *
- * Returns: None.
+ * Returns:    None.
  */
 void IO::update_Crd(double* velocities, double* coordinates) {
     

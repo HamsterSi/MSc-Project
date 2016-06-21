@@ -69,7 +69,9 @@ public:
     
     void write_Forces(void);
     
-    void write_Trajectories(void);
+    void write_Trajectories(int istep);
+    
+    void write_Crds(void);
     
     void finalise(void);
     

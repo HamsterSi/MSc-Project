@@ -438,10 +438,8 @@ void Master::data_Processing(void) {
     // Process the beginning & end tetrads
     index = io.displs[io.crd.num_BP - 3];
     for (i = 0; index < io.displs[io.crd.num_BP]; index++, i++) {
-        velocities [index] += velocities [i];
-        coordinates[index] += coordinates[i];
-        velocities [i] = velocities [index];
-        coordinates[i] = coordinates[index];
+        velocities[index] += velocities[i]; coordinates[index] += coordinates[i];
+        velocities[i] = velocities[index];  coordinates[i] = coordinates[index];
     }
 
     // Divide velocities & coordinates by 4
@@ -466,7 +464,7 @@ void Master::data_Processing(void) {
 /*
  * Function:  Master writes out energies of all tetrads
  *
- * Parameter: None
+ * Parameter: int istep -> the iterations of simulation
  *
  * Return:    None
  */
@@ -535,19 +533,42 @@ void Master::write_Forces(void) {
 
 
 /*
- * Function:  Master writes file according to the frequency.
+ * Function:  Master writes the trajectories.
+ *
+ * Parameter: int istep -> The iterations of simulation
+ *
+ * Return:    None
+ */
+void Master::write_Trajectories(int istep) {
+    
+    int i, index, total_Atoms = 0;
+    for (i = 0; i < io.crd.num_BP; i++) {
+        total_Atoms += io.crd.num_BP_Atoms[i];
+    }
+    
+    index = io.displs[io.crd.num_BP - 3];
+    
+    io.write_Trajectory(istep, total_Atoms, index, coordinates);
+    
+}
+
+
+
+
+/*
+ * Function:  Master writes a new crd file.
  *
  * Parameter: None
  *
  * Return:    None
  */
-void Master::write_Trajectories(void) {
-    
-    io.write_Trajectory(coordinates);
+void Master::write_Crds(void) {
     
     io.update_Crd(velocities, coordinates);
     
 }
+
+
 
 
 

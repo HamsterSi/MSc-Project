@@ -1,8 +1,8 @@
 irest        = 0
-nsteps       = 10
+nsteps       = 2
 ntsync       = 1
-ntwt         = 10
-ntpr         = 10
+ntwt         = 100
+ntpr         = 1000
 circular     = false
 dt           = 0.002
 gamma        = 2.0
