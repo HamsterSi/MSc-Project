@@ -13,8 +13,24 @@ Two implementations of the EDMD method exist:
     
 The aim of the project would be to evaluate the two existing codes, then design and implement a new version which combines the best of both worlds: a flexible parallelisation scheme to achieve good load balance on ARCHER, and the improved integrator and user interface from the Python code. The performance of the new code would then be studied on ARCHER and opportunities for future improvements identified.
 
+### File Introduction
+The code mainly includes three folders, a configuartion file "config.txt", a "Makefile" and a "README".
+1. Folder ./src : This is the folder where all the source code stores;
+2. Folder ./test: This is the folder with two test DNA data;
+3. Folder ./data: This is the folder where the results will be stored.
+4. "config.txt" : The configuration file with some parameters that can be changed according to the requirement;
+5. "Makefile"   : The Makefile for easy compilation;
+6. "README.md"  : The simple instruction of the code.
+
 ### Code Introduction
-The code has three folders and the configuartion file "config.txt", the "Makefile" and the "README".
+1. tetrad.hpp, tetrad.cpp: These two source codes define a class for the DNA tetrad with its intrinsic parameters and functions;
+2. edmd.hpp, edmd.cpp: The two source codes define 
+3. mpilibrary.hpp, mpilibrary.cpp:
+4. io.hpp, io.cpp:
+5. master.hpp, master.cpp:
+6. worker.hpp, worker.cpp:
+7. simulation.hpp, simulation.cpp:
+8. main.cpp:
 
 
 ### Reference
