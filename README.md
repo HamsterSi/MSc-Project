@@ -14,7 +14,6 @@ Two implementations of the EDMD method exist:
 The aim of the project would be to evaluate the two existing codes, then design and implement a new version which combines the best of both worlds: a flexible parallelisation scheme to achieve good load balance on ARCHER, and the improved integrator and user interface from the Python code. The performance of the new code would then be studied on ARCHER and opportunities for future improvements identified.
 
 ### File Introduction
-The code mainly includes three folders, a configuartion file "config.txt", a "Makefile" and a "README".
 1. Folder ./src : This is the folder where all the source code stores;
 2. Folder ./test: This is the folder with two test DNA data;
 3. Folder ./data: This is the folder where the results will be stored.
