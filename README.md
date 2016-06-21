@@ -22,14 +22,14 @@ The aim of the project would be to evaluate the two existing codes, then design 
 6. "README.md"  : The simple instruction of the code.
 
 ### Code Introduction
-1. tetrad.hpp, tetrad.cpp: These two source codes define a class for the DNA tetrad with its intrinsic parameters and functions;
-2. edmd.hpp, edmd.cpp: The two source codes define 
-3. mpilibrary.hpp, mpilibrary.cpp:
-4. io.hpp, io.cpp:
-5. master.hpp, master.cpp:
-6. worker.hpp, worker.cpp:
-7. simulation.hpp, simulation.cpp:
-8. main.cpp:
+1. tetrad.hpp, tetrad.cpp: Define a class for the DNA tetrad with its intrinsic parameters and functions;
+2. edmd.hpp, edmd.cpp: Define a class of the Essential Dynamics/Molecular Dynamics to calculate forces, velocities and coordinates;
+3. mpilibrary.hpp, mpilibrary.cpp: Define some MPI functions and MPI tags for message passing;
+4. io.hpp, io.cpp: These two source codes are created for IO, for inputing data and outputing results;
+5. master.hpp, master.cpp: Define a master class responsible for the master work (initialisation data, send and receive data, calculate velocities and coordinates);
+6. worker.hpp, worker.cpp: The worker class with functions to receive data and calculate forces;
+7. simulation.hpp, simulation.cpp: These contain two fucntions for the master and the workers to initialise and terminate simulation;
+8. main.cpp: The entry of the code.
 
 
 ### Reference
