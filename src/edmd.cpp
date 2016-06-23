@@ -1,13 +1,25 @@
+/********************************************************************************
+ *                                                                              *
+ *          Porting the Essential Dynamics/Molecular Dynamics method            *
+ *             for large-scale nucleic acid simulations to ARCHER               *
+ *                                                                              *
+ *                               Zhuowei Si                                     *
+ *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
+ *     External supervisor: Charlie Laughton (The University of Nottingham)     *
+ *                                                                              *
+ *                 MSc in High Performance Computing, EPCC                      *
+ *                      The University of Edinburgh                             *
+ *                                                                              *
+ *******************************************************************************/
+
+/**
+ * File:  edmd.cpp
+ * Brief: Implementation of class functions for ED/MD and other calculations
+ */
+
 #include "edmd.hpp"
 
 
-/*
- * Function:  The constructor of EDMD class
- *
- * Parameter: None
- *
- * Return:    None
- */
 EDMD::EDMD(void) {
     
     constants.Boltzmann = 0.002;
@@ -32,27 +44,16 @@ EDMD::EDMD(void) {
 
 
 
+EDMD::~EDMD(void) {}
 
-/*
- * Function:  Assign EDMD parameters
- *
- * Parameter: _dt          -> Timestep, in ps
- *            _gamma       -> The friction coefficient, in ps⁻¹
- *            _tautp       -> Berendsen temperature coupling parameter
- *            _temperature -> Temperature, in Kelvin
- *            _scaled      -> Scale factor to scale ED forces
- *            _mole_Cutoff -> Molecular cutoffs
- *            _atom_Cutoff -> Atomic cutoffs
- *            _mole_Least  -> Molecules less than NB_Cutoff won't have NB ints.
- *
- * Return:    None
- */
+
+
 void EDMD::initialise(double _dt, double _gamma, double _tautp, double _temperature, double _scaled, double _mole_Cutoff, double _atom_Cutoff, double _mole_Least) {
-    dt    =    _dt;
-    gamma = _gamma;
-    tautp = _tautp;
+    dt          = _dt;
+    gamma       = _gamma;
+    tautp       = _tautp;
     temperature = _temperature;
-    scaled = _scaled;
+    scaled      = _scaled;
     mole_Cutoff = _mole_Cutoff;
     atom_Cutoff = _atom_Cutoff;
     mole_Least  = _mole_Least ;
@@ -60,15 +61,6 @@ void EDMD::initialise(double _dt, double _gamma, double _tautp, double _temperat
 
 
 
-
-
-/*
- * Function:  Calculate ED forces
- *
- * Parameter: * tetrad -> The instance of Tetrad cleass
- *
- * Return:    None
- */
 void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     
     int i, j;
@@ -77,14 +69,14 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     // Allocate memory for temp arrays
     double * temp_Crds = new double [3 * tetrad->num_Atoms];
     double * proj      = new double [tetrad->num_Evecs];
-    double **avg_Crds  = new double *[3];
-    double **crds      = new double *[3];
+    double ** avg_Crds = new double *[3];
+    double ** crds     = new double *[3];
     for (i = 0; i < 3; i++) {
-        avg_Crds[i]  = new double [tetrad->num_Atoms];
-        crds[i]      = new double [tetrad->num_Atoms];
+        avg_Crds[i] = new double [tetrad->num_Atoms];
+        crds[i]     = new double [tetrad->num_Atoms];
     }
     
-    // Copy data from tetrads
+    // Copy average structure & coordinates from tetrads
     for (i = 0; i < tetrad->num_Atoms; i++) {
         avg_Crds[0][i] = tetrad->avg_Structure[3 * i];
         avg_Crds[1][i] = tetrad->avg_Structure[3*i+1];
@@ -97,7 +89,6 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     
     // Step 1: rotate x into the pcz frame of reference & remove average structure
     rmsd = CalcRMSDRotationalMatrix((double **) avg_Crds, (double **) crds, tetrad->num_Atoms, rotmat, NULL); // Call QCP functions
-    
     for (i = 0; i < tetrad->num_Atoms; i++) {
         temp_Crds[3 * i] = rotmat[0] * crds[0][i] + rotmat[1] * crds[1][i] + rotmat[2] * crds[2][i] - avg_Crds[0][i];
         temp_Crds[3*i+1] = rotmat[3] * crds[0][i] + rotmat[4] * crds[1][i] + rotmat[5] * crds[2][i] - avg_Crds[1][i];
@@ -106,8 +97,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     }
     
     // Calculate the offset vector of tetrads
-    v[0] = v[1] = v[2] = 0.0;
-    for (i = 0; i < tetrad->num_Atoms; i++) {
+    for (v[0] = v[1] = v[2] = 0.0, i = 0; i < tetrad->num_Atoms; i++) {
         v[0] += (tetrad->avg_Structure[3 * i] - (rotmat[0] * tetrad->coordinates[3*i] + rotmat[1] * tetrad->coordinates[3*i+1] + rotmat[2] * tetrad->coordinates[3*i+2]));
         v[1] += (tetrad->avg_Structure[3*i+1] - (rotmat[3] * tetrad->coordinates[3*i] + rotmat[4] * tetrad->coordinates[3*i+1] + rotmat[5] * tetrad->coordinates[3*i+2]));
         v[2] += (tetrad->avg_Structure[3*i+2] - (rotmat[6] * tetrad->coordinates[3*i] + rotmat[7] * tetrad->coordinates[3*i+1] + rotmat[8] * tetrad->coordinates[3*i+2]));
@@ -122,14 +112,16 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
         }
     }
     
-    // Step 3 & Step 4
+    // Step 3 & Step 4, can be done in the same loop
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         tetrad->ED_Forces[i] = 0.0;
         temp_Crds[i] = tetrad->avg_Structure[i];
     }
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         for (j = 0; j < tetrad->num_Evecs; j++) {
-            // Step 3: re-embed the input coordinates in PC space - a sort of 'shake' procedure. Ideally this step is not needed, as stuff above should ensure all moves remain in PC subspace...
+            // Step 3: re-embed the input coordinates in PC space - a sort of 'shake' procedure.
+            //         Ideally this step is not needed, as stuff above should ensure all moves
+            //         remain in PC subspace...
             temp_Crds[i] += tetrad->eigenvectors[j][i] * proj[j];
             
             // Step 4: calculate ED forces
@@ -137,7 +129,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
         }
     }
     
-    // Step 5 & Step 6
+    // Step 5 & Step 6, merged into one single loop
     for (i = 0; i < tetrad->num_Atoms; i++) {
         
         // Step 5: rotate 'shaken' coordinates back into right frame
@@ -163,7 +155,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     }
     tetrad->ED_Energy *= 0.5 * scaled; // ED Energy
     
-    // Deallocate memory
+    // Deallocate memory of temp arrays
     for (i = 0; i < 3; i++) {
         delete [] avg_Crds[i];
         delete [] crds[i];
@@ -175,15 +167,6 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
 
 
 
-
-/*
- * Function:  Calculate the LV random forces.
- *            Generate the Gaussian stochastic term. Assuming unitless.
- *
- * Parameter: * tetrad -> The instance of Tetrad cleass
- *
- * Return:    None
- */
 void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
     
     int i, j;
@@ -192,6 +175,7 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
     double half = 0.5, r1 = 0.27597, r2 = 0.27846, u, v, x, y, q;
     double * noise_Factor = new double[3 * tetrad->num_Atoms];
 
+    // Set seed for random number generator
     srand((unsigned)((RNG_Seed++) + time(0)));
     
     // Noise factors, sum(noise_Factor) = 3594.75 when gmma = 2.0
@@ -242,19 +226,11 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
     }
     
     delete []noise_Factor;
+    
 }
 
 
 
-
-/*
- * Function:  Calculate NB forces
- *
- * Parameter: * t1 -> The instance of Tetrad cleass
- *            * t2 -> The instance of Tetrad cleass
- *
- * Return:    None
- */
 void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
     
     int i, j;
@@ -266,13 +242,9 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
     
     // Initialise energies & NB forces
     t1->NB_Energy = t1->EL_Energy = 0.0;
-    for (i = 0 ; i < t1->num_Atoms; i++) {
-        t1->NB_Forces[i] = 0.0;
-    }
+    for (i = 0 ; i < t1->num_Atoms; i++) { t1->NB_Forces[i] = 0.0; }
     t2->NB_Energy = t2->EL_Energy = 0.0;
-    for (i = 0 ; i < t2->num_Atoms; i++) {
-        t2->NB_Forces[i] = 0.0;
-    }
+    for (i = 0 ; i < t2->num_Atoms; i++) { t2->NB_Forces[i] = 0.0; }
     
     for (i = 0; i < t1->num_Atoms; i++) {
         for (j = 0; j < t2->num_Atoms; j++) {
@@ -312,14 +284,6 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
 
 
 
-
-/*
- * Function:  Update velocities & Berendsen temperature control
- *
- * Parameter:  * tetrad -> The instance of Tetrad cleass
- *
- * Return:    None
- */
 void EDMD::update_Velocities(Tetrad* tetrad, int index) {
     
     int i;
@@ -397,13 +361,6 @@ void EDMD::update_Velocities(Tetrad* tetrad, int index) {
 
 
 
-/*
- * Function:  Update Coordinates of tetrads
- *
- * Parameter: * tetrad -> The instance of Tetrad cleass
- *
- * Return:    None
- */
 void EDMD::update_Coordinates(Tetrad* tetrad) {
     
     for (int i = 0; i < 3 * tetrad->num_Atoms; i++) {

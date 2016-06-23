@@ -1,6 +1,6 @@
 irest        = 0
-nsteps       = 2
-ntsync       = 1
+nsteps       = 100000
+ntsync       = 100
 ntwt         = 100
 ntpr         = 1000
 circular     = false

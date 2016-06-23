@@ -1,12 +1,22 @@
-/* 
- * This is the entry of the program. It initialises and finalises 
- * the MPI library and the process pool.
- *
- * The returned status code from fucntion "processPoolInit()" can
- * decide the master process and worker processes, and call
- * according functions such as "master_Code" and "worker_Code" for them.
- *
- * The main funciton also set up the MPI message passing buffer size.
+/********************************************************************************
+ *                                                                              *
+ *          Porting the Essential Dynamics/Molecular Dynamics method            *
+ *             for large-scale nucleic acid simulations to ARCHER               *
+ *                                                                              *
+ *                               Zhuowei Si                                     *
+ *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
+ *     External supervisor: Charlie Laughton (The University of Nottingham)     *
+ *                                                                              *
+ *                 MSc in High Performance Computing, EPCC                      *
+ *                      The University of Edinburgh                             *
+ *                                                                              *
+ *******************************************************************************/
+
+/**
+ * File:  main.cpp
+ * Brief: The entry of the program. It is responsible for initialising and finalising
+ *        the MPI environment, and it also statrts the ED/MD simualtion by calling 
+ *        functions for the master process and worker processes.
  */
 
 #include <iostream>
@@ -22,17 +32,22 @@ int main(int argc, char *argv[]){
     
     // Initialise the MPI environment
     MPI_Init(&argc, &argv);
+    
+    // Get MPI rank and size
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
+    // Requires at least 2 processes
     if (size < 2) {
-        cout << "Requires at least two processes." << endl;
+        cout << "The program requires at least 2 processes." << endl;
         exit(1);
     }
 
-    // Start simulation
-    if (rank == 0) master_Code(); // The master initialises the simulation
-    if (rank != 0) worker_Code(); // Force calculation workers
+    // Start simulation. If The MPI rank equals 0 then it is the master process
+    // and it calls the function "master_Code()", other MPI processes are workers
+    // and they are used to calculate ED & NB forces.
+    if (rank == 0) master_Code();
+    if (rank != 0) worker_Code();
     
     // Finalise the MPI environemnt
     MPI_Finalize();

@@ -1,66 +1,60 @@
+/********************************************************************************
+ *                                                                              *
+ *          Porting the Essential Dynamics/Molecular Dynamics method            *
+ *             for large-scale nucleic acid simulations to ARCHER               *
+ *                                                                              *
+ *                               Zhuowei Si                                     *
+ *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
+ *     External supervisor: Charlie Laughton (The University of Nottingham)     *
+ *                                                                              *
+ *                 MSc in High Performance Computing, EPCC                      *
+ *                      The University of Edinburgh                             *
+ *                                                                              *
+ *******************************************************************************/
+
+/**
+ * File:  worker.cpp
+ * Brief: Implementation of the Worker class functions
+ */
 
 #include "worker.hpp"
 
 
-/*
- * Function:  The constructor of Worker class.
- *
- * Parameter: None
- *
- * Return:    None
- */
 Worker::Worker(void) {
     
-    comm    =   MPI_COMM_WORLD;
-    MPI_Comm_rank(comm, &rank); // Get the rank of worker process
+    comm = MPI_COMM_WORLD;
+    
+    // Get the MPI rank for the worker process
+    MPI_Comm_rank(comm, &rank);
     
 }
 
 
 
-
-/*
- * Function:  The destructor of Worker class.  Deallocate memory.
- *
- * Parameter: None
- *
- * Return:    None
- */
 Worker::~Worker(void) {
     
     // Deallocate memory spaces of tetrads
     for (int i = 0; i < num_Tetrads; i++) {
         
-        delete []tetrad[i].avg_Structure;
-        delete []tetrad[i].masses;
-        delete []tetrad[i].abq;
-        delete []tetrad[i].eigenvalues;
-        
+        delete [] tetrad[i].avg_Structure;
+        delete [] tetrad[i].masses;
+        delete [] tetrad[i].abq;
+        delete [] tetrad[i].eigenvalues;
         for (int j = 0; j < tetrad[i].num_Evecs; j++) {
-            delete []tetrad[i].eigenvectors[j];
+            delete [] tetrad[i].eigenvectors[j];
         }
-        delete []tetrad[i].eigenvectors;
-        delete []tetrad[i].velocities;
-        delete []tetrad[i].coordinates;
-        
-        delete []tetrad[i].ED_Forces;
-        delete []tetrad[i].random_Forces;
-        delete []tetrad[i].NB_Forces;
+        delete [] tetrad[i].eigenvectors;
+        delete [] tetrad[i].velocities;
+        delete [] tetrad[i].coordinates;
+        delete [] tetrad[i].ED_Forces;
+        delete [] tetrad[i].random_Forces;
+        delete [] tetrad[i].NB_Forces;
     }
     
 }
 
 
 
-
-/*
- * Function:  Workers receive the number of tetrads, number of atoms in every tetrad
- *            and number of evecs from master
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Worker::recv_Parameters(void) {
     
     int i, j, parameters[2], signal = 1;
@@ -97,7 +91,6 @@ void Worker::recv_Parameters(void) {
         }
         tetrad[i].coordinates   = new double[3 * tetrad[i].num_Atoms];
         tetrad[i].velocities    = new double[3 * tetrad[i].num_Atoms];
-        
         tetrad[i].ED_Forces     = new double[3 * tetrad[i].num_Atoms];
         tetrad[i].random_Forces = new double[3 * tetrad[i].num_Atoms];
         tetrad[i].NB_Forces     = new double[3 * tetrad[i].num_Atoms];
@@ -106,7 +99,7 @@ void Worker::recv_Parameters(void) {
         tetrad[i].EL_Energy = tetrad[i].temperature = 0.0;
     }
     
-    delete []tetrad_Para;
+    delete [] tetrad_Para;
     
     // Send feedback to master that has received all parameters.
     MPI_Send(&signal, 1, MPI_INT, 0, TAG_DATA, comm);
@@ -115,19 +108,12 @@ void Worker::recv_Parameters(void) {
 
 
 
-
-/*
- * Function:  Workers receive tetrads from master
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Worker::recv_Tetrads(void) {
     
     int i, signal = 1;
     MPI_Datatype MPI_Tetrad;
     
+    // Receive all tetrads parameters from the master process
     for (i = 0; i < num_Tetrads; i++) {
         MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &tetrad[i]);
         MPI_Recv(&tetrad[i], 1, MPI_Tetrad, 0, TAG_TETRAD+i, comm, &status);
@@ -141,39 +127,23 @@ void Worker::recv_Tetrads(void) {
 
 
 
-
-
-/*
- * Function:  Workers receive velocities and coordinates of tetrads from master
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Worker::recv_Vels_n_Crds(void) {
     
     int i, signal = 1;
     
+    // Receive velocities & coordinates of tetrads
     for (i = 0; i < num_Tetrads; i++) {
         MPI_Recv(tetrad[i].velocities,  3 * tetrad[i].num_Atoms, MPI_DOUBLE, 0, TAG_CRDS+i+1, comm, &status);
         MPI_Recv(tetrad[i].coordinates, 3 * tetrad[i].num_Atoms, MPI_DOUBLE, 0, TAG_CRDS+i+2, comm, &status);
     }
 
-    // Send feedback to master that has received all tetrads
+    // Send feedback to master that has received all vels & crds
     MPI_Send(&signal, 1, MPI_INT, 0, TAG_CRDS, comm);
     
 }
 
 
 
-/*
- * Function:  Compute ED forces of tetrads.
- *            Send calculated ED/random forces back to master.
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Worker::ED_Calculation(void) {
     
     int i, index;
@@ -204,15 +174,6 @@ void Worker::ED_Calculation(void) {
 
 
 
-
-/*
- * Function:  Compute NB forces of tetrads.
- *            Send calculated NB forces & energies back to master.
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Worker::NB_Calculation(void) {
     
     int i, indexes[2];
@@ -245,22 +206,12 @@ void Worker::NB_Calculation(void) {
 
 
 
-
-
-/*
- * Function:  Receive the terminate signal from master & terminate work
- *
- * Parameter: None
- *
- * Return:    None
- */
 int Worker::terminate(void) {
     
     int signal;
     
     // Receive the terminate signal from master
-    MPI_Recv(&signal, 1, MPI_INT, 0, TAG_DEATH, MPI_COMM_WORLD, &status);
-
+    MPI_Recv(&signal, 1, MPI_INT, 0, TAG_DEATH, comm, &status);
     return signal;
 }
 

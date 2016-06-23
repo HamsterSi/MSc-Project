@@ -1,9 +1,25 @@
+/********************************************************************************
+ *                                                                              *
+ *          Porting the Essential Dynamics/Molecular Dynamics method            *
+ *             for large-scale nucleic acid simulations to ARCHER               *
+ *                                                                              *
+ *                               Zhuowei Si                                     *
+ *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
+ *     External supervisor: Charlie Laughton (The University of Nottingham)     *
+ *                                                                              *
+ *                 MSc in High Performance Computing, EPCC                      *
+ *                      The University of Edinburgh                             *
+ *                                                                              *
+ *******************************************************************************/
+
+/**
+ * File:  simulation.cpp
+ * Brief: Implementation of two functions for the master process and worker processes
+ */
 
 #include "simulation.hpp"
 
-/*
- * Function: Manage the master working progress
- */
+
 void master_Code(void) {
 
     Master master;
@@ -18,13 +34,18 @@ void master_Code(void) {
     //cout << ">>> Master sending tetrads..." << endl;
     master.send_Tetrads();
     
+    cout << master.io.ncycs << " " << master.io.ntsync << endl;
     for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {
 
-        //cout << "\nIteration: " << icyc << "\n\nGenerate pair lists..." << endl;
+        cout << "\nIteration: " << icyc << endl;
+        //cout << "\n\nGenerate pair lists..." << endl;
+        
+        // Generate pair lists
         master.generate_Pair_Lists();
         
-        //for (int i = 0; i < master.io.ntsync; i++) {
+        for (int i = 0; i < master.io.ntsync; i++) {
 
+            cout << i << endl;
             //cout << "Calculation...\n>>> Calculating ED & NB forces..." << endl;
             master.cal_Forces();
             
@@ -33,25 +54,28 @@ void master_Code(void) {
             
             //cout << ">>> Calculating Coordinates..." << endl;
             master.cal_Coordinate();
-            
-            //cout << ">>> Velocities & Coordinates processing..." << endl;
-            master.data_Processing();
+        
+            //cout << ">>> Send velocities and coordinates to workers" << endl;
+            master.send_Vels_n_Crds();
     
-        //}
+        }
         
         istep += master.io.ntsync;
         
+        //cout << ">>> Processing Velocities & Coordinates..." << endl;
+        master.data_Processing();
+        master.send_Vels_n_Crds();
+        
         //cout << "Writing files..." << endl << endl;
-        //if (istep % master.io.ntwt == 0) {
+        if (istep % master.io.ntwt == 0) {
             master.write_Energy(istep);
             master.write_Forces();
             master.write_Trajectories(istep-master.io.ntsync);
-        //}
-        //if (istep % master.io.ntpr == 0) {
+        }
+        if (istep % master.io.ntpr == 0) {
             master.write_Crds();
-        //}
+        }
         
-        master.send_Vels_n_Crds();
     }
     
     master.finalise();
@@ -64,9 +88,6 @@ void master_Code(void) {
 
 
 
-/*
- * Function: Manage the worker working progress
- */
 void worker_Code(void) {
     
     int flag, signal = 1;

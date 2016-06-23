@@ -1,15 +1,25 @@
+/********************************************************************************
+ *                                                                              *
+ *          Porting the Essential Dynamics/Molecular Dynamics method            *
+ *             for large-scale nucleic acid simulations to ARCHER               *
+ *                                                                              *
+ *                               Zhuowei Si                                     *
+ *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
+ *     External supervisor: Charlie Laughton (The University of Nottingham)     *
+ *                                                                              *
+ *                 MSc in High Performance Computing, EPCC                      *
+ *                      The University of Edinburgh                             *
+ *                                                                              *
+ *******************************************************************************/
+
+/**
+ * File:  master.cpp
+ * Brief: Implementation of the Master class functions 
+ */
 
 #include "master.hpp"
 
 
-/*
- * Function:  The constructor of Master class.
- *            Read-in tetrads parameters, memory allocation and other initialisation
- *
- * Parameter: None
- *
- * Return:    None
- */
 Master::Master(void) {
     
     max_Atoms = 0;
@@ -23,18 +33,9 @@ Master::Master(void) {
 
 
 
-
-/*
- * Function:  The destructor of Master class. 
- *            Deallocate memory of arrays.
- *
- * Parameter: None
- *
- * Return:    None
- */
 Master::~Master(void) {
     
-    delete [] pair_List;
+    delete [] pair_Lists;
     delete [] velocities;
     delete [] coordinates;
     
@@ -42,14 +43,6 @@ Master::~Master(void) {
 
 
 
-
-/*
- * Function:  Master initialises the simulation
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::initialise(void) {
     
     io.read_Cofig(&edmd);
@@ -93,15 +86,6 @@ void Master::initialise(void) {
 
 
 
-
-/*
- * Function:  Master sends the number of tetrads, number of atoms in every tetrad
- *            and number of evecs to worker processes
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::send_Parameters(void) {
     
     int i, signal, parameters[2] = {io.prm.num_Tetrads, max_Atoms};
@@ -117,14 +101,14 @@ void Master::send_Parameters(void) {
     
     // Send all the parameters to workers
     for (i = 0; i < size - 1; i++) {
-        MPI_Send(parameters, 2, MPI_INT,    i + 1, TAG_DATA, comm);
-        MPI_Send(edmd_Para,  8, MPI_DOUBLE, i + 1, TAG_DATA, comm);
+        MPI_Send(parameters, 2, MPI_INT   , i + 1, TAG_DATA, comm);
+        MPI_Send(edmd_Para , 8, MPI_DOUBLE, i + 1, TAG_DATA, comm);
         MPI_Send(tetrad_Para, 2 * io.prm.num_Tetrads, MPI_INT, i + 1, TAG_DATA, comm);
     }
 
     delete [] tetrad_Para;
     
-    // Feedback from worker processes that they have received parameters
+    // Feedback that worker processes have received all parameters
     for (i = 0; i < size - 1; i++) {
         MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_DATA, comm, &status);
     }
@@ -133,19 +117,12 @@ void Master::send_Parameters(void) {
 
 
 
-
-/*
- * Function:  Master sends tetrads to workers
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::send_Tetrads(void) {
     
     int i, j, signal;
     MPI_Datatype MPI_Tetrad;
     
+    // Send tetrads to all worker processes
     for (i = 1; i < size; i++) {
         for (j = 0; j < io.prm.num_Tetrads; j++) {
             
@@ -156,7 +133,7 @@ void Master::send_Tetrads(void) {
         }
     }
     
-    // Feedback that all worker processes have finished receiving tetrads
+    // Feedback that all worker processes have received tetrads
     for (i = 0; i < size - 1; i++) {
         MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_TETRAD, comm, &status);
     }
@@ -165,28 +142,19 @@ void Master::send_Tetrads(void) {
 
 
 
-
-
-/*
- * Function:  Master sends the velocities and coordinates of tetrads to workers
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::send_Vels_n_Crds(void) {
     
     int i, j, signal;
     
+    // Send velocities & coordinates of all tetrad to all worker processes
     for (i = 1; i < size; i++) {
         for (j = 0; j < io.prm.num_Tetrads; j++) {
-            
             MPI_Send(io.tetrad[j].velocities,  3 * io.tetrad[j].num_Atoms, MPI_DOUBLE, i, TAG_CRDS+j+1, comm);
             MPI_Send(io.tetrad[j].coordinates, 3 * io.tetrad[j].num_Atoms, MPI_DOUBLE, i, TAG_CRDS+j+2, comm);
         }
     }
     
-    // Feedback that all worker processes have finished receiving tetrads
+    // Feedback that all worker processes have received all velocities & coordinates
     for (i = 0; i < size - 1; i++) {
         MPI_Recv(&signal, 1, MPI_INT, MPI_ANY_SOURCE, TAG_CRDS, comm, &status);
     }
@@ -195,19 +163,10 @@ void Master::send_Vels_n_Crds(void) {
 
 
 
-
-
-/*
- * Function:  Generate the pair list of tetrads for non-bonded forces calculation
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::generate_Pair_Lists(void) {
     
     num_Pairs = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
-    pair_List = new int [2 * num_Pairs];
+    pair_Lists = new int [2 * num_Pairs];
     
     int i, j, k, pairs;
     double r, ** com = new double * [io.prm.num_Tetrads];
@@ -240,10 +199,10 @@ void Master::generate_Pair_Lists(void) {
             if ((r < (edmd.mole_Cutoff * edmd.mole_Cutoff)) && (abs(i - j) > edmd.mole_Least) &&
                 (abs(i - j) < (io.prm.num_Tetrads - edmd.mole_Least))) {
                 
-                pair_List[2 * pairs] = i; pair_List[2*pairs+1] = j;
+                pair_Lists[2 * pairs] = i; pair_Lists[2*pairs+1] = j;
                 effective_Pairs++;
                 
-            } else { pair_List[2 * pairs] = -1; pair_List[2*pairs+1] = -1; }
+            } else { pair_Lists[2 * pairs] = -1; pair_Lists[2*pairs+1] = -1; }
             
         }
     }
@@ -255,16 +214,6 @@ void Master::generate_Pair_Lists(void) {
 
 
 
-
-
-/*
- * Function:  Master send the index of Tetrads to workers for ED & NB forces calculation &
- *            Calculate the random forces.
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::send_Tetrad_Index(int* i, int* j, int source) {
     
     // Send tetrad index for ED calculation & Calculate random forces
@@ -275,8 +224,8 @@ void Master::send_Tetrad_Index(int* i, int* j, int source) {
     // i >= num_Tetrads, send tetrad indexes for NB calculation
     } else {
         for (; (*j) < num_Pairs; (*j)++) {
-            if (pair_List[2 * (*j)] != -1) {
-                int indexes[2] = { pair_List[2 * (*j)],  pair_List[2 * (*j) + 1] };
+            if (pair_Lists[2 * (*j)] != -1) {
+                int indexes[2] = { pair_Lists[2 * (*j)],  pair_Lists[2 * (*j) + 1] };
                 MPI_Send(indexes, 2, MPI_INT, source, TAG_NB, comm); (*j)++; break;
             }
         }
@@ -286,22 +235,12 @@ void Master::send_Tetrad_Index(int* i, int* j, int source) {
 
 
 
-
-
-/*
- * Function:  Master ED forces management. Distrubute ED force calculation among workers,
- *            Main job is to send tetrad parameters to workers to compute ED forces.
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::cal_Forces(void) {
     
     int i, j, k, flag, index;
     double max_Forces = 1.0, temp_Forces[2][3 * max_Atoms + 2];
     
-    // Initialise the forces & energies
+    // Initialise the forces & energies in the tetrads
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
             io.tetrad[i].ED_Forces[j]     = 0.0;
@@ -314,9 +253,7 @@ void Master::cal_Forces(void) {
     }
     
     // Send tetrad indexes for ED/NB forces calculation at the beginning
-    for (i = 0, j = 0; i < size - 1; i++) {
-        send_Tetrad_Index(&i, &j, i + 1);
-    }
+    for (i = 0, j = 0; i < size - 1; i++) { send_Tetrad_Index(&i, &j, i + 1); }
     
     // When there are still forces waiting for calculating,
     // receive ED/NB forces from workers & send new tetrad indexes to workers
@@ -369,15 +306,6 @@ void Master::cal_Forces(void) {
 
 
 
-
-
-/*
- * Function:  Master calculates velocities in tetrads
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::cal_Velocities(void) {
     
     // Calculate velocities of every tetrad
@@ -389,15 +317,6 @@ void Master::cal_Velocities(void) {
 
 
 
-
-
-/*
- * Function:  Master calculates coordinates in tetrads
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::cal_Coordinate(void) {
     
     // Calculate coordinates of all tetrads
@@ -409,15 +328,6 @@ void Master::cal_Coordinate(void) {
 
 
 
-
-
-/*
- * Function:  Master updates the whole velocities/coordinates of DNA
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::data_Processing(void) {
     
     int i, j, index;
@@ -459,15 +369,6 @@ void Master::data_Processing(void) {
 
 
 
-
-
-/*
- * Function:  Master writes out energies of all tetrads
- *
- * Parameter: int istep -> the iterations of simulation
- *
- * Return:    None
- */
 void Master::write_Energy(int istep) {
     
     double energies[4] = {0.0};
@@ -490,15 +391,6 @@ void Master::write_Energy(int istep) {
 
 
 
-
-
-/*
- * Function:  Master writes out forces of all atoms in DNA
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::write_Forces(void) {
     
     int i, j, index;
@@ -531,37 +423,16 @@ void Master::write_Forces(void) {
 
 
 
-
-/*
- * Function:  Master writes the trajectories.
- *
- * Parameter: int istep -> The iterations of simulation
- *
- * Return:    None
- */
 void Master::write_Trajectories(int istep) {
     
-    int i, index, total_Atoms = 0;
-    for (i = 0; i < io.crd.num_BP; i++) {
-        total_Atoms += io.crd.num_BP_Atoms[i];
-    }
-    
-    index = io.displs[io.crd.num_BP - 3];
-    
-    io.write_Trajectory(istep, total_Atoms, index, coordinates);
+    int i, index = io.displs[io.crd.num_BP - 3];
+
+    io.write_Trajectory(istep, index, coordinates);
     
 }
 
 
 
-
-/*
- * Function:  Master writes a new crd file.
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::write_Crds(void) {
     
     io.update_Crd(velocities, coordinates);
@@ -570,16 +441,6 @@ void Master::write_Crds(void) {
 
 
 
-
-
-
-/*
- * Function:  Master terminates worker processes
- *
- * Parameter: None
- *
- * Return:    None
- */
 void Master::finalise(void) {
     
     cout << "Writing Energies out at     " << io.energy_File << endl;

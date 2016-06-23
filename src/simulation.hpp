@@ -1,12 +1,27 @@
+/********************************************************************************
+ *                                                                              *
+ *          Porting the Essential Dynamics/Molecular Dynamics method            *
+ *             for large-scale nucleic acid simulations to ARCHER               *
+ *                                                                              *
+ *                               Zhuowei Si                                     *
+ *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
+ *     External supervisor: Charlie Laughton (The University of Nottingham)     *
+ *                                                                              *
+ *                 MSc in High Performance Computing, EPCC                      *
+ *                      The University of Edinburgh                             *
+ *                                                                              *
+ *******************************************************************************/
+
+/**
+ * File:  simulation.hpp
+ * Brief: Declaration of two functions for the master process and worker processes
+ */
 
 #ifndef simulation_hpp
 #define simulation_hpp
 
 #include <iostream>
-#include <iomanip>
 #include <ctime>
-#include <cmath>
-#include <string>
 #include "mpi.h"
 
 #include "mpilib.hpp"
@@ -15,8 +30,25 @@
 
 using namespace std;
 
+/**
+ * Function:  Define a Master class and manage the master working progress.
+ *            It contorls the iteration structres of the simulation.
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
 void master_Code(void);
 
+/**
+ * Function:  Define a Worker class and manage the worker working progress.
+ *            If there is a message arrived, then it performs some functions according
+ *            to the message tag.
+ *
+ * Parameter: None
+ *
+ * Return:    None
+ */
 void worker_Code(void);
 
 #endif /* simulation_hpp */

@@ -1,29 +1,40 @@
+/********************************************************************************
+ *                                                                              *
+ *          Porting the Essential Dynamics/Molecular Dynamics method            *
+ *             for large-scale nucleic acid simulations to ARCHER               *
+ *                                                                              *
+ *                               Zhuowei Si                                     *
+ *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
+ *     External supervisor: Charlie Laughton (The University of Nottingham)     *
+ *                                                                              *
+ *                 MSc in High Performance Computing, EPCC                      *
+ *                      The University of Edinburgh                             *
+ *                                                                              *
+ *******************************************************************************/
+
+/**
+ * File:  edmd.hpp
+ * Brief: Declaration of a class for ED/MD simulation
+ */
 
 #ifndef parameters_hpp
 #define parameters_hpp
 
 #include <iostream>
+#include <cstdlib>
 #include <cmath>
 #include <ctime>
-#include <cstdlib>
-
 #include "mpi.h"
-#include "tetrad.hpp"
+
 #include "./qcprot/qcprot.h"
+#include "tetrad.hpp"
 
 using namespace std;
 
+
 /*
- * Constants used in the DNA simulations.
- * TODO: merge with the global constants class, unify units
- *
- * Amber uses internally:
- *   - Lengths in Angstroms
- *   - Masses in atomic mass units,
- *   - Energies in kcal/mol
- *   - This means that the unit of time is 1/20.455 ps
- *   - VDW parameters: R* is in Angstroms, epsilon in kcal/mol.
- *   See http://ambermd.org/Questions/units.html
+ * Brief: Constants used in the DNA simulations.
+ *        Merge with the global constants class, unify units
  */
 typedef struct _Constants {
     
@@ -34,44 +45,127 @@ typedef struct _Constants {
 }Constants;
 
 
-/*
- * The ED/MD simulation class
+
+/**
+ * Brief: The EDMD class that implements the ED & NB forces calculation and other 
+ *        calculations on velocities and coordinates.
  */
 class EDMD {
     
 public:
     
-    Constants  constants;
+    Constants constants; // The DNA constants
     
-    double dt;          // Timestep, in ps
-    double gamma;       // The friction coefficient, in ps⁻¹
-    double tautp;       // Berendsen temperature coupling parameter
+    double dt;           // Timestep, in ps
     
-    double temperature; // Temperature, in Kelvin
-    double scaled;      // Scale factor to scale ED forces
+    double gamma;        // The friction coefficient, in ps⁻¹
     
-    double mole_Cutoff; // Molecular cutoffs
-    double atom_Cutoff; // Atomic cutoffs
-    double mole_Least;  // Molecules less than NB_Cutoff won't have NB ints.
+    double tautp;        // Berendsen temperature coupling parameter
+    
+    double temperature;  // Temperature, in Kelvin
+    
+    double scaled;       // Scale factor to scale ED forces
+    
+    double mole_Cutoff;  // Molecular cutoffs
+    
+    double atom_Cutoff;  // Atomic cutoffs
+    
+    double mole_Least;   // Molecules less than NB_Cutoff won't have NB ints.
     
 public:
     
+    /**
+     * Function:  The constructor of EDMD class
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
     EDMD(void);
     
+    /**
+     * Function:  The destructor of EDMD class
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
+    ~EDMD(void);
+    
+    /**
+     * Function:  Assign parameters for EDMD class
+     *
+     * Parameter: _dt          -> Timestep, in ps
+     *            _gamma       -> The friction coefficient, in ps⁻¹
+     *            _tautp       -> Berendsen temperature coupling parameter
+     *            _temperature -> Temperature, in Kelvin
+     *            _scaled      -> Scale factor to scale ED forces
+     *            _mole_Cutoff -> Molecular cutoffs
+     *            _atom_Cutoff -> Atomic cutoffs
+     *            _mole_Least  -> Molecules less than NB_Cutoff won't have NB ints.
+     *
+     * Return:    None
+     */
     void initialise(double _dt, double _gamma, double _tautp, double _temperature, double _scaled, double _mole_Cutoff, double _atom_Cutoff, double _mole_Least);
     
+    /**
+     * Function:  Calculate ED forces for every tetrad, the results are stored in the Tetrad class
+     *
+     * Parameter: * tetrad -> The instance of Tetrad cleass
+     *
+     * Return:    None
+     */
     void calculate_ED_Forces(Tetrad* tetrad);
     
+    /**
+     * Function:  Calculate the LV random forces.
+     *            Generate the Gaussian stochastic term. Assuming unitless.
+     *            Part of code is adapted from the following Fortran 77 code
+     *            !      ALGORITHM 712, COLLECTED ALGORITHMS FROM ACM.
+     *            !      THIS WORK PUBLISHED IN TRANSACTIONS ON MATHEMATICAL SOFTWARE,
+     *            !      VOL. 18, NO. 4, DECEMBER, 1992, PP. 434-435.
+     *
+     *            !  The function returns a normally distributed pseudo-random
+     *            !  number with zero mean and unit variance.
+     *
+     *            !  The algorithm uses the ratio of uniforms method of A.J. Kinderman
+     *            !  and J.F. Monahan augmented with quadratic bounding curves.
+     *
+     * Parameter: * tetrad -> The instance of Tetrad cleass
+     *
+     * Return:    None
+     */
     void calculate_Random_Forces(Tetrad* tetrad);
     
+    /**
+     * Function:  Calculate NB forces, results stored in Tetrad class
+     *
+     * Parameter: * t1 -> The instance of Tetrad cleass
+     *            * t2 -> The instance of Tetrad cleass
+     *
+     * Return:    None
+     */
     void calculate_NB_Forces(Tetrad* t1, Tetrad* t2);
     
-    void update_Velocities(Tetrad* tetrad, int index);
+    /**
+     * Function:  Update velocities & Berendsen temperature control
+     *
+     * Parameter:  * tetrad -> The instance of Tetrad cleass
+     *
+     * Return:    None
+     */
+    void update_Velocities(Tetrad* tetrad, int index); // The index is used for test, should be removed later after the reults are correct.
     
+    /**
+     * Function:  Update Coordinates of tetrads
+     *
+     * Parameter: * tetrad -> The instance of Tetrad cleass
+     *
+     * Return:    None
+     */
     void update_Coordinates(Tetrad* tetrad);
     
 };
 
-
-
 #endif /* parameters_hpp */
+
