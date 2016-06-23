@@ -1,10 +1,21 @@
-//
-//  tetrad.cpp
-//  
-//
-//  Created by Zhuowei Si on 11/04/2016.
-//
-//
+/********************************************************************************
+ *                                                                              *
+ *          Porting the Essential Dynamics/Molecular Dynamics method            *
+ *             for large-scale nucleic acid simulations to ARCHER               *
+ *                                                                              *
+ *                               Zhuowei Si                                     *
+ *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
+ *     External supervisor: Charlie Laughton (The University of Nottingham)     *
+ *                                                                              *
+ *                 MSc in High Performance Computing, EPCC                      *
+ *                      The University of Edinburgh                             *
+ *                                                                              *
+ *******************************************************************************/
+
+/**
+ * File:  tetrad.cpp
+ * Brief: Implementation of class functions for DNA tetrads
+ */
 
 #include "tetrad.hpp"
 
@@ -37,5 +48,4 @@ Tetrad::~Tetrad(void) {
     delete []NB_Forces;
     
 }*/
-
 

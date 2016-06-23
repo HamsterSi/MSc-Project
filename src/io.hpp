@@ -1,6 +1,20 @@
-/*
- * This is the IO of the program, reading from files and write out data
- * are all done by the functions in the class IO.
+/********************************************************************************
+ *                                                                              *
+ *          Porting the Essential Dynamics/Molecular Dynamics method            *
+ *             for large-scale nucleic acid simulations to ARCHER               *
+ *                                                                              *
+ *                               Zhuowei Si                                     *
+ *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
+ *     External supervisor: Charlie Laughton (The University of Nottingham)     *
+ *                                                                              *
+ *                 MSc in High Performance Computing, EPCC                      *
+ *                      The University of Edinburgh                             *
+ *                                                                              *
+ *******************************************************************************/
+
+/**
+ * File:  io.hpp
+ * Brief: Declaration of the IO class for input/output
  */
 
 #ifndef io_hpp
@@ -19,47 +33,60 @@
 
 using namespace std;
 
-/* Parameters read from crd file */
+/**
+ * Brief: The data in crd file will be read into these variables & arrays
+ */
 typedef struct _Crd {
     
-    int num_BP;          // Number of DNA Base Pairs
+    int num_BP;       // Number of DNA Base Pairs
     
-    int * num_BP_Atoms;  // Number of atoms in each base pair
+    int * BP_Atoms;   // Number of atoms in each base pair
     
-    int total_Atoms;     // Total number of atoms in DNA
+    int total_Atoms;  // Total number of atoms in DNA
     
-    double * ini_BP_Vels; // Initial BP velocities;
+    double * BP_Vels; // Initial BP velocities;
     
-    double * ini_BP_Crds; // Initial BP coordinates;
+    double * BP_Crds; // Initial BP coordinates;
     
 }Crd;
 
 
-/* Parameters read from prm file
- * Other parameters are stored into class "Tetrad" */
+/**
+ * Brief: Parameters read from prm file, other data are read into the tetrad class array
+ */
 typedef struct _Prm {
     
-    int num_Tetrads; // Total numbers of overlapped tetrads
+    int num_Tetrads;  // Total numbers of overlapped tetrads
     
 }Prm;
 
 
-/*
- * The IO class can read data from files ("crd" and "prm") and wrtie 
- * results out to new files (To be discussed and implemented).
+/**
+ * Brief: The IO class reads data from files (mainly the "crd" and "prm" file) and wrtie
+ *        results into new files. All input/output functions are in the IO class.
  */
 class IO {
     
 public:
     
-    int iteration;
-    int nsteps;    // The total steps of iterations
-    int frequency; // The frequency of writing files
+    Crd crd;
     
-    bool circular; // The Shape of DNA
+    Prm prm;
     
-    int * displs;  // The displacement of Base Pairs
+    Tetrad *tetrad; // The array of tetrad class
     
+    int * displs;   // The displacements of base pairs
+    
+    int irest;      // Indicates to read which crd file
+    int nsteps;     // The total steps of iterations
+    int ntsync;     // The frequency of snyc
+    int ntwt;       // The frequency of writing of trajectories
+    int ntpr;       // The frequency of writing of info (Energies & temperature, crd file)
+    int ncycs;      // Total cycles
+    
+    bool circular;  // The Shape of DNA
+    
+    // The strings used to store file paths
     string prm_File;
     string crd_File;
     string energy_File;
@@ -67,38 +94,128 @@ public:
     string trj_File;
     string new_Crd_File;
     
-    Crd crd;
-    
-    Prm prm;
-    
-    Tetrad *tetrad;
-    
 public:
     
+    /**
+     * Function:  The constructor of IO class. Set default parameters.
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
     IO(void);
     
+    /**
+     * Function:  The destructor of IO class. Deallocate memorys.
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
     ~IO(void);
     
+    /**
+     * Function:   Read the config file & initialisation before the simualtion starts.
+     *
+     * Parameters: * edmd -> Some data will be read into the instance of EDMD class.
+     *
+     * Returns:    None.
+     */
     void read_Cofig(EDMD* edmd);
     
+    /**
+     * Function:   Read the prm file. The DNA structure (linear/circular) needs to be
+     *             taken into account in the prm-file generation.
+     *
+     * Parameters: None.
+     *
+     * Returns:    None.
+     */
     void read_Prm(void);
     
+    /**
+     * Funtion:    Read a coordinates (.crd) file.
+     *
+     * Parameters: None
+     *
+     * Returns:    None.
+     */
     void read_Crd(void);
     
+    /**
+     * Function:   Generate the displacements of base pairs.
+     *             Set up some book-keeping stuff. "displs" store the displacements of base pairs.
+     *             If 1st BP is 0, then 2nd BP displacement is 0+(3 * number of atoms in 1st BP)
+     *
+     * Parameters: None.
+     *
+     * Returns:    None.
+     */
     void generate_Displacements(void);
     
+    /**
+     * Function:   Initialise velocities, coordinates and other parameters for tetrads from crd
+     *
+     * Parameters: None.
+     *
+     * Returns:    None.
+     */
     void initialise_Tetrad_Crds(void);
     
+    /**
+     * Function:   Write out some array in a certain form
+     *
+     * Parameters: * fout -> The file stream pointer
+     *             * data -> The data needs to write out
+     *
+     * Returns:    None.
+     */
     void write_Template(ofstream* fout, double* data);
     
-    void write_Energies(double energies[]);
+    /**
+     * Function:   Write out energies & temperature of all tetrads.
+     *
+     * Parameters: istep      -> The iterations of simulation
+     *             * energies -> Energies & temperature of tetrads
+     *
+     * Returns:    None.
+     */
+    void write_Energies(int istep, double energies[]);
     
+    /**
+     * Function:   Write out all ED forces, random forces & NB forces
+     *
+     * Parameters: * ED_Forces     -> The total ED forces of all DNA base pairs
+     *             * random_Forces -> The total random forces of all DNA base pairs
+     *             * NB_Forces     -> The total NB forces of all DNA base pairs
+     *
+     * Returns:    None.
+     */
     void write_Forces(double* ED_Forces, double* random_Forces, double* NB_Forces);
     
-    void write_Trajectory(double* coordinates);
+    /**
+     * Function:   Write out trajectories evry certain iterations
+     *
+     * Parameters: int istep       -> The iterations of simulation
+     *             int total_Atoms -> Total atoms of the DNA
+     *             int index       -> The index of writing trajectory to which place
+     *             * coordinates   -> The coordinates of all atoms in DNA
+     *
+     * Returns:    None.
+     */
+    void write_Trajectory(int istep, int index, double* coordinates);
     
+    /**
+     * Function:   Update the crd file for next simulation, write out velocities & coordinates
+     *
+     * Parameters: * velocities  -> The velocities  of all atoms in DNA
+     *             * coordinates -> The coordinates of all atoms in DNA
+     *
+     * Returns:    None.
+     */
     void update_Crd(double* velocities, double* coordinates);
     
 };
 
 #endif /* io_hpp */
+

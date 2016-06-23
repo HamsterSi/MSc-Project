@@ -1,9 +1,25 @@
+/********************************************************************************
+ *                                                                              *
+ *          Porting the Essential Dynamics/Molecular Dynamics method            *
+ *             for large-scale nucleic acid simulations to ARCHER               *
+ *                                                                              *
+ *                               Zhuowei Si                                     *
+ *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
+ *     External supervisor: Charlie Laughton (The University of Nottingham)     *
+ *                                                                              *
+ *                 MSc in High Performance Computing, EPCC                      *
+ *                      The University of Edinburgh                             *
+ *                                                                              *
+ *******************************************************************************/
+
+/**
+ * File:  simulation.cpp
+ * Brief: Implementation of two functions for the master process and worker processes
+ */
 
 #include "simulation.hpp"
 
-/*
- * Function: Manage the master working progress
- */
+
 void master_Code(void) {
 
     Master master;
@@ -12,31 +28,54 @@ void master_Code(void) {
     
     master.initialise();
     
+    //cout << "\nSending data...\n>>> Master sending parameters..." << endl;
+    master.send_Parameters();
     
-    for (; master.io.iteration < master.io.nsteps; master.io.iteration++) {
+    //cout << ">>> Master sending tetrads..." << endl;
+    master.send_Tetrads();
+    
+    cout << master.io.ncycs << " " << master.io.ntsync << endl;
+    for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {
 
-        cout << "\nIteration: " << master.io.iteration << endl << endl;
-        cout << "Sending data..." << endl;
-        cout << ">>> Master sending parameters..." << endl;
-        master.send_Parameters();
-        cout << ">>> Master sending tetrads..." << endl;
-        master.send_Tetrads();
+        cout << "\nIteration: " << icyc << endl;
+        //cout << "\n\nGenerate pair lists..." << endl;
         
-        cout << "Calculation..." << endl;
-        cout << ">>> Calculating ED & NB forces..." << endl;
-        master.force_Calculation();
+        // Generate pair lists
+        master.generate_Pair_Lists();
         
-        cout << ">>> Calculating Velocities..." << endl;
-        master.cal_Velocities();
-        cout << ">>> Calculating Coordinates..." << endl;
-        //master.cal_Coordinate();
-        cout << ">>> Velocities & Coordinates processing..." << endl;
+        for (int i = 0; i < master.io.ntsync; i++) {
+
+            cout << i << endl;
+            //cout << "Calculation...\n>>> Calculating ED & NB forces..." << endl;
+            master.cal_Forces();
+            
+            //cout << ">>> Calculating Velocities..." << endl;
+            master.cal_Velocities();
+            
+            //cout << ">>> Calculating Coordinates..." << endl;
+            master.cal_Coordinate();
+        
+            //cout << ">>> Send velocities and coordinates to workers" << endl;
+            master.send_Vels_n_Crds();
+    
+        }
+        
+        istep += master.io.ntsync;
+        
+        //cout << ">>> Processing Velocities & Coordinates..." << endl;
         master.data_Processing();
+        master.send_Vels_n_Crds();
         
-        cout << "Writing files..." << endl << endl;
-        //if (master.io.iteration % master.io.frequency == 0) {
-            master.write_Files();
-        //}
+        //cout << "Writing files..." << endl << endl;
+        if (istep % master.io.ntwt == 0) {
+            master.write_Energy(istep);
+            master.write_Forces();
+            master.write_Trajectories(istep-master.io.ntsync);
+        }
+        if (istep % master.io.ntpr == 0) {
+            master.write_Crds();
+        }
+        
     }
     
     master.finalise();
@@ -49,10 +88,7 @@ void master_Code(void) {
 
 
 
-/*
- * Function: Manage the worker working progress
- */
-void worker_Code() {
+void worker_Code(void) {
     
     int flag, signal = 1;
     Worker worker;
@@ -68,19 +104,23 @@ void worker_Code() {
             if (status.MPI_TAG == TAG_DATA) {
                 worker.recv_Parameters();
                 
-            // Arrived message tag indicates to receive tetrads
-            } else if (status.MPI_TAG >= TAG_TETRAD) {
+            // Receive the parameters of all tetrads
+            } else if (status.MPI_TAG >= TAG_TETRAD && status.MPI_TAG <= TAG_CRDS) {
                 worker.recv_Tetrads();
                 
-            // Arrived message tag indicates to do the ED force calculation
+            // Receive the velocities and coordinates of tetrads
+            } else if (status.MPI_TAG >= TAG_CRDS) {
+                worker.recv_Vels_n_Crds();
+                
+            // Message tag indicates to do the ED force calculation
             } else if (status.MPI_TAG == TAG_ED) {
                 worker.ED_Calculation();
                 
-            // Arrived message tag indicates to do the NB force calculation
+            // Message tag indicates to do the NB force calculation
             } else if (status.MPI_TAG == TAG_NB) {
                 worker.NB_Calculation();
                 
-            // Arrived message tag indicates to stop work
+            // Indicates to stop work
             } else if (status.MPI_TAG == TAG_DEATH) {
                 signal = worker.terminate();
                 

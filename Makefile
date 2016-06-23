@@ -6,7 +6,7 @@ CFLAGS = #-g -O3
 LIBS = #-lm
 
 DEP = src/qcprot/qcprot.c
-SRC = src/mpilibrary.cpp src/tetrad.cpp src/io.cpp src/edmd.cpp src/master.cpp src/worker.cpp src/simulation.cpp src/qcprot/qcprot.c
+SRC = src/mpilib.cpp src/tetrad.cpp src/io.cpp src/edmd.cpp src/master.cpp src/worker.cpp src/simulation.cpp src/qcprot/qcprot.c
 OBJ1 = $(DEP:.c=.o)
 OBJ2 = $(SRC:.cpp=.o) 
 
