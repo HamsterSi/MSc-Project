@@ -32,7 +32,6 @@
 #define TAG_NB     3    // For message passing of NB forces calculation
 #define TAG_DEATH  4    // For terminating the simulation of workers
 #define TAG_TETRAD 5    // For passing tetrads between master and workers
-#define TAG_CRDS   2000 // For passing velocities and coordinates between master and workers
 
 using namespace std;
 

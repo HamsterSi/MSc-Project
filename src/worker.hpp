@@ -23,6 +23,7 @@
 #include <iostream>
 #include "mpi.h"
 
+#include "array.hpp"
 #include "mpilib.hpp"
 #include "edmd.hpp"
 #include "tetrad.hpp"
@@ -44,6 +45,8 @@ public:
     int max_Atoms;      // The maximum number of atoms in tetrads
     
     Tetrad *tetrad;     // Tetrad array, used to store tetrads
+    
+    double ** buffer;   // The buffer for send & receive data
     
     EDMD edmd;          // EDMD class, functions will be called to calculate forces
     
@@ -89,15 +92,6 @@ public:
      * Return:    None
      */
     void recv_Tetrads(void);
-    
-    /**
-     * Function:  Workers receive velocities and coordinates of tetrads from master
-     *
-     * Parameter: None
-     *
-     * Return:    None
-     */
-    void recv_Vels_n_Crds(void);
     
     /**
      * Function:  Compute ED forces of tetrads and send the ED forces & energy back to master.

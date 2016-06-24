@@ -34,7 +34,6 @@ void master_Code(void) {
     //cout << ">>> Master sending tetrads..." << endl;
     master.send_Tetrads();
     
-    cout << master.io.ncycs << " " << master.io.ntsync << endl;
     for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {
 
         cout << "\nIteration: " << icyc << endl;
@@ -54,9 +53,6 @@ void master_Code(void) {
             
             //cout << ">>> Calculating Coordinates..." << endl;
             master.cal_Coordinate();
-        
-            //cout << ">>> Send velocities and coordinates to workers" << endl;
-            master.send_Vels_n_Crds();
     
         }
         
@@ -64,13 +60,12 @@ void master_Code(void) {
         
         //cout << ">>> Processing Velocities & Coordinates..." << endl;
         master.data_Processing();
-        master.send_Vels_n_Crds();
         
         //cout << "Writing files..." << endl << endl;
         if (istep % master.io.ntwt == 0) {
             master.write_Energy(istep);
-            master.write_Forces();
-            master.write_Trajectories(istep-master.io.ntsync);
+            //master.write_Forces();
+            //master.write_Trajectories(istep-master.io.ntsync);
         }
         if (istep % master.io.ntpr == 0) {
             master.write_Crds();
@@ -105,13 +100,9 @@ void worker_Code(void) {
                 worker.recv_Parameters();
                 
             // Receive the parameters of all tetrads
-            } else if (status.MPI_TAG >= TAG_TETRAD && status.MPI_TAG <= TAG_CRDS) {
+            } else if (status.MPI_TAG >= TAG_TETRAD) {
                 worker.recv_Tetrads();
-                
-            // Receive the velocities and coordinates of tetrads
-            } else if (status.MPI_TAG >= TAG_CRDS) {
-                worker.recv_Vels_n_Crds();
-                
+
             // Message tag indicates to do the ED force calculation
             } else if (status.MPI_TAG == TAG_ED) {
                 worker.ED_Calculation();

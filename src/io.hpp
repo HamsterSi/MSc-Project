@@ -117,7 +117,7 @@ public:
     /**
      * Function:   Read the config file & initialisation before the simualtion starts.
      *
-     * Parameters: * edmd -> Some data will be read into the instance of EDMD class.
+     * Parameters: EDMD* edmd -> Some data will be read into the instance of EDMD class.
      *
      * Returns:    None.
      */
@@ -165,8 +165,8 @@ public:
     /**
      * Function:   Write out some array in a certain form
      *
-     * Parameters: * fout -> The file stream pointer
-     *             * data -> The data needs to write out
+     * Parameters: ofstream* fout -> The file stream pointer
+     *             double* data   -> The data needs to write out
      *
      * Returns:    None.
      */
@@ -175,8 +175,8 @@ public:
     /**
      * Function:   Write out energies & temperature of all tetrads.
      *
-     * Parameters: istep      -> The iterations of simulation
-     *             * energies -> Energies & temperature of tetrads
+     * Parameters: int istep         -> The iterations of simulation
+     *             double energies[] -> Energies & temperature of tetrads
      *
      * Returns:    None.
      */
@@ -185,9 +185,9 @@ public:
     /**
      * Function:   Write out all ED forces, random forces & NB forces
      *
-     * Parameters: * ED_Forces     -> The total ED forces of all DNA base pairs
-     *             * random_Forces -> The total random forces of all DNA base pairs
-     *             * NB_Forces     -> The total NB forces of all DNA base pairs
+     * Parameters: double* ED_Forces     -> The total ED forces of all DNA base pairs
+     *             double* random_Forces -> The total random forces of all DNA base pairs
+     *             double* NB_Forces     -> The total NB forces of all DNA base pairs
      *
      * Returns:    None.
      */
@@ -196,10 +196,10 @@ public:
     /**
      * Function:   Write out trajectories evry certain iterations
      *
-     * Parameters: int istep       -> The iterations of simulation
-     *             int total_Atoms -> Total atoms of the DNA
-     *             int index       -> The index of writing trajectory to which place
-     *             * coordinates   -> The coordinates of all atoms in DNA
+     * Parameters: int istep           -> The iterations of simulation
+     *             int total_Atoms     -> Total atoms of the DNA
+     *             int index           -> The index of writing trajectory to which place
+     *             double* coordinates -> The coordinates of all atoms in DNA
      *
      * Returns:    None.
      */
@@ -208,8 +208,8 @@ public:
     /**
      * Function:   Update the crd file for next simulation, write out velocities & coordinates
      *
-     * Parameters: * velocities  -> The velocities  of all atoms in DNA
-     *             * coordinates -> The coordinates of all atoms in DNA
+     * Parameters: double* velocities  -> The velocities  of all atoms in DNA
+     *             double* coordinates -> The coordinates of all atoms in DNA
      *
      * Returns:    None.
      */

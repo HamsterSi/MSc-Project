@@ -95,14 +95,14 @@ public:
     /**
      * Function:  Assign parameters for EDMD class
      *
-     * Parameter: _dt          -> Timestep, in ps
-     *            _gamma       -> The friction coefficient, in ps⁻¹
-     *            _tautp       -> Berendsen temperature coupling parameter
-     *            _temperature -> Temperature, in Kelvin
-     *            _scaled      -> Scale factor to scale ED forces
-     *            _mole_Cutoff -> Molecular cutoffs
-     *            _atom_Cutoff -> Atomic cutoffs
-     *            _mole_Least  -> Molecules less than NB_Cutoff won't have NB ints.
+     * Parameter: double _dt          -> Timestep, in ps
+     *            double _gamma       -> The friction coefficient, in ps⁻¹
+     *            double _tautp       -> Berendsen temperature coupling parameter
+     *            double _temperature -> Temperature, in Kelvin
+     *            double _scaled      -> Scale factor to scale ED forces
+     *            double _mole_Cutoff -> Molecular cutoffs
+     *            double _atom_Cutoff -> Atomic cutoffs
+     *            double _mole_Least  -> Molecules less than NB_Cutoff won't have NB ints.
      *
      * Return:    None
      */
@@ -111,7 +111,7 @@ public:
     /**
      * Function:  Calculate ED forces for every tetrad, the results are stored in the Tetrad class
      *
-     * Parameter: * tetrad -> The instance of Tetrad cleass
+     * Parameter: Tetrad* tetrad -> The instance of Tetrad cleass
      *
      * Return:    None
      */
@@ -131,7 +131,7 @@ public:
      *            !  The algorithm uses the ratio of uniforms method of A.J. Kinderman
      *            !  and J.F. Monahan augmented with quadratic bounding curves.
      *
-     * Parameter: * tetrad -> The instance of Tetrad cleass
+     * Parameter: Tetrad* tetrad -> The instance of Tetrad cleass
      *
      * Return:    None
      */
@@ -140,8 +140,8 @@ public:
     /**
      * Function:  Calculate NB forces, results stored in Tetrad class
      *
-     * Parameter: * t1 -> The instance of Tetrad cleass
-     *            * t2 -> The instance of Tetrad cleass
+     * Parameter: Tetrad* t1 -> The instance of Tetrad cleass
+     *            Tetrad* t2 -> The instance of Tetrad cleass
      *
      * Return:    None
      */
@@ -150,16 +150,16 @@ public:
     /**
      * Function:  Update velocities & Berendsen temperature control
      *
-     * Parameter:  * tetrad -> The instance of Tetrad cleass
+     * Parameter: Tetrad* tetrad -> The instance of Tetrad cleass
      *
      * Return:    None
      */
-    void update_Velocities(Tetrad* tetrad, int index); // The index is used for test, should be removed later after the reults are correct.
+    void update_Velocities(Tetrad* tetrad); 
     
     /**
      * Function:  Update Coordinates of tetrads
      *
-     * Parameter: * tetrad -> The instance of Tetrad cleass
+     * Parameter: Tetrad* tetrad -> The instance of Tetrad cleass
      *
      * Return:    None
      */

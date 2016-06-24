@@ -284,7 +284,7 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
 
 
 
-void EDMD::update_Velocities(Tetrad* tetrad, int index) {
+void EDMD::update_Velocities(Tetrad* tetrad) {
     
     int i;
     double kentical_Energy = 0.0;
@@ -295,14 +295,11 @@ void EDMD::update_Velocities(Tetrad* tetrad, int index) {
     gamfac = 1.0 / (1.0 + gamma * dt);
     
     // Simple Langevin dynamics, gamfac = 0.9960
-    double v0 = 0.0, v1 = 0.0, v2 = 0.0;
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        v0 += tetrad->velocities[i];
         //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt) * gamfac;
         //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + tetrad->random_Forces[i] * dt / tetrad->masses[i]) * gamfac;
         //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + tetrad->NB_Forces[i] * dt / tetrad->masses[i]) * gamfac;
         tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
-        v1 += tetrad->velocities[i];
     }
     
     // Berendsen temperature control
@@ -317,44 +314,10 @@ void EDMD::update_Velocities(Tetrad* tetrad, int index) {
     tetrad->temperature = kentical_Energy * 2 / (constants.Boltzmann * 3 * tetrad->num_Atoms);
     tetrad->temperature *= tscal * tscal;
     
-    
-    if(index == 90) { cout << "ccccc before: ";
-    for (i = 0; i < 10; i++) cout << tetrad->coordinates[i] << " "; cout << endl; }
-    
     // Update velocities
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         tetrad->velocities[i] *= tscal;
-        v2 += tetrad->velocities[i];
     }
-    
-    ///////////////////////////Test///
-    /*
-    double ed = 0.0, ran = 0.0, nb = 0.0, v = 0.0, c = 0.0;
-    for (int i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        tetrad->coordinates[i] += tetrad->velocities[i] * dt;
-        c += tetrad->coordinates[i];
-    }
-    
-    if(index == 90) { cout << "ccccc after: ";
-        for (i = 0; i < 10; i++) cout << tetrad->coordinates[i] << " "; cout << endl; }
-    
-    for (int j = 0; j < 3 * tetrad->num_Atoms; j++) {
-        ed  += tetrad->ED_Forces[j];
-        ran += tetrad->random_Forces[j];
-        nb  += tetrad->NB_Forces[j];
-    }
-    //if (index == 0)
-    cout << "Index: "   << fixed << setw(2) << index+1
-        << ",\tED: "    << fixed << setprecision(4) << ed
-        << ",\tRan: "   << fixed << setprecision(3) << ran
-        << ",\tNB: "    << fixed << setprecision(4) << nb
-        << ",\tKE: "    << fixed << setprecision(4) << kentical_Energy
-        << ",\tTscal: " << fixed << setprecision(4) << tscal
-        << ",\tT: "     << fixed << setprecision(4) << tetrad->temperature
-        << ",\tVPre: "  << fixed << setprecision(4) << v0
-        << ",\tVold: "  << fixed << setprecision(4) << v1
-        << ",\tVnew: "  << fixed << setprecision(4) << v2
-        << ",\tCrd: "   << fixed << setprecision(4) << c << endl;*/
 
 }
 

@@ -23,6 +23,7 @@
 #include <iostream>
 #include "mpi.h"
 
+#include "array.hpp"
 #include "mpilib.hpp"
 #include "edmd.hpp"
 #include "tetrad.hpp"
@@ -111,15 +112,6 @@ public:
     void send_Tetrads(void);
     
     /*
-     * Function:  Master sends the velocities and coordinates of tetrads to workers
-     *
-     * Parameter: None
-     *
-     * Return:    None
-     */
-    void send_Vels_n_Crds(void);
-    
-    /*
      * Function:  Generate the pair lists of tetrads for non-bonded forces calculation
      *
      * Parameter: None
@@ -132,11 +124,14 @@ public:
      * Function:  Master send the index of Tetrads to workers for ED & NB forces calculation.
      *            It also calculate the random forces.
      *
-     * Parameter: None
+     * Parameter: int* i          -> The index for ED forces calculation & iteration
+     *            int* j          -> The index for NB forces calculation
+     *            int dest        -> The MPI destination
+     *            double** buffer -> The MPI send buffer
      *
      * Return:    None
      */
-    void send_Tetrad_Index(int* i, int* j, int source);
+    void send_Tetrad_Index(int* i, int* j, int dest, double** buffer);
     
     /*
      * Function:  Master distrubute ED/NB forces calculation among worker processes,
