@@ -37,9 +37,7 @@ using namespace std;
 class Worker {
     
 public:
-    
-    int rank;           // The rank of worker process
-    
+
     int num_Tetrads;    // The number of total tetrads
     
     int max_Atoms;      // The maximum number of atoms in tetrads

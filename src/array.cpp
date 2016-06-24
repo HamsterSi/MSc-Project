@@ -34,9 +34,47 @@ double** Array::allocate_2D_Array(int rows, int cols) {
 
 
 
-void Array::allocate_2D_Array(double** array) {
+void Array::deallocate_2D_Array(double** array) {
     
     delete [] array[0];
     delete [] array;
     
 }
+
+
+
+void Array::allocate_Tetrad_Arrays(Tetrad* tetrad) {
+    
+    tetrad->avg_Structure = new double[3 * tetrad->num_Atoms];
+    tetrad->masses        = new double[3 * tetrad->num_Atoms];
+    tetrad->abq           = new double[3 * tetrad->num_Atoms];
+    tetrad->eigenvalues   = new double[tetrad->num_Evecs];
+    tetrad->eigenvectors  = allocate_2D_Array(tetrad->num_Evecs, 3 * tetrad->num_Atoms);
+    tetrad->velocities    = new double[3 * tetrad->num_Atoms];
+    tetrad->coordinates   = new double[3 * tetrad->num_Atoms];
+    tetrad->ED_Forces     = new double[3 * tetrad->num_Atoms];
+    tetrad->random_Forces = new double[3 * tetrad->num_Atoms];
+    tetrad->NB_Forces     = new double[3 * tetrad->num_Atoms];
+    
+}
+
+
+
+void Array::deallocate_Tetrad_Arrays(Tetrad* tetrad) {
+    
+    delete [] tetrad->avg_Structure;
+    delete [] tetrad->masses;
+    delete [] tetrad->abq;
+    delete [] tetrad->eigenvalues;
+    deallocate_2D_Array(tetrad->eigenvectors);
+    delete [] tetrad->velocities;
+    delete [] tetrad->coordinates;
+    delete [] tetrad->ED_Forces;
+    delete [] tetrad->random_Forces;
+    delete [] tetrad->NB_Forces;
+    
+}
+
+
+
+

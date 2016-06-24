@@ -309,7 +309,7 @@ void Master::cal_Forces(void) {
         }
     }
     
-    Array::allocate_2D_Array(buffer);
+    Array::deallocate_2D_Array(buffer);
     
 }
 

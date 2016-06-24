@@ -51,22 +51,9 @@ IO::~IO(void) {
     delete []crd.BP_Crds;
     delete []crd.BP_Vels;
     
-    // Deallocate memory spaces of tetrads
+    // Deallocate memory spaces for all arrays in tetrads
     for (int i = 0; i < prm.num_Tetrads; i++) {
-        
-        delete []tetrad[i].avg_Structure;
-        delete []tetrad[i].masses;
-        delete []tetrad[i].abq;
-        delete []tetrad[i].eigenvalues;
-        for (int j = 0; j < tetrad[i].num_Evecs; j++) {
-            delete []tetrad[i].eigenvectors[j];
-        }
-        delete []tetrad[i].eigenvectors;
-        delete []tetrad[i].velocities;
-        delete []tetrad[i].coordinates;
-        delete []tetrad[i].ED_Forces;
-        delete []tetrad[i].random_Forces;
-        delete []tetrad[i].NB_Forces;
+        Array::deallocate_Tetrad_Arrays(&tetrad[i]);
     }
     
 }
@@ -155,20 +142,8 @@ void IO::read_Prm(void) {
             fin >> tetrad[i].num_Atoms;
             fin >> tetrad[i].num_Evecs;
             
-            // Allocate memory for parameters in every tetrad
-            tetrad[i].avg_Structure = new double[3 * tetrad[i].num_Atoms];
-            tetrad[i].masses        = new double[3 * tetrad[i].num_Atoms];
-            tetrad[i].abq           = new double[3 * tetrad[i].num_Atoms];
-            tetrad[i].eigenvalues   = new double[tetrad[i].num_Evecs];
-            tetrad[i].eigenvectors  = new double* [tetrad[i].num_Evecs];
-            for (j = 0; j < tetrad[i].num_Evecs; j++) {
-                tetrad[i].eigenvectors[j] = new double[3 * tetrad[i].num_Atoms];
-            }
-            tetrad[i].velocities    = new double[3 * tetrad[i].num_Atoms];
-            tetrad[i].coordinates   = new double[3 * tetrad[i].num_Atoms];
-            tetrad[i].ED_Forces     = new double[3 * tetrad[i].num_Atoms];
-            tetrad[i].random_Forces = new double[3 * tetrad[i].num_Atoms];
-            tetrad[i].NB_Forces     = new double[3 * tetrad[i].num_Atoms];
+            // Allocate memory spaces for all arrays in tetrads
+            Array::allocate_Tetrad_Arrays(&tetrad[i]);
             
             // Line 3 onwards: Reference (average) structure for the tetrad (x1,y1,z1,x2,y2,z2, etc as in .crd file)
             for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {
@@ -176,11 +151,9 @@ void IO::read_Prm(void) {
             }
             
             // Line ? onwards: Masses for each atom (amu)
-            for (j = 0; j < 3 * tetrad[i].num_Atoms; ) {
+            for (j = 0; j < 3 * tetrad[i].num_Atoms; j += 3) {
                 fin >> tetrad[i].masses[j]; // Read & spread masses
                 tetrad[i].masses[j + 2] = tetrad[i].masses[j + 1] = tetrad[i].masses[j];
-                
-                j += 3;
             }
             
             // Line ? onwards: Non-bonded parameters.
@@ -231,12 +204,9 @@ void IO::read_Crd(void) {
         
         // Line 2 - numBP + something: numbers of atoms in each base pair (in this case always 63, as either a GC base pair or a CG base pair)
         crd.BP_Atoms = new int[crd.num_BP];
-        
         for (crd.total_Atoms = 0, i = 0; i < crd.num_BP; i++) {
             fin >> crd.BP_Atoms[i];
-            
-            // Calculate the total atoms in the DNA segment
-            crd.total_Atoms += crd.BP_Atoms[i];
+            crd.total_Atoms += crd.BP_Atoms[i]; // Calculate the total atoms of the DNA
         }
         
         // Allcoate memory for the whole array of velocities & coordinates.

@@ -20,7 +20,9 @@
 #ifndef arrays_hpp
 #define arrays_hpp
 
-#include <stdio.h>
+#include <iostream>
+
+#include "tetrad.hpp"
 
 /**
  * Brief: A class for 2D array allocation and deallocation.
@@ -46,7 +48,25 @@ public:
      *
      * Return:    None
      */
-    static void allocate_2D_Array(double** array);
+    static void deallocate_2D_Array(double** array);
+    
+    /**
+     * Function:  Allocate all arrays in tetrad
+     *
+     * Parameter: Tetrad* tetrad -> The tetrad whose arrays to be allocated
+     *
+     * Return:    None
+     */
+    static void allocate_Tetrad_Arrays(Tetrad* tetrad);
+    
+    /**
+     * Function:  Deallocate all arrays in tetrad
+     *
+     * Parameter: Tetrad* tetrad -> The tetrad whose arrays to be deallocated
+     *
+     * Return:    None
+     */
+    static void deallocate_Tetrad_Arrays(Tetrad* tetrad);
     
 };
 

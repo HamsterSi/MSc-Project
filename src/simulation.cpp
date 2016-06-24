@@ -40,14 +40,14 @@ void master_Code(void) {
     
     for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {
 
-        //cout << "\nIteration: " << icyc << endl;
+        cout << "\nIteration: " << icyc << endl;
         
         // Generate pair lists
         master.generate_Pair_Lists();
         
         for (int i = 0; i < master.io.ntsync; i++) {
 
-            //cout << i << endl;
+            cout << i << endl;
             
             // Master sends coordinates and tetrad indexes to workers and worker
             // calculate ED/NB forces for tetrads

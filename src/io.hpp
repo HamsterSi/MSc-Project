@@ -28,6 +28,7 @@
 #include <cstdio>
 #include "mpi.h"
 
+#include "array.hpp"
 #include "edmd.hpp"
 #include "tetrad.hpp"
 

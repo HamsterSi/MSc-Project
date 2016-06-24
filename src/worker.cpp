@@ -24,33 +24,17 @@ Worker::Worker(void) {
     
     comm = MPI_COMM_WORLD;
     
-    // Get the MPI rank for the worker process
-    MPI_Comm_rank(comm, &rank);
-    
 }
 
 
 
 Worker::~Worker(void) {
     
-    Array::allocate_2D_Array(buffer);
+    Array::deallocate_2D_Array(buffer);
     
-    // Deallocate memory spaces of tetrads
+    // Deallocate memory spaces for all arrays in tetrads
     for (int i = 0; i < num_Tetrads; i++) {
-        
-        delete [] tetrad[i].avg_Structure;
-        delete [] tetrad[i].masses;
-        delete [] tetrad[i].abq;
-        delete [] tetrad[i].eigenvalues;
-        for (int j = 0; j < tetrad[i].num_Evecs; j++) {
-            delete [] tetrad[i].eigenvectors[j];
-        }
-        delete [] tetrad[i].eigenvectors;
-        delete [] tetrad[i].velocities;
-        delete [] tetrad[i].coordinates;
-        delete [] tetrad[i].ED_Forces;
-        delete [] tetrad[i].random_Forces;
-        delete [] tetrad[i].NB_Forces;
+        Array::deallocate_Tetrad_Arrays(&tetrad[i]);
     }
     
 }
@@ -84,19 +68,8 @@ void Worker::recv_Parameters(void) {
         tetrad[i].num_Atoms = tetrad_Para[2*i];
         tetrad[i].num_Evecs = tetrad_Para[2*i+1];
         
-        tetrad[i].avg_Structure = new double[3 * tetrad[i].num_Atoms];
-        tetrad[i].masses        = new double[3 * tetrad[i].num_Atoms];
-        tetrad[i].abq           = new double[3 * tetrad[i].num_Atoms];
-        tetrad[i].eigenvalues   = new double [tetrad[i].num_Evecs];
-        tetrad[i].eigenvectors  = new double*[tetrad[i].num_Evecs];
-        for (j = 0; j < tetrad[i].num_Evecs; j++) {
-            tetrad[i].eigenvectors[j] = new double[3 * tetrad[i].num_Atoms];
-        }
-        tetrad[i].coordinates   = new double[3 * tetrad[i].num_Atoms];
-        tetrad[i].velocities    = new double[3 * tetrad[i].num_Atoms];
-        tetrad[i].ED_Forces     = new double[3 * tetrad[i].num_Atoms];
-        tetrad[i].random_Forces = new double[3 * tetrad[i].num_Atoms];
-        tetrad[i].NB_Forces     = new double[3 * tetrad[i].num_Atoms];
+        // Allocate memory spaces for all arrays in tetrads
+        Array::allocate_Tetrad_Arrays(&tetrad[i]);
         
         tetrad[i].ED_Energy = tetrad[i].NB_Energy   = 0.0;
         tetrad[i].EL_Energy = tetrad[i].temperature = 0.0;
@@ -139,10 +112,6 @@ void Worker::ED_Calculation(void) {
     
     // Assign values for tetrad indexes and coordinates
     index = (int) buffer[0][3 * max_Atoms + 1];
-    
-    //if (index == 0) { cout << index << endl;
-    //    for (i = 0; i < 10; i++) { cout << tetrad[index].coordinates[i] << " "; } cout << endl;}
-    
     for (i = 0; i < 3 * tetrad[index].num_Atoms; i++) {
         tetrad[index].coordinates[i] = buffer[0][i];
     }
