@@ -30,11 +30,11 @@ Worker::Worker(void) {
 
 Worker::~Worker(void) {
     
-    Array::deallocate_2D_Array(buffer);
+    array.deallocate_2D_Array(buffer);
     
     // Deallocate memory spaces for all arrays in tetrads
     for (int i = 0; i < num_Tetrads; i++) {
-        Array::deallocate_Tetrad_Arrays(&tetrad[i]);
+        array.deallocate_Tetrad_Arrays(&tetrad[i]);
     }
     
 }
@@ -51,7 +51,7 @@ void Worker::recv_Parameters(void) {
     num_Tetrads = parameters[0]; // The number of tetrads
     max_Atoms   = parameters[1]; // The maximum number of atoms in tetrads
     
-    buffer = Array::allocate_2D_Array(2, 3 * max_Atoms + 2);
+    buffer = array.allocate_2D_Array(2, 3 * max_Atoms + 2);
     int * tetrad_Para = new int[2 * num_Tetrads];
     
     // Receive edmd parameters & assignment
@@ -62,14 +62,13 @@ void Worker::recv_Parameters(void) {
     // Receive the number of atoms & evecs in tetrads
     MPI_Recv(tetrad_Para, 2 * num_Tetrads, MPI_INT, 0, TAG_DATA, comm, &status);
     
-    // Allocate memory for all tetrads
+    // Assign values & allocate memory for all tetrads
     tetrad = new Tetrad[num_Tetrads];
     for (i = 0; i < num_Tetrads; i++) {
         tetrad[i].num_Atoms = tetrad_Para[2*i];
         tetrad[i].num_Evecs = tetrad_Para[2*i+1];
         
-        // Allocate memory spaces for all arrays in tetrads
-        Array::allocate_Tetrad_Arrays(&tetrad[i]);
+        array.allocate_Tetrad_Arrays(&tetrad[i]);
         
         tetrad[i].ED_Energy = tetrad[i].NB_Energy   = 0.0;
         tetrad[i].EL_Energy = tetrad[i].temperature = 0.0;
@@ -91,9 +90,11 @@ void Worker::recv_Tetrads(void) {
     
     // Receive all tetrads parameters from the master process
     for (i = 0; i < num_Tetrads; i++) {
+        
         MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &tetrad[i]);
         MPI_Recv(&tetrad[i], 1, MPI_Tetrad, 0, TAG_TETRAD+i, comm, &status);
         MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);
+        
     }
     
     // Send feedback to master that has received all tetrads
@@ -112,18 +113,14 @@ void Worker::ED_Calculation(void) {
     
     // Assign values for tetrad indexes and coordinates
     index = (int) buffer[0][3 * max_Atoms + 1];
-    for (i = 0; i < 3 * tetrad[index].num_Atoms; i++) {
-        tetrad[index].coordinates[i] = buffer[0][i];
-    }
+    array.assignment(3 * tetrad[index].num_Atoms, buffer[0], tetrad[index].coordinates);
     
     // Calculate ED forces (ED energy)
     edmd.calculate_ED_Forces(&tetrad[index]);
     
     // Assign ED forces & random Forces to the 2D array for sending once
-    for (i = 0; i < 3 * tetrad[index].num_Atoms; i++) {
-        buffer[0][i] = tetrad[index].ED_Forces[i];
-        buffer[1][i] = tetrad[index].coordinates[i];
-    }
+    array.assignment(3 * tetrad[index].num_Atoms, tetrad[index].ED_Forces  , buffer[0]);
+    array.assignment(3 * tetrad[index].num_Atoms, tetrad[index].coordinates, buffer[1]);
     
     // Need to send the ED Energy back
     buffer[0][3 * max_Atoms] = tetrad[index].ED_Energy;
@@ -145,21 +142,15 @@ void Worker::NB_Calculation(void) {
     // Assign values for tetrad indexes and coordinates
     indexes[0] = (int) buffer[0][3 * max_Atoms + 1];
     indexes[1] = (int) buffer[1][3 * max_Atoms + 1];
-    for (i = 0; i < 3 * tetrad[indexes[0]].num_Atoms; i++) {
-        tetrad[indexes[0]].coordinates[i] = buffer[0][i];
-    }
-    for (i = 0; i < 3 * tetrad[indexes[1]].num_Atoms; i++) {
-        tetrad[indexes[1]].coordinates[i] = buffer[1][i];
-    }
+    array.assignment(3 * tetrad[indexes[0]].num_Atoms, buffer[0], tetrad[indexes[0]].coordinates);
+    array.assignment(3 * tetrad[indexes[1]].num_Atoms, buffer[1], tetrad[indexes[1]].coordinates);
     
     // Calculate NB forces, NB energy & Electrostatic Energy
     edmd.calculate_NB_Forces(&tetrad[indexes[0]], &tetrad[indexes[1]]);
     
     // Assign NB forces to the 2D array to send back once
-    for (i = 0; i < 3 * max_Atoms; i++) {
-        buffer[0][i] = tetrad[indexes[0]].NB_Forces[i];
-        buffer[1][i] = tetrad[indexes[1]].NB_Forces[i];
-    }
+    array.assignment(3 * tetrad[indexes[0]].num_Atoms, tetrad[indexes[0]].NB_Forces, buffer[0]);
+    array.assignment(3 * tetrad[indexes[1]].num_Atoms, tetrad[indexes[1]].NB_Forces, buffer[1]);
     
     // Need to send NB Energy & Electrostatic Energy back (bacause the energies in both tetrads are the same when calculation, so only need to send one set)
     buffer[0][3 * max_Atoms] = tetrad[indexes[0]].NB_Energy;

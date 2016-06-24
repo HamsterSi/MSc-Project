@@ -27,6 +27,7 @@
 #include "mpi.h"
 
 #include "./qcprot/qcprot.h"
+#include "array.hpp"
 #include "tetrad.hpp"
 
 using namespace std;

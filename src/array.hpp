@@ -68,6 +68,17 @@ public:
      */
     static void deallocate_Tetrad_Arrays(Tetrad* tetrad);
     
+    /**
+     * Function:  Assign values from source array to dest array (for 1D array)
+     *
+     * Parameter: int num        -> The number of elements to be assigned
+     *            double* source -> The source array
+     *            double* dest   -> The dest array
+     *
+     * Return:    None
+     */
+    static void assignment(int num, double* source, double* dest);
+    
 };
 
 #endif /* arrays_hpp */

@@ -77,4 +77,13 @@ void Array::deallocate_Tetrad_Arrays(Tetrad* tetrad) {
 
 
 
+void Array::assignment(int num, double* source, double* dest) {
+    
+    for (int i = 0; i < num; i++) {
+        dest[i] = source[i];
+    }
+    
+}
+
+
 

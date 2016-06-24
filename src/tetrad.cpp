@@ -25,27 +25,17 @@ Tetrad::Tetrad(void) {
     num_Atoms = 0;
     num_Evecs = 0;
     
+    ED_Energy = 0.0;
+    NB_Energy = 0.0;
+    EL_Energy = 0.0;
+    temperature = 0.0;
+    
 }
 
 
-Tetrad::~Tetrad(void) {
-   
-    delete []avg_Structure;
-    delete []masses;
-    delete []abq;
-    delete []eigenvalues;
-    
-    for (int i = 0; i < num_Evecs; i++) {
-        delete []eigenvectors[i];
-    }
-    delete []eigenvectors;
-    
-    delete []velocities;
-    delete []coordinates;
-    
-    delete []ED_Forces;
-    delete []random_Forces;
-    delete []NB_Forces;
-    
-}*/
+
+Tetrad::~Tetrad(void) { }*/
+
+
+
 

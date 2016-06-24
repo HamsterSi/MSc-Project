@@ -69,12 +69,8 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     // Allocate memory for temp arrays
     double * temp_Crds = new double [3 * tetrad->num_Atoms];
     double * proj      = new double [tetrad->num_Evecs];
-    double ** avg_Crds = new double *[3];
-    double ** crds     = new double *[3];
-    for (i = 0; i < 3; i++) {
-        avg_Crds[i] = new double [tetrad->num_Atoms];
-        crds[i]     = new double [tetrad->num_Atoms];
-    }
+    double ** avg_Crds = Array::allocate_2D_Array(3, tetrad->num_Atoms);
+    double ** crds     = Array::allocate_2D_Array(3, tetrad->num_Atoms);
     
     // Copy average structure & coordinates from tetrads
     for (i = 0; i < tetrad->num_Atoms; i++) {
@@ -156,11 +152,8 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     tetrad->ED_Energy *= 0.5 * scaled; // ED Energy
     
     // Deallocate memory of temp arrays
-    for (i = 0; i < 3; i++) {
-        delete [] avg_Crds[i];
-        delete [] crds[i];
-    }
-    delete [] avg_Crds;  delete [] crds;
+    Array::deallocate_2D_Array(avg_Crds);
+    Array::deallocate_2D_Array(crds);
     delete [] temp_Crds; delete [] proj;
     
 }
@@ -296,9 +289,6 @@ void EDMD::update_Velocities(Tetrad* tetrad) {
     
     // Simple Langevin dynamics, gamfac = 0.9960
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt) * gamfac;
-        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + tetrad->random_Forces[i] * dt / tetrad->masses[i]) * gamfac;
-        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + tetrad->NB_Forces[i] * dt / tetrad->masses[i]) * gamfac;
         tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
     }
     

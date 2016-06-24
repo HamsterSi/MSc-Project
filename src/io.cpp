@@ -53,7 +53,7 @@ IO::~IO(void) {
     
     // Deallocate memory spaces for all arrays in tetrads
     for (int i = 0; i < prm.num_Tetrads; i++) {
-        Array::deallocate_Tetrad_Arrays(&tetrad[i]);
+        array.deallocate_Tetrad_Arrays(&tetrad[i]);
     }
     
 }
@@ -143,7 +143,7 @@ void IO::read_Prm(void) {
             fin >> tetrad[i].num_Evecs;
             
             // Allocate memory spaces for all arrays in tetrads
-            Array::allocate_Tetrad_Arrays(&tetrad[i]);
+            array.allocate_Tetrad_Arrays(&tetrad[i]);
             
             // Line 3 onwards: Reference (average) structure for the tetrad (x1,y1,z1,x2,y2,z2, etc as in .crd file)
             for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {

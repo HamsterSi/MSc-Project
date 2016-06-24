@@ -76,6 +76,8 @@ public:
     
     Tetrad *tetrad; // The array of tetrad class
     
+    Array array;    // The array class for array operation
+    
     int * displs;   // The displacements of base pairs
     
     int irest;      // Indicates to read which crd file

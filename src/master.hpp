@@ -52,7 +52,7 @@ public:
     
     int effective_Pairs;  // The number of pairs that have NB forces to be calculated
     
-    int * pair_Lists;     // The array to store pair lists
+    double ** pair_Lists; // The array to store pair lists
 
     double * velocities;  // Store the velocities of all atoms in DNA
     
@@ -82,7 +82,7 @@ public:
      */
     ~Master(void);
     
-    /*
+    /**
      * Function:  Master initialises the simulation.
      *            Read-in tetrads parameters, memory allocation and other initialisations.
      *
@@ -92,7 +92,7 @@ public:
      */
     void initialise(void);
     
-    /*
+    /**
      * Function:  Master sends the number of tetrads, edmd parameters, number of atoms
      *            and number of evecs in every tetrad to worker processes
      *
@@ -102,7 +102,7 @@ public:
      */
     void send_Parameters(void);
     
-    /*
+    /**
      * Function:  Master sends tetrads to workers
      *
      * Parameter: None
@@ -111,7 +111,16 @@ public:
      */
     void send_Tetrads(void);
     
-    /*
+    /**
+     * Function:  Calculate the center of mass (actually, centre of geom)
+     *
+     * Parameter: double** com -> Center of mass
+     *
+     * Return:    None
+     */
+    void cal_Centre_of_Mass(double** com);
+    
+    /**
      * Function:  Generate the pair lists of tetrads for non-bonded forces calculation
      *
      * Parameter: None
@@ -120,7 +129,7 @@ public:
      */
     void generate_Pair_Lists(void);
     
-    /*
+    /**
      * Function:  Master send the index of Tetrads to workers for ED & NB forces calculation.
      *            It also calculate the random forces.
      *
@@ -132,8 +141,27 @@ public:
      * Return:    None
      */
     void send_Tetrad_Index(int* i, int* j, int dest, double** buffer);
+
+    /**
+     * Function:  Receive ED forces and ED energies from worker, store them into tetrads
+     *
+     * Parameter: double** buffer -> The buffer with ED forces & energies
+     *
+     * Return:    None
+     */
+    void recv_ED_Forces(double** buffer);
     
-    /*
+    /**
+     * Function:  Receive NB forces and NB & EL energies from worker, store them into tetrads
+     *
+     * Parameter: double** buffer -> The buffer with NB forces & energies
+     *            int it          -> The index of tetrad
+     *
+     * Return:    None
+     */
+    void recv_NB_Forces(double** buffer, int it);
+    
+    /**
      * Function:  Master distrubute ED/NB forces calculation among worker processes,
      *            send tetrad indexes to workers and receive forces & energies back.
      *
@@ -143,7 +171,7 @@ public:
      */
     void cal_Forces(void);
     
-    /*
+    /**
      * Function:  Master calculates velocities of tetrads
      *
      * Parameter: None
@@ -152,7 +180,7 @@ public:
      */
     void cal_Velocities(void);
     
-    /*
+    /**
      * Function:  Master calculates coordinates of tetrads
      *
      * Parameter: None
@@ -161,7 +189,7 @@ public:
      */
     void cal_Coordinate(void);
     
-    /*
+    /**
      * Function:  Master processes the velocities & coordinates of DNA
      *
      * Parameter: None
@@ -170,7 +198,7 @@ public:
      */
     void data_Processing(void);
     
-    /*
+    /**
      * Function:  Master writes out energies of all tetrads
      *
      * Parameter: int istep -> the iterations of simulation
@@ -179,7 +207,7 @@ public:
      */
     void write_Energy(int istep);
     
-    /*
+    /**
      * Function:  Master writes out forces of all atoms in DNA
      *
      * Parameter: None
@@ -188,7 +216,7 @@ public:
      */
     void write_Forces(void);
     
-    /*
+    /**
      * Function:  Master writes the trajectories.
      *
      * Parameter: int istep -> The iterations of simulation
@@ -197,7 +225,7 @@ public:
      */
     void write_Trajectories(int istep);
     
-    /*
+    /**
      * Function:  Master writes a new crd file.
      *
      * Parameter: None
@@ -206,7 +234,7 @@ public:
      */
     void write_Crds(void);
     
-    /*
+    /**
      * Function:  Master terminates worker processes
      *
      * Parameter: None

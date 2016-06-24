@@ -48,6 +48,8 @@ public:
     
     EDMD edmd;          // EDMD class, functions will be called to calculate forces
     
+    Array array;        // The array class for array operation
+    
     MPI_Status status;  // MPI Status
     
     MPI_Comm comm;      // MPI Communicator

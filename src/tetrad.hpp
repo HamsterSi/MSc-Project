@@ -48,10 +48,6 @@ public:
     
     double **eigenvectors; // The eigenvectors
     
-    double *velocities;    // The velocities of tetrad
-    
-    double *coordinates;   // The coordinates of tetrad
-    
     double *ED_Forces;     // The ED forces
     
     double *random_Forces; // The random forces
@@ -66,6 +62,11 @@ public:
     
     double temperature;    // The temperature of tetrad
     
+    double *velocities;    // The velocities of tetrad
+    
+    double *coordinates;   // The coordinates of tetrad
+   
+
 };
 
 #endif /* tetrad_hpp */
