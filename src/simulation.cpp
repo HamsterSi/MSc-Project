@@ -24,60 +24,70 @@ void master_Code(void) {
 
     Master master;
     
-    clock_t begin_Time = clock();
+    clock_t start_Time = clock();
     
+    // Master initialises the simulaton, including reading data from input files,
+    // allocate memory for arrays, set the frequencies of iterations, etc.
     master.initialise();
     
-    //cout << "\nSending data...\n>>> Master sending parameters..." << endl;
+    cout << "\nMaster sending data to Workers..." << endl;
+    cout << ">>> Sending parameters..." << endl;
     master.send_Parameters();
     
-    //cout << ">>> Master sending tetrads..." << endl;
+    cout << ">>> Sending tetrads..." << endl;
     master.send_Tetrads();
+    cout << "Data sending completed..." << endl;
     
     for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {
 
-        cout << "\nIteration: " << icyc << endl;
-        //cout << "\n\nGenerate pair lists..." << endl;
+        //cout << "\nIteration: " << icyc << endl;
         
         // Generate pair lists
         master.generate_Pair_Lists();
         
         for (int i = 0; i < master.io.ntsync; i++) {
 
-            cout << i << endl;
-            //cout << "Calculation...\n>>> Calculating ED & NB forces..." << endl;
+            //cout << i << endl;
+            
+            // Master sends coordinates and tetrad indexes to workers and worker
+            // calculate ED/NB forces for tetrads
             master.cal_Forces();
             
-            //cout << ">>> Calculating Velocities..." << endl;
+            // Master calculates velocities for all tetrads
             master.cal_Velocities();
             
-            //cout << ">>> Calculating Coordinates..." << endl;
+            // Master calculates coordinates for all tetrads
             master.cal_Coordinate();
     
         }
         
         istep += master.io.ntsync;
         
-        //cout << ">>> Processing Velocities & Coordinates..." << endl;
+        // The velocities & coordinates of tetrads are gathered and processed
         master.data_Processing();
         
-        //cout << "Writing files..." << endl << endl;
+        // Write out file with certain frequencies
         if (istep % master.io.ntwt == 0) {
+            
+            // Write out the energies and tmeperature
             master.write_Energy(istep);
+            
             //master.write_Forces();
             //master.write_Trajectories(istep-master.io.ntsync);
         }
         if (istep % master.io.ntpr == 0) {
+            
+            // Write out a new crd file
             master.write_Crds();
         }
         
     }
     
+    // Finalise the simulation, send signal to workers to stop their work
     master.finalise();
     
-    clock_t end_Time = clock();
-    double time_Usage = double(end_Time - begin_Time) / CLOCKS_PER_SEC;
-    cout << "Time usage for simualtion: " << time_Usage << endl << endl;
+    double time_Usage = double (clock() - start_Time) / CLOCKS_PER_SEC;
+    cout << "Time usage of simualtion: " << time_Usage << endl << endl;
     
 }
 

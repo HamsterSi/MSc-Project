@@ -51,13 +51,13 @@ void Master::initialise(void) {
     
     io.read_Crd();
     
-    // Initialise the displacement array & generate diplacements of BP
+    // Generate the displacement array for DNA base pairs
     io.generate_Displacements();
     
-    // Initialise coordinates (velocities) of tetrads from crd file
+    // Initialise coordinates & velocities of tetrads from the crd file
     io.initialise_Tetrad_Crds();
     
-    // Inintialise the frequencies of iterations and writing out files
+    // Inintialise the frequencies of iterations & outputs
     io.ncycs = io.nsteps/io.ntsync;
     io.ntpr -= io.ntpr % io.ntsync; if (io.ntpr == 0) io.ntpr = 1;
     io.ntwt -= io.ntwt % io.ntsync; if (io.ntwt == 0) io.ntwt = 1;
@@ -130,6 +130,7 @@ void Master::send_Tetrads(void) {
             MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, &io.tetrad[j]);
             MPI_Send(&io.tetrad[j], 1, MPI_Tetrad, i, TAG_TETRAD+j, comm);
             MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);
+            
         }
     }
     
@@ -200,11 +201,13 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
     // Send tetrad index for ED calculation & Calculate random forces
     if ((*i) < io.prm.num_Tetrads) {
         
-        // Assign send data to the send buffer
+        // Assign data to the send buffer for ED calculation
         buffer[0][3 * max_Atoms + 1] = (double) (*i);
         for (k = 0; k < 3 * io.tetrad[(*i)].num_Atoms; k++) {
             buffer[0][k] = io.tetrad[(*i)].coordinates[k];
         }
+        
+        // Send data to available workers
         MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, dest, TAG_ED, comm);
         
         // Calculate random forces
@@ -215,6 +218,7 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
         for (; (*j) < num_Pairs; (*j)++) {
             if (pair_Lists[2 * (*j)] != -1) {
                 
+                // Assign data to the send buffer for NB calculation
                 index = pair_Lists[2 * (*j)];
                 buffer[0][3 * max_Atoms + 1] = (double) index;
                 for (k = 0; k < 3 * io.tetrad[index].num_Atoms; k++) {
@@ -226,6 +230,7 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
                     buffer[1][k] = io.tetrad[index].coordinates[k];
                 }
                 
+                // Send data to available workers
                 MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, dest, TAG_NB, comm);
                 (*j)++; break;
             }
@@ -239,7 +244,7 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
 void Master::cal_Forces(void) {
     
     int i, j, k, flag, index;
-    double max_Forces = 1.0;//, buffer[2][3 * max_Atoms + 2] = {0.0};
+    double max_Forces = 1.0;
     double ** buffer = Array::allocate_2D_Array(2, 3 * max_Atoms + 2);
 
     // Initialise the forces & energies in the tetrads
