@@ -38,14 +38,14 @@ void master_Code(void) {
     master.send_Tetrads();
     cout << "Data sending completed..." << endl;
     
-    for (int istep = 0, icyc = 0; icyc < 1; icyc++) {//master.io.ncycs; icyc++) {
+    for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {//1; icyc++) {//
 
         cout << "\nIteration: " << icyc << endl;
         
         // Generate pair lists
         master.generate_Pair_Lists();
         
-        for (int i = 0; i < 1; i++) {//master.io.ntsync; i++) {
+        for (int i = 0; i < master.io.ntsync; i++) {//1; i++) {//
 
             cout << i << endl;
             

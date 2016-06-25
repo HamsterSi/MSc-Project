@@ -267,7 +267,7 @@ void Master::recv_NB_Forces(double** buffer, int it) {
 
 void Master::cal_Forces(void) {
     
-    int i, j, flag;
+    int i, j;
     double max_Forces = 1.0;
     double ** buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
 
@@ -432,7 +432,7 @@ void Master::write_Forces(void) {
 
 void Master::write_Trajectories(int istep) {
     
-    int i, index = io.displs[io.crd.num_BP - 3];
+    int index = io.displs[io.crd.num_BP - 3];
 
     io.write_Trajectory(istep, index, coordinates);
     

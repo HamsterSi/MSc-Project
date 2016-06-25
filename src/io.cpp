@@ -394,7 +394,6 @@ void IO::write_Trajectory(int istep, int index, double* coordinates) {
 
 void IO::update_Crd(double* velocities, double* coordinates) {
     
-    int i, j, index;
     ofstream fout;
     fout.open(new_Crd_File.c_str(), ios_base::out);
     
@@ -404,7 +403,7 @@ void IO::update_Crd(double* velocities, double* coordinates) {
         fout << crd.num_BP << endl;
         
         // Write out the number of atoms of every base pair
-        for (i = 0; i < crd.num_BP; i++) {
+        for (int i = 0; i < crd.num_BP; i++) {
             fout << crd.BP_Atoms[i] << endl;
         }
         
