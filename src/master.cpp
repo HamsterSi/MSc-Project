@@ -184,11 +184,14 @@ void Master::generate_Pair_Lists(void) {
             if ((r < (edmd.mole_Cutoff * edmd.mole_Cutoff)) && (abs(i - j) > edmd.mole_Least) &&
                 (abs(i - j) < (io.prm.num_Tetrads - edmd.mole_Least))) {
                 
-                pair_Lists[num_Pairs][0] = i; pair_Lists[num_Pairs][1] = j;
-                num_Pairs++;
-                
-            }
+                if ((abs(i - j) % 2 == 1 && (i - j) < 0) || (abs(i - j) % 2 == 0 && (i - j) > 0)) {
+                    pair_Lists[num_Pairs][0] = j; pair_Lists[num_Pairs][1] = i;
+                } else {
+                    pair_Lists[num_Pairs][0] = i; pair_Lists[num_Pairs][1] = j;
+                }
             
+                num_Pairs++;
+            }
         }
     }
     
@@ -200,10 +203,7 @@ void Master::generate_Pair_Lists(void) {
 
 void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
     
-    int k, index;
-    
-    // Send tetrad index for ED calculation & Calculate random forces
-    if (*i < io.prm.num_Tetrads) {
+    if (*i < io.prm.num_Tetrads) { // Send tetrad index for ED calculation
         
         // Assign data to the send buffer for ED calculation
         buffer[0][3 * max_Atoms + 1] = (double) (*i);
@@ -215,9 +215,8 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
         // Calculate random forces
         edmd.calculate_Random_Forces(&io.tetrad[*i]);
         
-    // i >= num_Tetrads, send tetrad indexes for NB calculation
-    } else if (*j < num_Pairs) {
-        index = pair_Lists[*j][0];
+    } else if (*j < num_Pairs) { // i >= num_Tetrads, send tetrad indexes for NB calculation
+        int index = pair_Lists[*j][0];
         buffer[0][3 * max_Atoms + 1] = (double) index;
         io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[0]);
         
