@@ -43,7 +43,7 @@ Worker::~Worker(void) {
 
 void Worker::recv_Parameters(void) {
     
-    int i, j, parameters[2], signal = 1;
+    int i, parameters[2], signal = 1;
     double edmd_Para[8];
     
     // Receive parameters from the master process
@@ -106,13 +106,11 @@ void Worker::recv_Tetrads(void) {
 
 void Worker::ED_Calculation(void) {
     
-    int i, index;
-    
     // Receive the tetrad index from the master process
     MPI_Recv(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_ED, comm, &status);
     
     // Assign values for tetrad indexes and coordinates
-    index = (int) buffer[0][3 * max_Atoms + 1];
+    int index = (int) buffer[0][3 * max_Atoms + 1];
     array.assignment(3 * tetrad[index].num_Atoms, buffer[0], tetrad[index].coordinates);
     
     // Calculate ED forces (ED energy)
@@ -133,28 +131,26 @@ void Worker::ED_Calculation(void) {
 
 
 void Worker::NB_Calculation(void) {
- 
-    int i, indexes[2];
-    
+
     // Receive tetrad indexes for NB forces calculation
     MPI_Recv(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm, &status);
     
     // Assign values for tetrad indexes and coordinates
-    indexes[0] = (int) buffer[0][3 * max_Atoms + 1];
-    indexes[1] = (int) buffer[1][3 * max_Atoms + 1];
-    array.assignment(3 * tetrad[indexes[0]].num_Atoms, buffer[0], tetrad[indexes[0]].coordinates);
-    array.assignment(3 * tetrad[indexes[1]].num_Atoms, buffer[1], tetrad[indexes[1]].coordinates);
+    int idx1 = (int) buffer[0][3 * max_Atoms + 1];
+    int idx2 = (int) buffer[1][3 * max_Atoms + 1];
+    array.assignment(3 * tetrad[idx1].num_Atoms, buffer[0], tetrad[idx1].coordinates);
+    array.assignment(3 * tetrad[idx2].num_Atoms, buffer[1], tetrad[idx2].coordinates);
     
     // Calculate NB forces, NB energy & Electrostatic Energy
-    edmd.calculate_NB_Forces(&tetrad[indexes[0]], &tetrad[indexes[1]]);
+    edmd.calculate_NB_Forces(&tetrad[idx1], &tetrad[idx2]);
     
     // Assign NB forces to the 2D array to send back once
-    array.assignment(3 * tetrad[indexes[0]].num_Atoms, tetrad[indexes[0]].NB_Forces, buffer[0]);
-    array.assignment(3 * tetrad[indexes[1]].num_Atoms, tetrad[indexes[1]].NB_Forces, buffer[1]);
+    array.assignment(3 * tetrad[idx1].num_Atoms, tetrad[idx1].NB_Forces, buffer[0]);
+    array.assignment(3 * tetrad[idx2].num_Atoms, tetrad[idx2].NB_Forces, buffer[1]);
     
     // Need to send NB Energy & Electrostatic Energy back (bacause the energies in both tetrads are the same when calculation, so only need to send one set)
-    buffer[0][3 * max_Atoms] = tetrad[indexes[0]].NB_Energy;
-    buffer[1][3 * max_Atoms] = tetrad[indexes[0]].EL_Energy;
+    buffer[0][3 * max_Atoms] = tetrad[idx1].NB_Energy;
+    buffer[1][3 * max_Atoms] = tetrad[idx1].EL_Energy;
     
     // Send NB forces, energies & indexes back to master
     MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm);

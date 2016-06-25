@@ -64,7 +64,7 @@ void EDMD::initialise(double _dt, double _gamma, double _tautp, double _temperat
 void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     
     int i, j;
-    double temp_Forces[3], rotmat[9], v[3], rmsd;
+    double temp_Forces[3], rotmat[9], v[3];
     
     // Allocate memory for temp arrays
     double * temp_Crds = new double [3 * tetrad->num_Atoms];
@@ -84,7 +84,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     }
     
     // Step 1: rotate x into the pcz frame of reference & remove average structure
-    rmsd = CalcRMSDRotationalMatrix((double **) avg_Crds, (double **) crds, tetrad->num_Atoms, rotmat, NULL); // Call QCP functions
+    CalcRMSDRotationalMatrix((double **) avg_Crds, (double **) crds, tetrad->num_Atoms, rotmat, NULL); // Call QCP functions
     for (i = 0; i < tetrad->num_Atoms; i++) {
         temp_Crds[3 * i] = rotmat[0] * crds[0][i] + rotmat[1] * crds[1][i] + rotmat[2] * crds[2][i] - avg_Crds[0][i];
         temp_Crds[3*i+1] = rotmat[3] * crds[0][i] + rotmat[4] * crds[1][i] + rotmat[5] * crds[2][i] - avg_Crds[1][i];
@@ -162,7 +162,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
 
 void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
     
-    int i, j;
+    int i;
     static int RNG_Seed = 3579;
     double random, s = 0.449871, t = -0.386595, a = 0.19600, b = 0.25472;
     double half = 0.5, r1 = 0.27597, r2 = 0.27846, u, v, x, y, q;
