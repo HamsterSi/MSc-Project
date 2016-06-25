@@ -39,18 +39,16 @@ using namespace std;
 class Master {
     
 public:
+   
+    IO io;                // The IO class for input and output
     
     EDMD edmd;            // The EDMD class for calculation
-    
-    IO io;                // The IO class for input and output
     
     int size;             // The size of MPI processes
     
     int max_Atoms;        // The maximum number of atoms of tetrads
     
-    int num_Pairs;        // The total number of pairs for NB forces
-    
-    int effective_Pairs;  // The number of pairs that have NB forces to be calculated
+    int num_Pairs;        // The number of pairs that have NB forces to be calculated
     
     double ** pair_Lists; // The array to store pair lists
 

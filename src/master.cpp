@@ -24,7 +24,6 @@ Master::Master(void) {
     
     max_Atoms = 0;
     num_Pairs = 0;
-    effective_Pairs = 0;
     
     comm      = MPI_COMM_WORLD;
     MPI_Comm_size(comm, &size); // Get size of MPI processes
@@ -170,14 +169,14 @@ void Master::cal_Centre_of_Mass(double** com) {
 
 void Master::generate_Pair_Lists(void) {
     
-    int i, j, pairs;
+    int i, j;
     double r, ** com = io.array.allocate_2D_Array(io.prm.num_Tetrads, 3);
     
     cal_Centre_of_Mass(com); // Calculate the centre of mass
     
     // Loop to generate pairlists
-    for (pairs = 0, effective_Pairs = 0, i = 0; i < io.prm.num_Tetrads; i++) {
-        for (j = i + 1; j < io.prm.num_Tetrads; pairs++, j++) {
+    for (num_Pairs = 0, i = 0; i < io.prm.num_Tetrads; i++) {
+        for (j = i + 1; j < io.prm.num_Tetrads; j++) {
             
             r = (com[i][0] - com[j][0]) * (com[i][0] - com[j][0]) + (com[i][1] - com[j][1]) * (com[i][1] - com[j][1]) + (com[i][2] - com[j][2]) * (com[i][2] - com[j][2]);
             
@@ -185,10 +184,10 @@ void Master::generate_Pair_Lists(void) {
             if ((r < (edmd.mole_Cutoff * edmd.mole_Cutoff)) && (abs(i - j) > edmd.mole_Least) &&
                 (abs(i - j) < (io.prm.num_Tetrads - edmd.mole_Least))) {
                 
-                pair_Lists[pairs][0] = i; pair_Lists[pairs][1] = j;
-                effective_Pairs++;
+                pair_Lists[num_Pairs][0] = i; pair_Lists[num_Pairs][1] = j;
+                num_Pairs++;
                 
-            } else { pair_Lists[pairs][0] = -1; pair_Lists[pairs][1] = -1; }
+            }
             
         }
     }
@@ -217,24 +216,18 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
         edmd.calculate_Random_Forces(&io.tetrad[*i]);
         
     // i >= num_Tetrads, send tetrad indexes for NB calculation
-    } else {
-        for (; (*j) < num_Pairs; (*j)++) {
-            if (pair_Lists[*j][0] != -1) {
-                
-                // Assign data to the send buffer for NB calculation
-                index = pair_Lists[*j][0];
-                buffer[0][3 * max_Atoms + 1] = (double) index;
-                io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[0]);
-
-                index = pair_Lists[*j][1];
-                buffer[1][3 * max_Atoms + 1] = (double) index;
-                io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[1]);
-                
-                // Send data to available workers
-                MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, dest, TAG_NB, comm);
-                (*j)++; break;
-            }
-        }
+    } else if (*j < num_Pairs) {
+        index = pair_Lists[*j][0];
+        buffer[0][3 * max_Atoms + 1] = (double) index;
+        io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[0]);
+        
+        index = pair_Lists[*j][1];
+        buffer[1][3 * max_Atoms + 1] = (double) index;
+        io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[1]);
+        
+        // Send data to available workers
+        MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, dest, TAG_NB, comm);
+        (*j)++;
     }
     
 }
@@ -275,7 +268,7 @@ void Master::recv_NB_Forces(double** buffer, int it) {
 
 void Master::cal_Forces(void) {
     
-    int i, j, k, flag, index;
+    int i, j, flag;
     double max_Forces = 1.0;
     double ** buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
 
@@ -292,7 +285,7 @@ void Master::cal_Forces(void) {
     for (i = 0, j = 0; i < size - 1; i++) { send_Tetrad_Index(&i, &j, i + 1, buffer); }
     
     // Receive ED or NB forces & energies from workers & send new tetrad indexes & coordinates
-    for (; i < effective_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs; i++) {
+    for (; i < num_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs; i++) {
 
         MPI_Recv(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status); // Receive ED/NB forces from workers
         
