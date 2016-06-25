@@ -261,13 +261,13 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
                 
                 // NB forces
                 pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
-                t1->NB_Forces[3 * i] -= 1;//dx * pair_Force;
-                t1->NB_Forces[3*i+1] -= 1;//dy * pair_Force;
-                t1->NB_Forces[3*i+2] -= 1;//dz * pair_Force;
+                t1->NB_Forces[3 * i] -= dx * pair_Force;
+                t1->NB_Forces[3*i+1] -= dy * pair_Force;
+                t1->NB_Forces[3*i+2] -= dz * pair_Force;
                 
-                t2->NB_Forces[3 * j] += 1;//dx * pair_Force;
-                t2->NB_Forces[3*j+1] += 1;//dy * pair_Force;
-                t2->NB_Forces[3*j+2] += 1;//dz * pair_Force;
+                t2->NB_Forces[3 * j] += dx * pair_Force;
+                t2->NB_Forces[3*j+1] += dy * pair_Force;
+                t2->NB_Forces[3*j+2] += dz * pair_Force;
             }
             
         }

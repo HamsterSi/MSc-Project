@@ -299,10 +299,6 @@ void Master::cal_Forces(void) {
         
     }
     
-    double ttt = 0.0;
-    for (int i = 0; i < 3 * io.tetrad[1].num_Atoms; i++) { ttt += io.tetrad[1].NB_Forces[i]; }
-    cout << ttt << endl;
-    
     // Clip NB forces & add random forces into the NB forces
     for (i  = 0; i < io.prm.num_Tetrads; i++) {
         for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
@@ -310,9 +306,6 @@ void Master::cal_Forces(void) {
             io.tetrad[i].NB_Forces[j] = max(-max_Forces, io.tetrad[i].NB_Forces[j]);
         }
     }
-    
-    for (int i = 0; i < 3 * io.tetrad[1].num_Atoms; i++) { ttt += io.tetrad[1].NB_Forces[i]; }
-    cout << ttt << endl;
     
     io.array.deallocate_2D_Array(buffer);
     
