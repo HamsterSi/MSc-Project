@@ -156,6 +156,19 @@ void Worker::NB_Calculation(void) {
     buffer[0][3 * max_Atoms] = tetrad[indexes[0]].NB_Energy;
     buffer[1][3 * max_Atoms] = tetrad[indexes[0]].EL_Energy;
     
+    if (indexes[1] == 1) {
+        double ttt = 0.0;
+        for (int i = 0; i < 3 * tetrad[indexes[1]].num_Atoms; i++) {
+            ttt += tetrad[indexes[1]].NB_Forces[i]; }
+        cout << indexes[0]+1 << ": " << ttt << endl;
+    }
+    if (indexes[0] == 1) {
+        double ttt = 0.0;
+        for (int i = 0; i < 3 * tetrad[indexes[0]].num_Atoms; i++) {
+            ttt += tetrad[indexes[0]].NB_Forces[i]; }
+        cout << indexes[1]+1 << ": " << ttt << endl;
+    }
+    
     // Send NB forces, energies & indexes back to master
     MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm);
     
