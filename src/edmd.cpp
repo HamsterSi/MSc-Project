@@ -163,13 +163,14 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double* old_Crds) {
 void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
     
     int i;
-    static int RNG_Seed = 3579;
+    static unsigned int RNG_Seed = 3579;
     double random, s = 0.449871, t = -0.386595, a = 0.19600, b = 0.25472;
     double half = 0.5, r1 = 0.27597, r2 = 0.27846, u, v, x, y, q;
     double * noise_Factor = new double[3 * tetrad->num_Atoms];
 
     // Set seed for random number generator
-    srand((unsigned)((RNG_Seed++) + time(0)));
+    srand((RNG_Seed++) + (unsigned)time(0));
+    if (RNG_Seed > 50000000)RNG_Seed = 3579;
     
     // Noise factors, sum(noise_Factor) = 3594.75 when gmma = 2.0
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
