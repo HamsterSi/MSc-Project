@@ -62,9 +62,6 @@ public:
     
 public:
     
-    void cal_ED(void);
-    void cal_NB(void);
-    
     /**
      * Function:  The constructor of Master class.
      *

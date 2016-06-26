@@ -138,13 +138,6 @@ void Worker::NB_Calculation(void) {
     int idx1 = (int) buffer[0][3 * max_Atoms + 1];
     int idx2 = (int) buffer[1][3 * max_Atoms + 1];
     
-    if (idx1 == 0 && idx2 == 6) {
-        double ttt = 0.0, tt=0.0;
-        for (int i = 0; i < 3 * tetrad[idx1].num_Atoms; i++) { ttt += buffer[0][i];  }
-        for (int i = 0; i < 3 * tetrad[idx2].num_Atoms; i++) { tt += buffer[1][i];  }
-        cout << ttt << ", " << tt << endl;
-    }
-    
     // Calculate NB forces, NB energy & Electrostatic Energy
     edmd.calculate_NB_Forces(&tetrad[idx1], &tetrad[idx2], buffer[0], buffer[1]);
     
@@ -155,19 +148,6 @@ void Worker::NB_Calculation(void) {
     // Need to send NB Energy & Electrostatic Energy back (bacause the energies in both tetrads are the same when calculation, so only need to send one set)
     buffer[0][3 * max_Atoms] = tetrad[idx1].NB_Energy;
     buffer[1][3 * max_Atoms] = tetrad[idx1].EL_Energy;
-    
-    if (idx2 == 0) {
-        double ttt = 0.0;
-        for (int i = 0; i < 3 * tetrad[idx2].num_Atoms; i++) {
-            ttt += tetrad[idx2].NB_Forces[i]; }
-        cout << idx1+1 << ": " << ttt << endl;
-    }
-    if (idx1 == 0) {
-        double ttt = 0.0;
-        for (int i = 0; i < 3 * tetrad[idx1].num_Atoms; i++) {
-            ttt += tetrad[idx1].NB_Forces[i]; }
-        cout << idx2+1 << ": " << ttt << endl;
-    }
     
     // Send NB forces, energies & indexes back to master
     MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm);

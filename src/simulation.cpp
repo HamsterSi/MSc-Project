@@ -38,22 +38,19 @@ void master_Code(void) {
     master.send_Tetrads();
     cout << "Data sending completed..." << endl;
     
-    for (int istep = 0, icyc = 0; icyc < 1; icyc++) {//master.io.ncycs; icyc++) {//
+    for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {//1; icyc++) {//
 
-        cout << "\nIteration: " << icyc << endl;
+        //cout << "\nIteration: " << icyc << endl;
         
         // Generate pair lists
         master.generate_Pair_Lists();
         
-        for (int i = 0; i < 2; i++) {//master.io.ntsync; i++) {//
+        for (int i = 0; i < master.io.ntsync; i++) {//2; i++) {//
 
-            cout << i << endl;
-            
+            //cout << i << endl;
+        
             // Master sends coordinates and tetrad indexes to workers and worker
             // calculate ED/NB forces for tetrads
-            //master.cal_ED();
-            //master.cal_NB();
-            //master.clip_Forces();
             master.cal_Forces();
             
             // Master calculates velocities for all tetrads

@@ -260,13 +260,13 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double* crds1, double* cr
                 
                 // NB forces
                 pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
-                t1->NB_Forces[3 * i] -= 0.1;//dx * pair_Force;
-                t1->NB_Forces[3*i+1] -= 0.1;//dy * pair_Force;
-                t1->NB_Forces[3*i+2] -= 0.1;//dz * pair_Force;
+                t1->NB_Forces[3 * i] -= dx * pair_Force;
+                t1->NB_Forces[3*i+1] -= dy * pair_Force;
+                t1->NB_Forces[3*i+2] -= dz * pair_Force;
                 
-                t2->NB_Forces[3 * j] += 0.1;//dx * pair_Force;
-                t2->NB_Forces[3*j+1] += 0.1;//dy * pair_Force;
-                t2->NB_Forces[3*j+2] += 0.1;//dz * pair_Force;
+                t2->NB_Forces[3 * j] += dx * pair_Force;
+                t2->NB_Forces[3*j+1] += dy * pair_Force;
+                t2->NB_Forces[3*j+2] += dz * pair_Force;
             }
             
         }
@@ -288,8 +288,7 @@ void EDMD::update_Velocities(Tetrad* tetrad) {
     
     // Simple Langevin dynamics, gamfac = 0.9960
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
-        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
+        tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
     }
     
     // Berendsen temperature control
