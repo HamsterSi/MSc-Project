@@ -30,13 +30,14 @@ void master_Code(void) {
     // allocate memory for arrays, set the frequencies of iterations, etc.
     master.initialise();
     
-    cout << "\nMaster sending data to Workers..." << endl;
+    cout << "\nMaster sending data to Workers." << endl;
     cout << ">>> Sending parameters..." << endl;
     master.send_Parameters();
     
     cout << ">>> Sending tetrads..." << endl;
     master.send_Tetrads();
-    cout << "Data sending completed..." << endl;
+    cout << "Data sending completed." << endl;
+    cout << "\nStart simulation..." << endl;
     
     for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {//1; icyc++) {//
 
@@ -85,6 +86,7 @@ void master_Code(void) {
     
     // Finalise the simulation, send signal to workers to stop their work
     master.finalise();
+    cout << "Simulation ended." << endl;
     
     double time_Usage = double (clock() - start_Time) / CLOCKS_PER_SEC;
     cout << "Time usage of simualtion: " << time_Usage << endl << endl;

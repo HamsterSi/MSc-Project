@@ -73,12 +73,12 @@ void Master::initialise(void) {
     coordinates = new double [3 * io.crd.total_Atoms];
     
     // Print information of the simulation
-    cout << endl << "Simulation starting..." << endl;
+    cout << endl << "Initialising simulation..." << endl;
     cout << ">>> MPI Processes: " << size << endl;
     cout << ">>> DNA Shape: ";
     if (io.circular == true) cout << "Circular" << endl;
     else cout << "Linear" << endl;
-    cout << "Reading prm & crd file...\nData reading completed." << endl << endl;
+    cout << ">>> Reading prm & crd file...\nData reading completed.\n" << endl;
     cout << "The number of DNA Base Pairs: " << io.crd.num_BP << endl;
     cout << "The number of DNA Tetrads   : " << io.prm.num_Tetrads << endl;
     cout << "Total number of atoms in DNA: " << 3 * io.crd.total_Atoms << endl;
@@ -283,7 +283,6 @@ void Master::clip_NB_Forces(void) {
 void Master::cal_Forces(void) {
     
     int i, j;
-    double max_Forces = 1.0;
     double ** buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
 
     // Initialise the forces & energies in the tetrads
