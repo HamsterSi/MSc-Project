@@ -36,7 +36,7 @@ using namespace std;
  */
 class Worker {
     
-public:
+private:
 
     int num_Tetrads;    // The number of total tetrads
     

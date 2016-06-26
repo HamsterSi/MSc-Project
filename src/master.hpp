@@ -62,6 +62,9 @@ public:
     
 public:
     
+    void cal_ED(void);
+    void cal_NB(void);
+    
     /**
      * Function:  The constructor of Master class.
      *
@@ -158,6 +161,15 @@ public:
      * Return:    None
      */
     void recv_NB_Forces(double** buffer, int it);
+    
+    /**
+     * Function:  Clip the NB forces into range (-1.0, 1.0)
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
+    void clip_NB_Forces(void);
     
     /**
      * Function:  Master distrubute ED/NB forces calculation among worker processes,

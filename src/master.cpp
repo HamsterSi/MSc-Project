@@ -264,6 +264,96 @@ void Master::recv_NB_Forces(double** buffer, int it) {
 }
 
 
+void Master::cal_ED(void) {
+    int i;double ** buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
+    // Initialise the forces & energies in the tetrads
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        for (int j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
+            io.tetrad[i].ED_Forces[j] = io.tetrad[i].random_Forces[j] = 0.0;
+        }
+        io.tetrad[i].ED_Energy = 0.0;
+    }
+    
+    // Send tetrad indexes & coordinates for ED/NB forces calculation at the beginning
+    for (i = 0; i < size - 1; i++) {
+        buffer[0][3 * max_Atoms + 1] = (double) i;
+        io.array.assignment(3 * io.tetrad[i].num_Atoms, io.tetrad[i].coordinates, buffer[0]);
+        MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, i+1, TAG_ED, comm);
+        edmd.calculate_Random_Forces(&io.tetrad[i]);
+    }
+    for (; i < io.prm.num_Tetrads + size - 1; i++) {
+        MPI_Recv(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status);
+        recv_ED_Forces(buffer);
+        if (i < io.prm.num_Tetrads) {
+            buffer[0][3 * max_Atoms + 1] = (double) i;
+            io.array.assignment(3 * io.tetrad[i].num_Atoms, io.tetrad[i].coordinates, buffer[0]);
+            MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, status.MPI_SOURCE, TAG_ED, comm);
+            edmd.calculate_Random_Forces(&io.tetrad[i]);
+        }
+    }
+    io.array.deallocate_2D_Array(buffer);
+}
+
+void Master::cal_NB(void) {
+    int i;
+    double ** buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
+    // Initialise the forces & energies in the tetrads
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        for (int j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
+            io.tetrad[i].NB_Forces[j] = 0.0;
+        }
+        io.tetrad[i].NB_Energy = io.tetrad[i].EL_Energy = 0.0;
+    }
+    // Send tetrad indexes & coordinates for ED/NB forces calculation at the beginning
+    for (i = 0; i < size - 1; i++) {
+        int index = pair_Lists[i][0];
+        buffer[0][3 * max_Atoms + 1] = (double) index;
+        io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[0]);
+        index = pair_Lists[i][1];
+        buffer[1][3 * max_Atoms + 1] = (double) index;
+        io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[1]);
+        MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, i + 1, TAG_NB, comm);
+    }
+    for (; i < num_Pairs + size - 1; i++) {
+        MPI_Recv(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status);
+        recv_NB_Forces(buffer, 0); recv_NB_Forces(buffer, 1);
+        if (i < num_Pairs) {
+            int index = pair_Lists[i][0];
+            buffer[0][3 * max_Atoms + 1] = (double) index;
+            io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[0]);
+            index = pair_Lists[i][1];
+            buffer[1][3 * max_Atoms + 1] = (double) index;
+            io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[1]);
+            MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, status.MPI_SOURCE, TAG_NB, comm);
+        }
+    }
+    
+    io.array.deallocate_2D_Array(buffer);
+}
+
+
+void Master::clip_NB_Forces(void) {
+    
+    int i, j;
+    double ttt = 0.0, max_Forces = 1.0;
+    for (i = 0; i < 3 * io.tetrad[0].num_Atoms; i++)
+        { ttt += io.tetrad[0].NB_Forces[i]; }
+    cout << ttt << endl;
+    
+    // Clip NB forces & add random forces into the NB forces
+    for (i  = 0; i < io.prm.num_Tetrads; i++) {
+        for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
+            io.tetrad[i].NB_Forces[j] = min( max_Forces, io.tetrad[i].NB_Forces[j]);
+            io.tetrad[i].NB_Forces[j] = max(-max_Forces, io.tetrad[i].NB_Forces[j]);
+        }
+    }
+    
+    for (i = 0, ttt = 0.0; i < 3 * io.tetrad[0].num_Atoms; i++)
+        { ttt += io.tetrad[0].NB_Forces[i]; }
+    cout << ttt << endl;
+    
+}
+
 
 void Master::cal_Forces(void) {
     
@@ -277,7 +367,8 @@ void Master::cal_Forces(void) {
             io.tetrad[i].ED_Forces[j] = io.tetrad[i].random_Forces[j] =
             io.tetrad[i].NB_Forces[j] = 0.0;
         }
-        io.tetrad[i].ED_Energy = io.tetrad[i].NB_Energy = io.tetrad[i].EL_Energy = 0.0;
+        io.tetrad[i].ED_Energy = io.tetrad[i].NB_Energy =
+        io.tetrad[i].EL_Energy = 0.0;
     }
     
     // Send tetrad indexes & coordinates for ED/NB forces calculation at the beginning
@@ -288,24 +379,21 @@ void Master::cal_Forces(void) {
 
         MPI_Recv(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status); // Receive ED/NB forces from workers
         
-        if (status.MPI_TAG == TAG_ED) { // TAG_ED, store ED forces & energies into tetrad
-            recv_ED_Forces(buffer);
+        if (status.MPI_TAG == TAG_ED) {
+            recv_ED_Forces(buffer);    // TAG_ED, store ED forces & energies into tetrad
             
-        } else if (status.MPI_TAG == TAG_NB) { // TAG_NB, store NB forces & energies into tetrads
-            recv_NB_Forces(buffer, 0); recv_NB_Forces(buffer, 1);
+        } else if (status.MPI_TAG == TAG_NB) {
+            recv_NB_Forces(buffer, 0); // TAG_NB, store NB forces & energies into tetrads
+            recv_NB_Forces(buffer, 1);
         }
         
-        send_Tetrad_Index(&i, &j, status.MPI_SOURCE, buffer); // Send tetrad index & coordinates
+        // Send tetrad index & coordinates
+        send_Tetrad_Index(&i, &j, status.MPI_SOURCE, buffer);
         
     }
     
-    // Clip NB forces & add random forces into the NB forces
-    for (i  = 0; i < io.prm.num_Tetrads; i++) {
-        for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            io.tetrad[i].NB_Forces[j] = min( max_Forces, io.tetrad[i].NB_Forces[j]);
-            io.tetrad[i].NB_Forces[j] = max(-max_Forces, io.tetrad[i].NB_Forces[j]);
-        }
-    }
+    // Clip NB forces into range (-1.0, 1.0)
+    clip_NB_Forces();
     
     io.array.deallocate_2D_Array(buffer);
     
@@ -331,6 +419,14 @@ void Master::cal_Coordinate(void) {
         edmd.update_Coordinates(&io.tetrad[i]);
     }
     
+    double temp[4] = { 0.0 };
+    for (int i = 0; i < 3 * io.tetrad[0].num_Atoms; i++) {
+        temp[0] += io.tetrad[0].ED_Forces[i];
+        temp[1] += io.tetrad[0].NB_Forces[i];
+        temp[2] += io.tetrad[0].velocities[i];
+        temp[3] += io.tetrad[0].coordinates[i];
+    }
+    cout << "ed e: " << io.tetrad[0].ED_Energy << ", ed f: " << temp[0] << ", nb f: " << temp[1] << ", tem: " << io.tetrad[0].temperature << ", vel: " << temp[2] << ", crds: " << temp[3] << endl;
 }
 
 

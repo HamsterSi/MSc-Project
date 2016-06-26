@@ -235,9 +235,9 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double* crds1, double* cr
     
     // Initialise energies & NB forces
     t1->NB_Energy = t1->EL_Energy = 0.0;
-    for (i = 0 ; i < t1->num_Atoms; i++) { t1->NB_Forces[i] = 0.0; }
+    for (i = 0 ; i < 3 * t1->num_Atoms; i++) { t1->NB_Forces[i] = 0.0; }
     t2->NB_Energy = t2->EL_Energy = 0.0;
-    for (i = 0 ; i < t2->num_Atoms; i++) { t2->NB_Forces[i] = 0.0; }
+    for (i = 0 ; i < 3 * t2->num_Atoms; i++) { t2->NB_Forces[i] = 0.0; }
     
     for (i = 0; i < t1->num_Atoms; i++) {
         for (j = 0; j < t2->num_Atoms; j++) {
@@ -248,8 +248,7 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double* crds1, double* cr
             
             // Avoid div0 (full atom overlap, almost impossible)
             sqdist = max(dx*dx + dy*dy + dz*dz, (double) 1e-9);
-            
-            // If this is the 1st cycle, cull the pairlist
+
             if (sqdist < (atom_Cutoff * atom_Cutoff)) {
 
                 a = max(0.0, (2.0 - sqdist));
@@ -261,13 +260,13 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double* crds1, double* cr
                 
                 // NB forces
                 pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
-                t1->NB_Forces[3 * i] -= 1;//dx * pair_Force;
-                t1->NB_Forces[3*i+1] -= 1;//dy * pair_Force;
-                t1->NB_Forces[3*i+2] -= 1;//dz * pair_Force;
+                t1->NB_Forces[3 * i] -= 0.1;//dx * pair_Force;
+                t1->NB_Forces[3*i+1] -= 0.1;//dy * pair_Force;
+                t1->NB_Forces[3*i+2] -= 0.1;//dz * pair_Force;
                 
-                t2->NB_Forces[3 * j] += 1;//dx * pair_Force;
-                t2->NB_Forces[3*j+1] += 1;//dy * pair_Force;
-                t2->NB_Forces[3*j+2] += 1;//dz * pair_Force;
+                t2->NB_Forces[3 * j] += 0.1;//dx * pair_Force;
+                t2->NB_Forces[3*j+1] += 0.1;//dy * pair_Force;
+                t2->NB_Forces[3*j+2] += 0.1;//dz * pair_Force;
             }
             
         }
@@ -289,7 +288,8 @@ void EDMD::update_Velocities(Tetrad* tetrad) {
     
     // Simple Langevin dynamics, gamfac = 0.9960
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
+        tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
+        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
     }
     
     // Berendsen temperature control
