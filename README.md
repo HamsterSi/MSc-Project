@@ -18,7 +18,7 @@ The aim of the project would be to evaluate the two existing codes, then design 
 2. Folder ./test: This is the folder with two test DNA data;
 3. Folder ./data: This is the folder where the results will be stored.
 4. "config.txt" : The configuration file with some parameters that can be changed according to the requirement;
-5. "Makefile"   : The Makefile for easy compilation;
+5. "Makefile"   : The Makefile (use PGI compilers);
 6. "README.md"  : The simple instruction of the code.
 
 ### Code Introduction
@@ -29,7 +29,8 @@ The aim of the project would be to evaluate the two existing codes, then design 
 5. master.hpp, master.cpp: Define a master class responsible for the master work (initialisation data, send and receive data, calculate velocities and coordinates);
 6. worker.hpp, worker.cpp: The worker class with functions to receive data and calculate forces;
 7. simulation.hpp, simulation.cpp: These contain two fucntions for the master and the workers to initialise and terminate simulation;
-8. main.cpp: The entry of the code.
+8. arrray.cpp, array.hpp: For array allocation & deallocation and other array operations;
+9. main.cpp: The entry of the code.
 
 
 ### Reference
