@@ -61,7 +61,7 @@ void EDMD::initialise(double _dt, double _gamma, double _tautp, double _temperat
 
 
 
-void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
+void EDMD::calculate_ED_Forces(Tetrad* tetrad, double* old_Crds) {
     
     int i, j;
     double temp_Forces[3], rotmat[9], v[3];
@@ -78,9 +78,9 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
         avg_Crds[1][i] = tetrad->avg_Structure[3*i+1];
         avg_Crds[2][i] = tetrad->avg_Structure[3*i+2];
         
-        crds[0][i] = tetrad->coordinates[3 * i];
-        crds[1][i] = tetrad->coordinates[3*i+1];
-        crds[2][i] = tetrad->coordinates[3*i+2];
+        crds[0][i] = old_Crds[3 * i];
+        crds[1][i] = old_Crds[3*i+1];
+        crds[2][i] = old_Crds[3*i+2];
     }
     
     // Step 1: rotate x into the pcz frame of reference & remove average structure
@@ -94,9 +94,9 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     
     // Calculate the offset vector of tetrads
     for (v[0] = v[1] = v[2] = 0.0, i = 0; i < tetrad->num_Atoms; i++) {
-        v[0] += (tetrad->avg_Structure[3 * i] - (rotmat[0] * tetrad->coordinates[3*i] + rotmat[1] * tetrad->coordinates[3*i+1] + rotmat[2] * tetrad->coordinates[3*i+2]));
-        v[1] += (tetrad->avg_Structure[3*i+1] - (rotmat[3] * tetrad->coordinates[3*i] + rotmat[4] * tetrad->coordinates[3*i+1] + rotmat[5] * tetrad->coordinates[3*i+2]));
-        v[2] += (tetrad->avg_Structure[3*i+2] - (rotmat[6] * tetrad->coordinates[3*i] + rotmat[7] * tetrad->coordinates[3*i+1] + rotmat[8] * tetrad->coordinates[3*i+2]));
+        v[0] += (tetrad->avg_Structure[3 * i] - (rotmat[0] * old_Crds[3*i] + rotmat[1] * old_Crds[3*i+1] + rotmat[2] * old_Crds[3*i+2]));
+        v[1] += (tetrad->avg_Structure[3*i+1] - (rotmat[3] * old_Crds[3*i] + rotmat[4] * old_Crds[3*i+1] + rotmat[5] * old_Crds[3*i+2]));
+        v[2] += (tetrad->avg_Structure[3*i+2] - (rotmat[6] * old_Crds[3*i] + rotmat[7] * old_Crds[3*i+1] + rotmat[8] * old_Crds[3*i+2]));
     }
     v[0] /= tetrad->num_Atoms; v[1] /= tetrad->num_Atoms; v[2] /= tetrad->num_Atoms;
     
@@ -224,7 +224,7 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
 
 
 
-void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
+void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double* crds1, double* crds2) {
     
     int i, j;
     double dx, dy, dz, sqdist;
@@ -242,9 +242,9 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
     for (i = 0; i < t1->num_Atoms; i++) {
         for (j = 0; j < t2->num_Atoms; j++) {
             
-            dx = t1->coordinates[3 * i] - t2->coordinates[3 * j];
-            dy = t1->coordinates[3*i+1] - t2->coordinates[3*j+1];
-            dz = t1->coordinates[3*i+2] - t2->coordinates[3*j+2];
+            dx = crds1[3 * i] - crds2[3 * j];
+            dy = crds1[3*i+1] - crds2[3*j+1];
+            dz = crds1[3*i+2] - crds2[3*j+2];
             
             // Avoid div0 (full atom overlap, almost impossible)
             sqdist = max(dx*dx + dy*dy + dz*dz, (double) 1e-9);
@@ -261,13 +261,13 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
                 
                 // NB forces
                 pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
-                t1->NB_Forces[3 * i] -= dx * pair_Force;
-                t1->NB_Forces[3*i+1] -= dy * pair_Force;
-                t1->NB_Forces[3*i+2] -= dz * pair_Force;
+                t1->NB_Forces[3 * i] -= 1;//dx * pair_Force;
+                t1->NB_Forces[3*i+1] -= 1;//dy * pair_Force;
+                t1->NB_Forces[3*i+2] -= 1;//dz * pair_Force;
                 
-                t2->NB_Forces[3 * j] += dx * pair_Force;
-                t2->NB_Forces[3*j+1] += dy * pair_Force;
-                t2->NB_Forces[3*j+2] += dz * pair_Force;
+                t2->NB_Forces[3 * j] += 1;//dx * pair_Force;
+                t2->NB_Forces[3*j+1] += 1;//dy * pair_Force;
+                t2->NB_Forces[3*j+2] += 1;//dz * pair_Force;
             }
             
         }

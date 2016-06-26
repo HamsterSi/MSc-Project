@@ -111,10 +111,9 @@ void Worker::ED_Calculation(void) {
     
     // Assign values for tetrad indexes and coordinates
     int index = (int) buffer[0][3 * max_Atoms + 1];
-    array.assignment(3 * tetrad[index].num_Atoms, buffer[0], tetrad[index].coordinates);
-    
+
     // Calculate ED forces (ED energy)
-    edmd.calculate_ED_Forces(&tetrad[index]);
+    edmd.calculate_ED_Forces(&tetrad[index], buffer[0]);
     
     // Assign ED forces & random Forces to the 2D array for sending once
     array.assignment(3 * tetrad[index].num_Atoms, tetrad[index].ED_Forces  , buffer[0]);
@@ -138,11 +137,9 @@ void Worker::NB_Calculation(void) {
     // Assign values for tetrad indexes and coordinates
     int idx1 = (int) buffer[0][3 * max_Atoms + 1];
     int idx2 = (int) buffer[1][3 * max_Atoms + 1];
-    array.assignment(3 * tetrad[idx1].num_Atoms, buffer[0], tetrad[idx1].coordinates);
-    array.assignment(3 * tetrad[idx2].num_Atoms, buffer[1], tetrad[idx2].coordinates);
     
     // Calculate NB forces, NB energy & Electrostatic Energy
-    edmd.calculate_NB_Forces(&tetrad[idx1], &tetrad[idx2]);
+    edmd.calculate_NB_Forces(&tetrad[idx1], &tetrad[idx2], buffer[0], buffer[1]);
     
     // Assign NB forces to the 2D array to send back once
     array.assignment(3 * tetrad[idx1].num_Atoms, tetrad[idx1].NB_Forces, buffer[0]);
@@ -151,6 +148,8 @@ void Worker::NB_Calculation(void) {
     // Need to send NB Energy & Electrostatic Energy back (bacause the energies in both tetrads are the same when calculation, so only need to send one set)
     buffer[0][3 * max_Atoms] = tetrad[idx1].NB_Energy;
     buffer[1][3 * max_Atoms] = tetrad[idx1].EL_Energy;
+    
+    
     
     // Send NB forces, energies & indexes back to master
     MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm);
