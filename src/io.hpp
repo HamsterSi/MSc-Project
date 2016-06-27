@@ -175,6 +175,14 @@ public:
      */
     void write_Template(ofstream* fout, double* data);
     
+    void open_File(ofstream* fout, string file_Path);
+
+    void write_Energy(ofstream* fout, int istep, double energies[]);
+    
+    void write_Trajectories(ofstream* fout, int istep, int index, double* coordinates);
+    
+    void close_File(ofstream* fout);
+    
     /**
      * Function:   Write out energies & temperature of all tetrads.
      *

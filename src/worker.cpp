@@ -65,7 +65,7 @@ void Worker::recv_Parameters(void) {
     // Assign values & allocate memory for all tetrads
     tetrad = new Tetrad[num_Tetrads];
     for (i = 0; i < num_Tetrads; i++) {
-        tetrad[i].num_Atoms = tetrad_Para[2*i];
+        tetrad[i].num_Atoms = tetrad_Para[2 * i];
         tetrad[i].num_Evecs = tetrad_Para[2*i+1];
         
         array.allocate_Tetrad_Arrays(&tetrad[i]);
@@ -107,7 +107,7 @@ void Worker::recv_Tetrads(void) {
 void Worker::ED_Calculation(void) {
     
     // Receive the tetrad index from the master process
-    MPI_Recv(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_ED, comm, &status);
+    MPI_Recv(&(buffer[0][0]), 3 * max_Atoms + 2, MPI_DOUBLE, 0, TAG_ED, comm, &status);
     
     // Assign values for tetrad indexes and coordinates
     int index = (int) buffer[0][3 * max_Atoms + 1];

@@ -72,6 +72,9 @@ void Master::initialise(void) {
     velocities  = new double [3 * io.crd.total_Atoms];
     coordinates = new double [3 * io.crd.total_Atoms];
     
+    io.open_File(&eout, io.energy_File);
+    io.open_File(&tout, io.trj_File);
+    
     // Print information of the simulation
     cout << endl << "Initialising simulation..." << endl;
     cout << ">>> MPI Processes: " << size << endl;
@@ -210,7 +213,7 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
         io.array.assignment(3 * io.tetrad[*i].num_Atoms, io.tetrad[*i].coordinates, buffer[0]);
         
         // Send data to available workers
-        MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, dest, TAG_ED, comm);
+        MPI_Send(&(buffer[0][0]), 3 * max_Atoms + 2, MPI_DOUBLE, dest, TAG_ED, comm);
         
         // Calculate random forces
         edmd.calculate_Random_Forces(&io.tetrad[*i]);
@@ -406,7 +409,8 @@ void Master::write_Energy(int istep) {
     energies[3] /= io.prm.num_Tetrads;
     
     // Wrtie out energies
-    io.write_Energies(istep, energies);
+    //io.write_Energies(istep, energies);
+    io.write_Energy(&eout, istep, energies);
     
 }
 
@@ -448,7 +452,8 @@ void Master::write_Trajectories(int istep) {
     
     int index = io.displs[io.crd.num_BP - 3];
 
-    io.write_Trajectory(istep, index, coordinates);
+    //io.write_Trajectory(istep, index, coordinates);
+    io.write_Trajectories(&tout, istep, index, coordinates);
     
 }
 
@@ -473,6 +478,9 @@ void Master::finalise(void) {
     for (int signal = -1, i = 1; i < size; i++) {
         MPI_Send(&signal, 1, MPI_INT, i, TAG_DEATH, comm);
     }
+    
+    io.close_File(&eout);
+    io.close_File(&tout);
     
     cout << "Simulation ended.\n" << endl;
     
