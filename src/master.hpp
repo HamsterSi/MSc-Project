@@ -60,10 +60,6 @@ public:
     
     MPI_Status status;    // MPI status
     
-    ofstream eout;
-    
-    ofstream tout;
-    
 public:
     
     /**

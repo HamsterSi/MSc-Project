@@ -310,51 +310,6 @@ void IO::write_Template(ofstream* fout, double* data) {
 
 
 
-void IO::open_File(ofstream* fout, string file_Path) {
-    
-    fout->open(file_Path.c_str(), ios_base::out);
-    
-    if (!fout->is_open()) {
-        cout << ">>> ERROR: Can not open the energy file!" << endl;
-        exit(1);
-    }
-    
-}
-
-
-void IO::write_Energy(ofstream* fout, int istep, double energies[]) {
-    
-    *fout << "Iteration, ED Energy, NB_Energy, ELE_Energy, Temperature: ";
-    *fout << istep << ", ";
-    *fout << setprecision(8) << energies[0] << ", " << setprecision(8) << energies[1] << ", ";
-    *fout << setprecision(8) << energies[2] << ", " << setprecision(8) << energies[3] << endl;
-    
-}
-
-
-
-void IO::write_Trajectories(ofstream* fout, int istep, int index, double* coordinates) {
-    
-    // Write out the total atoms in DNA
-    if (istep == 0) { *fout << crd.total_Atoms << endl; }
-
-    for (int i = 0; i < index; i++) { // // Write out coordinates
-        *fout << fixed << setw(10) << setprecision(4) << coordinates[i] << " ";
-        if ((i + 1) % 10 == 0) *fout << endl;
-    }
-    
-}
-
-
-
-void IO::close_File(ofstream* fout) {
-    
-    fout->close();
-    
-}
-
-
-
 void IO::write_Energies(int istep, double energies[]) {
     
     ofstream fout;

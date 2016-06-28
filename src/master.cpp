@@ -72,9 +72,6 @@ void Master::initialise(void) {
     velocities  = new double [3 * io.crd.total_Atoms];
     coordinates = new double [3 * io.crd.total_Atoms];
     
-    io.open_File(&eout, io.energy_File);
-    io.open_File(&tout, io.trj_File);
-    
     // Print information of the simulation
     cout << endl << "Initialising simulation..." << endl;
     cout << ">>> MPI Processes: " << size << endl;
@@ -84,7 +81,7 @@ void Master::initialise(void) {
     cout << ">>> Reading prm & crd file...\nData reading completed.\n" << endl;
     cout << "The number of DNA Base Pairs: " << io.crd.num_BP << endl;
     cout << "The number of DNA Tetrads   : " << io.prm.num_Tetrads << endl;
-    cout << "Total number of atoms in DNA: " << 3 * io.crd.total_Atoms << endl;
+    cout << "Total number of atoms in DNA: " << io.crd.total_Atoms << endl;
     
 }
 
@@ -409,8 +406,7 @@ void Master::write_Energy(int istep) {
     energies[3] /= io.prm.num_Tetrads;
     
     // Wrtie out energies
-    //io.write_Energies(istep, energies);
-    io.write_Energy(&eout, istep, energies);
+    io.write_Energies(istep, energies);
     
 }
 
@@ -452,8 +448,7 @@ void Master::write_Trajectories(int istep) {
     
     int index = io.displs[io.crd.num_BP - 3];
 
-    //io.write_Trajectory(istep, index, coordinates);
-    io.write_Trajectories(&tout, istep, index, coordinates);
+    io.write_Trajectory(istep, index, coordinates);
     
 }
 
@@ -478,9 +473,6 @@ void Master::finalise(void) {
     for (int signal = -1, i = 1; i < size; i++) {
         MPI_Send(&signal, 1, MPI_INT, i, TAG_DEATH, comm);
     }
-    
-    io.close_File(&eout);
-    io.close_File(&tout);
     
     cout << "Simulation ended.\n" << endl;
     

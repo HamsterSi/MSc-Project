@@ -39,16 +39,16 @@ void master_Code(void) {
     cout << "Data sending completed." << endl;
     cout << "\nStart simulation...\n" << endl;
     
-    for (int istep = 0, icyc = 0; icyc < master.io.ncycs; icyc++) {//2; icyc++) {//
+    for (int istep = 0, icyc = 0; icyc < 2; icyc++) {//master.io.ncycs; icyc++) {//
 
-        //cout << "\nIteration: " << icyc << endl;
+        cout << "\nIteration: " << icyc << endl;
         
         // Generate pair lists
         master.generate_Pair_Lists();
         
         for (int i = 0; i < master.io.ntsync; i++) {//100; i++) {//
 
-            //cout << i << endl;
+            cout << i << endl;
         
             // Master sends coordinates and tetrad indexes to workers and worker
             // calculate ED/NB forces for tetrads
@@ -74,6 +74,7 @@ void master_Code(void) {
             master.write_Energy(istep);
             
             //master.write_Forces();
+            
             master.write_Trajectories(istep-master.io.ntsync);
         }
         if (istep % master.io.ntpr == 0) {

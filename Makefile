@@ -2,7 +2,7 @@ EXE = edmddna
 
 CXX = mpicxx
 CC = mpicc
-CFLAGS = #-g -O3
+CFLAGS = -pg -O3
 LIBS = #-lm
 
 DEP = src/qcprot/qcprot.c
@@ -11,7 +11,7 @@ OBJ1 = $(DEP:.c=.o)
 OBJ2 = $(SRC:.cpp=.o) 
 
 %.o: %.cpp
-	$(CXX) -c -o $@ $<
+	$(CXX) $(CFLAGS) -c -o $@ $<
 
 $(EXE): src/main.cpp $(OBJ2) $(OBJ1)
 	$(CXX) $(CFLAGS) $(LIBS) -o $@ $^
