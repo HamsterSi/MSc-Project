@@ -33,12 +33,6 @@
 #define TAG_NB     4    // For message passing of NB forces calculation
 #define TAG_TETRAD 5    // For passing tetrads between master and workers
 
-#define SIGNAL_DATA   1
-#define SIGNAL_ED     2
-#define SIGNAL_NB     3
-#define SIGNAL_TETRAD 4
-#define SIGNAL_ABORT  5
-
 using namespace std;
 
 

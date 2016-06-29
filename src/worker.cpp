@@ -156,5 +156,14 @@ void Worker::NB_Calculation(void) {
 
 
 
+int Worker::terminate(void) {
+    
+    int signal;
+    
+    // Receive the terminate signal from master
+    MPI_Recv(&signal, 1, MPI_INT, 0, TAG_SIGNAL, comm, &status);
+    return signal;
+}
+
 
 

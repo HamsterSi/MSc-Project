@@ -98,30 +98,10 @@ void master_Code(void) {
 
 void worker_Code(void) {
     
-    int flag, signal;
+    int flag, signal = 1;
     Worker worker;
     MPI_Status status;
-    
-    while (signal != SIGNAL_ABORT) {
-        
-        MPI_Recv(&signal, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
-        if (signal == SIGNAL_DATA) {
-            worker.recv_Parameters();
-            
-        } else if (signal == SIGNAL_TETRAD) {
-            worker.recv_Tetrads();
-            
-        } else if (signal == SIGNAL_ED) {
-            worker.ED_Calculation();
-            
-        } else if (signal == SIGNAL_NB) {
-            worker.NB_Calculation();
-        }
-        
-    }
-    
-    /*
     while (signal == 1)
     {
         // Test if there is any message arrived
@@ -145,12 +125,12 @@ void worker_Code(void) {
                 worker.NB_Calculation();
                 
             // Indicates to stop work
-            } else if (status.MPI_TAG == TAG_DEATH) {
+            } else if (status.MPI_TAG == TAG_SIGNAL) {
                 signal = worker.terminate();
                 
             }
         }
-    }*/
+    }
     
 }
 

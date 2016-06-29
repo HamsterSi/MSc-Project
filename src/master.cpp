@@ -22,7 +22,6 @@
 
 Master::Master(void) {
     
-    signal = 0;
     max_Atoms = 0;
     num_Pairs = 0;
     
@@ -90,7 +89,7 @@ void Master::initialise(void) {
 
 void Master::send_Parameters(void) {
     
-    int i, parameters[2] = {io.prm.num_Tetrads, max_Atoms};
+    int i, signal, parameters[2] = {io.prm.num_Tetrads, max_Atoms};
     int * tetrad_Para = new int[2 * io.prm.num_Tetrads];
     double edmd_Para[8] = {edmd.dt, edmd.gamma, edmd.tautp, edmd.temperature,
            edmd.scaled, edmd.mole_Cutoff, edmd.atom_Cutoff, edmd.mole_Least};
@@ -102,8 +101,7 @@ void Master::send_Parameters(void) {
     }
     
     // Send all the parameters to workers
-    for (signal = SIGNAL_DATA, i = 1; i < size; i++) {
-        MPI_Send(&signal,     1, MPI_INT   , i, TAG_DATA, comm);
+    for (i = 1; i < size; i++) {
         MPI_Send(parameters,  2, MPI_INT   , i, TAG_DATA, comm);
         MPI_Send(edmd_Para ,  8, MPI_DOUBLE, i, TAG_DATA, comm);
         MPI_Send(tetrad_Para, 2 * io.prm.num_Tetrads, MPI_INT, i, TAG_DATA, comm);
@@ -122,14 +120,11 @@ void Master::send_Parameters(void) {
 
 void Master::send_Tetrads(void) {
     
-    int i, j;
+    int i, j, signal;
     MPI_Datatype MPI_Tetrad;
     
     // Send tetrads to all worker processes
-    for (signal = SIGNAL_TETRAD, i = 1; i < size; i++) {
-        
-        MPI_Send(&signal, 1, MPI_INT, i, TAG_TETRAD, comm);
-        
+    for (i = 1; i < size; i++) {
         for (j = 0; j < io.prm.num_Tetrads; j++) {
             
             // Create MPI_Datatype for every Tetrad instance & send them to workers
@@ -215,8 +210,6 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
         io.array.assignment(3 * io.tetrad[*i].num_Atoms, io.tetrad[*i].coordinates, buffer[0]);
         
         // Send data to available workers
-        signal = SIGNAL_ED;
-        MPI_Send(&signal, 1, MPI_INT, dest, TAG_ED, comm);
         MPI_Send(&(buffer[0][0]), 3 * max_Atoms + 2, MPI_DOUBLE, dest, TAG_ED, comm);
         
         // Calculate random forces
@@ -232,8 +225,6 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
         io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[1]);
         
         // Send data to available workers
-        signal = SIGNAL_NB;
-        MPI_Send(&signal, 1, MPI_INT, dest, TAG_NB, comm);
         MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, dest, TAG_NB, comm);
         (*j)++;
     }
@@ -479,8 +470,7 @@ void Master::finalise(void) {
     cout << "Writing New Crd  out at     " << io.new_Crd_File << endl << endl;
 
     // Send signal to stop all worker processes
-    signal = SIGNAL_ABORT;
-    for (int i = 1; i < size; i++) {
+    for (int signal = TAG_SIGNAL, i = 1; i < size; i++) {
         MPI_Send(&signal, 1, MPI_INT, i, TAG_SIGNAL, comm);
     }
     
