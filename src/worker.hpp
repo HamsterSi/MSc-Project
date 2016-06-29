@@ -111,15 +111,6 @@ public:
      */
     void NB_Calculation(void);
     
-    /**
-     * Function:  Receive the terminate signal from master & terminate work
-     *
-     * Parameter: None
-     *
-     * Return:    None
-     */
-    int terminate(void);
-    
 };
 
 #endif /* worker_hpp */

@@ -46,7 +46,7 @@ void master_Code(void) {
         // Generate pair lists
         master.generate_Pair_Lists();
         
-        for (int i = 0; i < master.io.ntsync; i++) {//100; i++) {//
+        for (int i = 0; i < master.io.ntsync; i++) {//1; i++) {//
 
             cout << i << endl;
         
@@ -75,7 +75,7 @@ void master_Code(void) {
             
             //master.write_Forces();
             
-            master.write_Trajectories(istep-master.io.ntsync);
+            //master.write_Trajectories(istep-master.io.ntsync);
         }
         if (istep % master.io.ntpr == 0) {
             
@@ -98,10 +98,30 @@ void master_Code(void) {
 
 void worker_Code(void) {
     
-    int flag, signal = 1;
+    int flag, signal;
     Worker worker;
     MPI_Status status;
     
+    while (signal != SIGNAL_ABORT) {
+        
+        MPI_Recv(&signal, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+
+        if (signal == SIGNAL_DATA) {
+            worker.recv_Parameters();
+            
+        } else if (signal == SIGNAL_TETRAD) {
+            worker.recv_Tetrads();
+            
+        } else if (signal == SIGNAL_ED) {
+            worker.ED_Calculation();
+            
+        } else if (signal == SIGNAL_NB) {
+            worker.NB_Calculation();
+        }
+        
+    }
+    
+    /*
     while (signal == 1)
     {
         // Test if there is any message arrived
@@ -130,7 +150,7 @@ void worker_Code(void) {
                 
             }
         }
-    }
+    }*/
     
 }
 

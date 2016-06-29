@@ -44,6 +44,8 @@ public:
     
     EDMD edmd;            // The EDMD class for calculation
     
+    int signal;           // The sending signal to indicates workers what to do
+    
     int size;             // The size of MPI processes
     
     int max_Atoms;        // The maximum number of atoms of tetrads

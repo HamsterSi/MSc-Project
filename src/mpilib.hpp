@@ -27,11 +27,17 @@
 #include "tetrad.hpp"
 
 // Define the MPI tag for message passing
-#define TAG_DATA   1    // For passing parameters (number of tetrads, etc.)
-#define TAG_ED     2    // For message passing of ED forces calculation
-#define TAG_NB     3    // For message passing of NB forces calculation
-#define TAG_DEATH  4    // For terminating the simulation of workers
+#define TAG_SIGNAL 1
+#define TAG_DATA   2    // For passing parameters (number of tetrads, etc.)
+#define TAG_ED     3    // For message passing of ED forces calculation
+#define TAG_NB     4    // For message passing of NB forces calculation
 #define TAG_TETRAD 5    // For passing tetrads between master and workers
+
+#define SIGNAL_DATA   1
+#define SIGNAL_ED     2
+#define SIGNAL_NB     3
+#define SIGNAL_TETRAD 4
+#define SIGNAL_ABORT  5
 
 using namespace std;
 
