@@ -470,9 +470,11 @@ void Master::finalise(void) {
     cout << "Writing New Crd  out at     " << io.new_Crd_File << endl << endl;
 
     // Send signal to stop all worker processes
+    double ** buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
     for (int signal = TAG_SIGNAL, i = 1; i < size; i++) {
-        MPI_Send(&signal, 1, MPI_INT, i, TAG_SIGNAL, comm);
+        MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, i, TAG_SIGNAL, comm);
     }
+    io.array.deallocate_2D_Array(buffer);
     
     cout << "Simulation ended.\n" << endl;
     
