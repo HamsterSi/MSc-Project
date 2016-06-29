@@ -101,7 +101,28 @@ void worker_Code(void) {
     int flag, signal = 1;
     Worker worker;
     MPI_Status status;
+    
+    worker.recv_Parameters();
+    
+    worker.recv_Tetrads();
+    
+    while (signal == 1) {
+        
+        MPI_Recv(&(worker.buffer[0][0]), 2 * (3 * worker.max_Atoms + 2), MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        
+        if (status.MPI_TAG == TAG_ED) {
+            worker.ED_Calculation();
+            
+        } else if (status.MPI_TAG == TAG_NB) {
+            worker.NB_Calculation();
+            
+        } else if (status.MPI_TAG == TAG_SIGNAL) {
+            signal = 0;
+            
+        }
+    }
 
+    /*
     while (signal == 1)
     {
         // Test if there is any message arrived
@@ -130,7 +151,7 @@ void worker_Code(void) {
                 
             }
         }
-    }
+    }*/
     
 }
 
