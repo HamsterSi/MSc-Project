@@ -248,17 +248,23 @@ void Master::recv_ED_Forces(double** buffer) {
 
 
 
-void Master::recv_NB_Forces(double** buffer, int it) {
+void Master::recv_NB_Forces(double** buffer) {
     
-    int i, index = (int) buffer[it][3 * max_Atoms + 1];
+    int i, j, index;
     
-    // Assign the NB & EL energies to tetrad
-    io.tetrad[index].NB_Energy += buffer[0][3 * max_Atoms];
-    io.tetrad[index].EL_Energy += buffer[1][3 * max_Atoms];
+    //cout << "worker: " << buffer[0][3 * max_Atoms + 1] << " " << buffer[1][3 * max_Atoms + 1] << " " << buffer[0][3*max_Atoms] << " " << buffer[0][3*max_Atoms] << endl;
     
-    // Add the NB forces into tetrad
-    for (i = 0; i < 3 * io.tetrad[index].num_Atoms; i++) {
-        io.tetrad[index].NB_Forces[i] += buffer[it][i];
+    for (i = 0; i < 2; i++) {
+        index = (int) buffer[i][3 * max_Atoms + 1];
+        
+        // Assign the NB & EL energies to tetrad
+        io.tetrad[index].NB_Energy += buffer[0][3 * max_Atoms];
+        io.tetrad[index].EL_Energy += buffer[1][3 * max_Atoms];
+        
+        // Add the NB forces into tetrad
+        for (j = 0; j < 3 * io.tetrad[index].num_Atoms; j++) {
+            io.tetrad[index].NB_Forces[j] += buffer[i][j];
+        }
     }
     
 }
@@ -300,23 +306,22 @@ void Master::cal_Forces(void) {
     // Send tetrad indexes & coordinates for ED/NB forces calculation at the beginning
     for (i = 0, j = 0; i < size - 1; i++) {
         send_Tetrad_Index(&i, &j, i + 1, send_Buffer, &request[i]);
+        MPI_Wait(&request[i], MPI_STATUSES_IGNORE);
     }
-    MPI_Waitall(size - 1, request, MPI_STATUSES_IGNORE);
     
     // Receive ED or NB forces & energies from workers & send new tetrad indexes & coordinates
     for (; i < num_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs; i++) {
 
         MPI_Recv(&(recv_Buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status); // Receive ED/NB forces from workers
         
-        // Send tetrad index & coordinates if there are some more
+        // Send tetrad index & coordinates if there is any more
         send_Tetrad_Index(&i, &j, status.MPI_SOURCE, send_Buffer, &request[0]);
         
         if (status.MPI_TAG == TAG_ED) {
-            recv_ED_Forces(recv_Buffer);    // TAG_ED, store ED forces & energies into tetrad
+            recv_ED_Forces(recv_Buffer); // TAG_ED, store ED forces & energies into tetrad
             
         } else if (status.MPI_TAG == TAG_NB) {
-            recv_NB_Forces(recv_Buffer, 0); // TAG_NB, store NB forces & energies into tetrads
-            recv_NB_Forces(recv_Buffer, 1);
+            recv_NB_Forces(recv_Buffer); // TAG_NB, store NB forces & energies into tetrads
         }
 
         MPI_Wait(&request[0], MPI_STATUSES_IGNORE);

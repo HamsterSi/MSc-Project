@@ -153,11 +153,10 @@ public:
      * Function:  Receive NB forces and NB & EL energies from worker, store them into tetrads
      *
      * Parameter: double** buffer -> The buffer with NB forces & energies
-     *            int it          -> The index of tetrad
      *
      * Return:    None
      */
-    void recv_NB_Forces(double** buffer, int it);
+    void recv_NB_Forces(double** buffer);
     
     /**
      * Function:  Clip the NB forces into range (-1.0, 1.0)
