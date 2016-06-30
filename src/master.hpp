@@ -138,7 +138,7 @@ public:
      *
      * Return:    None
      */
-    void send_Tetrad_Index(int* i, int* j, int dest, double** buffer);
+    void send_Tetrad_Index(int* i, int* j, int dest, double** buffer, MPI_Request* request);
 
     /**
      * Function:  Receive ED forces and ED energies from worker, store them into tetrads

@@ -30,7 +30,8 @@ Worker::Worker(void) {
 
 Worker::~Worker(void) {
     
-    array.deallocate_2D_Array(buffer);
+    array.deallocate_2D_Array(send_Buffer);
+    array.deallocate_2D_Array(recv_Buffer);
     
     // Deallocate memory spaces for all arrays in tetrads
     for (int i = 0; i < num_Tetrads; i++) {
@@ -51,7 +52,8 @@ void Worker::recv_Parameters(void) {
     num_Tetrads = parameters[0]; // The number of tetrads
     max_Atoms   = parameters[1]; // The maximum number of atoms in tetrads
     
-    buffer = array.allocate_2D_Array(2, 3 * max_Atoms + 2);
+    send_Buffer = array.allocate_2D_Array(2, 3 * max_Atoms + 2);
+    recv_Buffer = array.allocate_2D_Array(2, 3 * max_Atoms + 2);
     int * tetrad_Para = new int[2 * num_Tetrads];
     
     // Receive edmd parameters & assignment
@@ -104,53 +106,53 @@ void Worker::recv_Tetrads(void) {
 
 
 
-void Worker::ED_Calculation(void) {
+void Worker::ED_Calculation(MPI_Request* request) {
     
     // Receive the tetrad index from the master process
-    //MPI_Recv(&(buffer[0][0]), 3 * max_Atoms + 2, MPI_DOUBLE, 0, TAG_ED, comm, &status);
+    //MPI_Recv(&(recv_Buffer[0][0]), 3 * max_Atoms + 2, MPI_DOUBLE, 0, TAG_ED, comm, &status);
     
     // Assign values for tetrad indexes and coordinates
-    int index = (int) buffer[0][3 * max_Atoms + 1];
+    int index = (int) recv_Buffer[0][3 * max_Atoms + 1];
 
     // Calculate ED forces (ED energy)
-    edmd.calculate_ED_Forces(&tetrad[index], buffer[0]);
+    edmd.calculate_ED_Forces(&tetrad[index], recv_Buffer[0]);
     
     // Assign ED forces & random Forces to the 2D array for sending once
-    array.assignment(3 * tetrad[index].num_Atoms, tetrad[index].ED_Forces  , buffer[0]);
-    array.assignment(3 * tetrad[index].num_Atoms, tetrad[index].coordinates, buffer[1]);
+    array.assignment(3 * tetrad[index].num_Atoms, tetrad[index].ED_Forces  , send_Buffer[0]);
+    array.assignment(3 * tetrad[index].num_Atoms, tetrad[index].coordinates, send_Buffer[1]);
     
     // Need to send the ED Energy back
-    buffer[0][3 * max_Atoms] = tetrad[index].ED_Energy;
+    send_Buffer[0][3 * max_Atoms] = tetrad[index].ED_Energy;
     
     // Send the calculated ED forces, ED energy, random forces & index back
-    MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_ED, comm);
+    MPI_Isend(&(send_Buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_ED, comm, request);
     
 }
 
 
 
-void Worker::NB_Calculation(void) {
+void Worker::NB_Calculation(MPI_Request* request) {
 
     // Receive tetrad indexes for NB forces calculation
-    //MPI_Recv(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm, &status);
+    //MPI_Recv(&(recv_Buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm, &status);
     
     // Assign values for tetrad indexes and coordinates
-    int idx1 = (int) buffer[0][3 * max_Atoms + 1];
-    int idx2 = (int) buffer[1][3 * max_Atoms + 1];
+    int idx1 = (int) recv_Buffer[0][3 * max_Atoms + 1];
+    int idx2 = (int) recv_Buffer[1][3 * max_Atoms + 1];
     
     // Calculate NB forces, NB energy & Electrostatic Energy
-    edmd.calculate_NB_Forces(&tetrad[idx1], &tetrad[idx2], buffer[0], buffer[1]);
+    edmd.calculate_NB_Forces(&tetrad[idx1], &tetrad[idx2], recv_Buffer[0], recv_Buffer[1]);
     
     // Assign NB forces to the 2D array to send back once
-    array.assignment(3 * tetrad[idx1].num_Atoms, tetrad[idx1].NB_Forces, buffer[0]);
-    array.assignment(3 * tetrad[idx2].num_Atoms, tetrad[idx2].NB_Forces, buffer[1]);
+    array.assignment(3 * tetrad[idx1].num_Atoms, tetrad[idx1].NB_Forces, send_Buffer[0]);
+    array.assignment(3 * tetrad[idx2].num_Atoms, tetrad[idx2].NB_Forces, send_Buffer[1]);
     
     // Need to send NB Energy & Electrostatic Energy back (bacause the energies in both tetrads are the same when calculation, so only need to send one set)
-    buffer[0][3 * max_Atoms] = tetrad[idx1].NB_Energy;
-    buffer[1][3 * max_Atoms] = tetrad[idx1].EL_Energy;
+    send_Buffer[0][3 * max_Atoms] = tetrad[idx1].NB_Energy;
+    send_Buffer[1][3 * max_Atoms] = tetrad[idx1].EL_Energy;
     
     // Send NB forces, energies & indexes back to master
-    MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm);
+    MPI_Isend(&(send_Buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm, request);
     
 }
 

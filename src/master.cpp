@@ -201,7 +201,7 @@ void Master::generate_Pair_Lists(void) {
 
 
 
-void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
+void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer, MPI_Request* request) {
     
     if (*i < io.prm.num_Tetrads) { // Send tetrad index for ED calculation
         
@@ -210,7 +210,7 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
         io.array.assignment(3 * io.tetrad[*i].num_Atoms, io.tetrad[*i].coordinates, buffer[0]);
         
         // Send data to available workers
-        MPI_Send(&(buffer[0][0]), 3 * max_Atoms + 2, MPI_DOUBLE, dest, TAG_ED, comm);
+        MPI_Isend(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, dest, TAG_ED, comm, request);
         
         // Calculate random forces
         edmd.calculate_Random_Forces(&io.tetrad[*i]);
@@ -225,7 +225,7 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer) {
         io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[1]);
         
         // Send data to available workers
-        MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, dest, TAG_NB, comm);
+        MPI_Isend(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, dest, TAG_NB, comm, request);
         (*j)++;
     }
     
@@ -283,7 +283,9 @@ void Master::clip_NB_Forces(void) {
 void Master::cal_Forces(void) {
     
     int i, j;
-    double ** buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
+    double ** send_Buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
+    double ** recv_Buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
+    MPI_Request request[size - 1];
 
     // Initialise the forces & energies in the tetrads
     for (i = 0; i < io.prm.num_Tetrads; i++) {
@@ -297,31 +299,35 @@ void Master::cal_Forces(void) {
     
     // Send tetrad indexes & coordinates for ED/NB forces calculation at the beginning
     for (i = 0, j = 0; i < size - 1; i++) {
-        send_Tetrad_Index(&i, &j, i + 1, buffer);
+        send_Tetrad_Index(&i, &j, i + 1, send_Buffer, &request[i]);
     }
+    MPI_Waitall(size - 1, request, MPI_STATUSES_IGNORE);
     
     // Receive ED or NB forces & energies from workers & send new tetrad indexes & coordinates
     for (; i < num_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs; i++) {
 
-        MPI_Recv(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status); // Receive ED/NB forces from workers
-        
-        if (status.MPI_TAG == TAG_ED) {
-            recv_ED_Forces(buffer);    // TAG_ED, store ED forces & energies into tetrad
-            
-        } else if (status.MPI_TAG == TAG_NB) {
-            recv_NB_Forces(buffer, 0); // TAG_NB, store NB forces & energies into tetrads
-            recv_NB_Forces(buffer, 1);
-        }
+        MPI_Recv(&(recv_Buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status); // Receive ED/NB forces from workers
         
         // Send tetrad index & coordinates if there are some more
-        send_Tetrad_Index(&i, &j, status.MPI_SOURCE, buffer);
+        send_Tetrad_Index(&i, &j, status.MPI_SOURCE, send_Buffer, &request[0]);
+        
+        if (status.MPI_TAG == TAG_ED) {
+            recv_ED_Forces(recv_Buffer);    // TAG_ED, store ED forces & energies into tetrad
+            
+        } else if (status.MPI_TAG == TAG_NB) {
+            recv_NB_Forces(recv_Buffer, 0); // TAG_NB, store NB forces & energies into tetrads
+            recv_NB_Forces(recv_Buffer, 1);
+        }
+
+        MPI_Wait(&request[0], MPI_STATUSES_IGNORE);
         
     }
     
     // Clip NB forces into range (-1.0, 1.0)
     clip_NB_Forces();
     
-    io.array.deallocate_2D_Array(buffer);
+    io.array.deallocate_2D_Array(send_Buffer);
+    io.array.deallocate_2D_Array(recv_Buffer);
     
 }
 

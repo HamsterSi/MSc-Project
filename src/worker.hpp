@@ -44,7 +44,8 @@ public:
     
     Tetrad *tetrad;     // Tetrad array, used to store tetrads
     
-    double ** buffer;   // The buffer for send & receive data
+    double ** send_Buffer;   // The buffer for send & receive data
+    double ** recv_Buffer;
     
     EDMD edmd;          // EDMD class, functions will be called to calculate forces
     
@@ -100,7 +101,7 @@ public:
      *
      * Return:    None
      */
-    void ED_Calculation(void);
+    void ED_Calculation(MPI_Request* request);
     
     /**
      * Function:  Compute NB forces of tetrads. Send the NB forces & energies back to master.
@@ -109,7 +110,7 @@ public:
      *
      * Return:    None
      */
-    void NB_Calculation(void);
+    void NB_Calculation(MPI_Request* request);
     
     /**
      * Function:  Receive the terminate signal from master & terminate work

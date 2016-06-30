@@ -101,6 +101,7 @@ void worker_Code(void) {
     int flag, signal = 1;
     Worker worker;
     MPI_Status status;
+    MPI_Request request;
     
     worker.recv_Parameters();
     
@@ -108,50 +109,21 @@ void worker_Code(void) {
     
     while (signal == 1) {
         
-        MPI_Recv(&(worker.buffer[0][0]), 2 * (3 * worker.max_Atoms + 2), MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        MPI_Recv(&(worker.recv_Buffer[0][0]), 2 * (3 * worker.max_Atoms + 2), MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         
         if (status.MPI_TAG == TAG_ED) {
-            worker.ED_Calculation();
+            worker.ED_Calculation(&request);
             
         } else if (status.MPI_TAG == TAG_NB) {
-            worker.NB_Calculation();
+            worker.NB_Calculation(&request);
             
         } else if (status.MPI_TAG == TAG_SIGNAL) {
             signal = 0;
-            
         }
+        
+        MPI_Wait(&request, MPI_STATUSES_IGNORE);
+        
     }
-
-    /*
-    while (signal == 1)
-    {
-        // Test if there is any message arrived
-        MPI_Iprobe(0, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &status);
-        if (flag)
-        {
-            // Arrived message tag indicates to receive parameters
-            if (status.MPI_TAG == TAG_DATA) {
-                worker.recv_Parameters();
-                
-            // Receive the parameters of all tetrads
-            } else if (status.MPI_TAG >= TAG_TETRAD) {
-                worker.recv_Tetrads();
-
-            // Message tag indicates to do the ED force calculation
-            } else if (status.MPI_TAG == TAG_ED) {
-                worker.ED_Calculation();
-                
-            // Message tag indicates to do the NB force calculation
-            } else if (status.MPI_TAG == TAG_NB) {
-                worker.NB_Calculation();
-                
-            // Indicates to stop work
-            } else if (status.MPI_TAG == TAG_SIGNAL) {
-                signal = worker.terminate();
-                
-            }
-        }
-    }*/
     
 }
 
