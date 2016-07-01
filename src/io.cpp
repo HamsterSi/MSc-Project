@@ -189,7 +189,7 @@ void IO::read_Prm(void) {
 
 void IO::read_Crd(void) {
     
-    int i;
+    int i, j;
     ifstream fin;
     
     // If irest is 0 then open the initial crd file,
@@ -213,12 +213,18 @@ void IO::read_Crd(void) {
         crd.BP_Crds = new double[3 * crd.total_Atoms];
         crd.BP_Vels = new double[3 * crd.total_Atoms];
         
-        // Lines 65 - ?: Initial coordinates for each base pair (x1,y1,z1,x2,y2,z2...x63,y63,z63) 10 doubles per line, new line before the start of each subsequent base pair, values in angstroms
-        for (i = 0; i < 3 * crd.total_Atoms; i++) { fin >> crd.BP_Crds[i]; }
+        generate_Displacements(); // Generate the displacements for DNA base pairs
         
-        // Lines ? - ?: If this is the new crd file & not the 1st time to run the simulation, then there are velocities to read
-        if (irest != 0) {
-            for (i = 0; i < 3 * crd.total_Atoms; i++) { fin >> crd.BP_Vels[i]; }
+        // Lines 65 - ?: Initial coordinates (& velocities) for each base pair (x1,y1,z1,x2,y2,z2...x63,y63,z63) 10 doubles per line, new line before the start of each subsequent base pair, values in angstroms
+        for (i = 0; i < crd.num_BP; i++) {
+            for (j = displs[i]; j < displs[i] + 3 * crd.BP_Atoms[i]; j++) {
+                fin >> crd.BP_Crds[j];
+            }
+            if (irest != 0) {
+                for (j = displs[i]; j < displs[i] + 3 * crd.BP_Atoms[i]; j++) {
+                    fin >> crd.BP_Vels[j];
+                }
+            }
         }
         
         fin.close();
@@ -291,25 +297,6 @@ void IO::initialise_Tetrad_Crds(void) {
 
 
 
-void IO::write_Template(ofstream* fout, double* data) {
-    
-    int i, j, index;
-    
-    for (i = 0; i < crd.num_BP; i++) {
-        for (index = displs[i], j = 0; j < 3 * crd.BP_Atoms[i]; j++) {
-            
-            (* fout) << fixed << setw(10) << setprecision(4) << data[index++] << " ";
-            if ((j + 1) % 10 == 0) (* fout) << endl;
-            
-        }
-        (* fout) << endl;
-    }
-    (* fout) << endl;
-    
-}
-
-
-
 void IO::write_Energies(int istep, double energies[]) {
     
     ofstream fout;
@@ -330,35 +317,6 @@ void IO::write_Energies(int istep, double energies[]) {
         exit(1);
     }
 
-}
-
-
-
-void IO::write_Forces(double* ED_Forces, double* random_Forces, double* NB_Forces) {
-    
-    ofstream fout;
-    fout.open(forces_File.c_str(), ios_base::out);
-    
-    if (fout.is_open()) {
-    
-        // Write out ED forces
-        fout << "ED Forces:" << endl;
-        write_Template(&fout, ED_Forces);
-        
-        // Write out random forces
-        fout << "\nRandom Forces:" << endl;
-        write_Template(&fout, random_Forces);
-        
-        // Write out NB forces
-        fout << "\nNB Forces:" << endl;
-        write_Template(&fout, NB_Forces);
-        
-        fout.close();
-        
-    } else {
-        cout << ">>> ERROR: Can not open the forces file!" << endl;
-        exit(1);
-    }
 }
 
 
@@ -392,6 +350,7 @@ void IO::write_Trajectory(int istep, int index, double* coordinates) {
 
 void IO::update_Crd(double* velocities, double* coordinates) {
     
+    int i, j;
     ofstream fout;
     fout.open(new_Crd_File.c_str(), ios_base::out);
     
@@ -406,8 +365,19 @@ void IO::update_Crd(double* velocities, double* coordinates) {
         }
         
         // Write out coordinates & velocities
-        write_Template(&fout, coordinates);
-        write_Template(&fout, velocities );
+        for (i = 0; i < crd.num_BP; i++) {
+            for (j = displs[i]; j < displs[i] + 3 * crd.BP_Atoms[i]; j++) {
+                fout << fixed << setw(10) << setprecision(4) << coordinates[j] << " ";
+                if ((j + 1) % 10 == 0) fout << endl;
+            }
+            fout << endl;
+            
+            for (j = displs[i]; j < displs[i] + 3 * crd.BP_Atoms[i]; j++) {
+                fout << fixed << setw(10) << setprecision(4) << velocities[j] << " ";
+                if ((j + 1) % 10 == 0) fout << endl;
+            }
+            fout << endl;
+        }
         
         fout.close();
         

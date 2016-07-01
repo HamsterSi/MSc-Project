@@ -234,11 +234,8 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double** crds, double** N
     double q;            // q: num_atoms vectors of charges
     double qfac = 0.0;   // qfac: electrostatics factor, set up for dd-dielectric constant of 4r, qfac=332.064/4.0, no electrostatics...
     
-    // Initialise energies & NB forces
-    t1->NB_Energy = t1->EL_Energy = 0.0;
-    for (i = 0 ; i < 3 * t1->num_Atoms + 1; i++) { NB_Forces[0][i] = 0.0; }
-    t2->NB_Energy = t2->EL_Energy = 0.0;
-    for (i = 0 ; i < 3 * t2->num_Atoms + 1; i++) { NB_Forces[1][i] = 0.0; }
+    // Initialise energies & NB forces to 0
+    for (i = 0 ; i < atoms + 1; i++) { NB_Forces[0][i] = NB_Forces[1][i] = 0.0; }
     
     for (i = 0; i < t1->num_Atoms; i++) {
         for (j = 0; j < t2->num_Atoms; j++) {
@@ -256,8 +253,8 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double** crds, double** N
                 q = t1->abq[3*i+2] * t2->abq[3*j+2];
                 
                 // NB Energy & Electrostatic Energy
-                NB_Forces[0][atoms] += 0.25 * krep * a * a;
-                NB_Forces[1][atoms] += 0.5 * qfac * q * sqdist;
+                NB_Forces[0][atoms] += 0.25 * krep * a * a;     // NB Energy
+                NB_Forces[1][atoms] += 0.5 * qfac * q * sqdist; // Electrostatic Energy
                 
                 // NB forces
                 pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);

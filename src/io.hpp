@@ -166,16 +166,6 @@ public:
     void initialise_Tetrad_Crds(void);
     
     /**
-     * Function:   Write out some array in a certain form
-     *
-     * Parameters: ofstream* fout -> The file stream pointer
-     *             double* data   -> The data needs to write out
-     *
-     * Returns:    None.
-     */
-    void write_Template(ofstream* fout, double* data);
-    
-    /**
      * Function:   Write out energies & temperature of all tetrads.
      *
      * Parameters: int istep         -> The iterations of simulation
@@ -184,17 +174,6 @@ public:
      * Returns:    None.
      */
     void write_Energies(int istep, double energies[]);
-    
-    /**
-     * Function:   Write out all ED forces, random forces & NB forces
-     *
-     * Parameters: double* ED_Forces     -> The total ED forces of all DNA base pairs
-     *             double* random_Forces -> The total random forces of all DNA base pairs
-     *             double* NB_Forces     -> The total NB forces of all DNA base pairs
-     *
-     * Returns:    None.
-     */
-    void write_Forces(double* ED_Forces, double* random_Forces, double* NB_Forces);
     
     /**
      * Function:   Write out trajectories evry certain iterations

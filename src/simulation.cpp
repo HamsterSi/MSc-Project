@@ -43,43 +43,31 @@ void master_Code(void) {
 
         //cout << "\nIteration: " << icyc << endl;
         
-        // Generate pair lists
-        master.generate_Pair_Lists();
+        master.generate_Pair_Lists(); // Generate pair lists
         
         for (int i = 0; i < master.io.ntsync; i++) {//1; i++) {//
 
-            //cout << i << endl;
+            cout << i << endl;
         
-            // Master sends coordinates and tetrad indexes to workers and worker
-            // calculate ED/NB forces for tetrads
-            master.cal_Forces();
-            
-            // Master calculates velocities for all tetrads
-            master.cal_Velocities();
-            
-            // Master calculates coordinates for all tetrads
-            master.cal_Coordinate();
+            master.cal_Forces(); // Master sends tetrad indexes & coordinates to workers, worker send ED/NB forces back
+            master.cal_Velocities(); // Calculate velocities
+            master.cal_Coordinate(); // Calculate coordinates
     
         }
         
         istep += master.io.ntsync;
         
-        // The velocities & coordinates of tetrads are gathered and processed
+        // Process the velocities & coordinates of tetrads together
         master.data_Processing();
         
-        // Write out file with certain frequencies
+        // Write out energies & tmeperature, and the trajectories of DNA
         if (istep % master.io.ntwt == 0) {
-            
-            // Write out the energies and tmeperature
             master.write_Energy(istep);
-            
-            //master.write_Forces();
-            
             master.write_Trajectories(istep-master.io.ntsync);
         }
+        
+        // Write out a new crd file
         if (istep % master.io.ntpr == 0) {
-            
-            // Write out a new crd file
             master.write_Crds();
         }
         
@@ -101,27 +89,31 @@ void worker_Code(void) {
     int flag, signal = 1;
     Worker worker;
     MPI_Status status;
-    MPI_Request request;
+    MPI_Request send_Request, recv_Request;
     
+    // Receive parameters & initialisation
     worker.recv_Parameters();
     
+    // Receive all tetrads
     worker.recv_Tetrads();
+    
+    // Receive tetrad indexes & coordinates for Ed/NB calculation
+    MPI_Irecv(&(worker.recv_Buf[0][0]), 2 * (3 * worker.max_Atoms + 2), MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_Request);
+    MPI_Wait(&recv_Request, &status);
+    
+    if (status.MPI_TAG == TAG_ED) { worker.ED_Calculation(&send_Request); }
+    if (status.MPI_TAG == TAG_NB) { worker.NB_Calculation(&send_Request); }
     
     while (signal == 1) {
         
-        MPI_Recv(&(worker.recv_Buffer[0][0]), 2 * (3 * worker.max_Atoms + 2), MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        MPI_Irecv(&(worker.recv_Buf[0][0]), 2 * (3 * worker.max_Atoms + 2), MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_Request);
         
-        if (status.MPI_TAG == TAG_ED) {
-            worker.ED_Calculation(&request);
-            
-        } else if (status.MPI_TAG == TAG_NB) {
-            worker.NB_Calculation(&request);
-            
-        } else if (status.MPI_TAG == TAG_SIGNAL) {
-            signal = 0;
-        }
+        MPI_Wait(&send_Request, &status);
+        MPI_Wait(&recv_Request, &status);
         
-        MPI_Wait(&request, MPI_STATUSES_IGNORE);
+        if (status.MPI_TAG == TAG_ED) { worker.ED_Calculation(&send_Request); }
+        if (status.MPI_TAG == TAG_NB) { worker.NB_Calculation(&send_Request); }
+        if (status.MPI_TAG == TAG_SIGNAL) { signal = 0; }
         
     }
     

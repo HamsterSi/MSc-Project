@@ -46,19 +46,18 @@ public:
     
     int size;             // The size of MPI processes
     
-    int max_Atoms;        // The maximum number of atoms of tetrads
+    int max_Atoms;        // The maximum number of atoms in tetrads
     
     int num_Pairs;        // The number of pairs that have NB forces to be calculated
     
     double ** pair_Lists; // The array to store pair lists
 
-    double * velocities;  // Store the velocities of all atoms in DNA
+    double * velocities;  // Store the velocities of all atoms
     
-    double * coordinates; // Store the coordinates of all atoms in DNA
+    double * coordinates; // Store the coordinates of all atoms
     
     MPI_Comm comm;        // The MPI communicator
     
-    MPI_Status status;    // MPI status
     
 public:
     
@@ -212,15 +211,6 @@ public:
      * Return:    None
      */
     void write_Energy(int istep);
-    
-    /**
-     * Function:  Master writes out forces of all atoms in DNA
-     *
-     * Parameter: None
-     *
-     * Return:    None
-     */
-    void write_Forces(void);
     
     /**
      * Function:  Master writes the trajectories.

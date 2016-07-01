@@ -45,13 +45,8 @@ Master::~Master(void) {
 void Master::initialise(void) {
     
     io.read_Cofig(&edmd);
-
     io.read_Prm();
-    
     io.read_Crd();
-    
-    // Generate the displacement array for DNA base pairs
-    io.generate_Displacements();
     
     // Initialise coordinates & velocities of tetrads from the crd file
     io.initialise_Tetrad_Crds();
@@ -93,6 +88,7 @@ void Master::send_Parameters(void) {
     int * tetrad_Para = new int[2 * io.prm.num_Tetrads];
     double edmd_Para[8] = {edmd.dt, edmd.gamma, edmd.tautp, edmd.temperature,
            edmd.scaled, edmd.mole_Cutoff, edmd.atom_Cutoff, edmd.mole_Least};
+    MPI_Status status;
     
     // Assign the number of atoms & evecs of tetrads into the sending array
     for (i = 0; i < io.prm.num_Tetrads; i++) {
@@ -122,6 +118,7 @@ void Master::send_Tetrads(void) {
     
     int i, j, signal;
     MPI_Datatype MPI_Tetrad;
+    MPI_Status status;
     
     // Send tetrads to all worker processes
     for (i = 1; i < size; i++) {
@@ -291,7 +288,8 @@ void Master::cal_Forces(void) {
     int i, j;
     double ** send_Buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
     double ** recv_Buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
-    MPI_Request request[size - 1];
+    MPI_Status status;
+    MPI_Request send_Request, recv_Request;
 
     // Initialise the forces & energies in the tetrads
     for (i = 0; i < io.prm.num_Tetrads; i++) {
@@ -305,26 +303,25 @@ void Master::cal_Forces(void) {
     
     // Send tetrad indexes & coordinates for ED/NB forces calculation at the beginning
     for (i = 0, j = 0; i < size - 1; i++) {
-        send_Tetrad_Index(&i, &j, i + 1, send_Buffer, &request[i]);
-        MPI_Wait(&request[i], MPI_STATUSES_IGNORE);
+        send_Tetrad_Index(&i, &j, i + 1, send_Buffer, &send_Request);
+        MPI_Wait(&send_Request, &status);
     }
     
     // Receive ED or NB forces & energies from workers & send new tetrad indexes & coordinates
     for (; i < num_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs; i++) {
 
-        MPI_Recv(&(recv_Buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &status); // Receive ED/NB forces from workers
+        MPI_Irecv(&(recv_Buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &recv_Request); // Receive ED/NB forces from workers
+        MPI_Wait(&recv_Request, &status);
         
         // Send tetrad index & coordinates if there is any more
-        send_Tetrad_Index(&i, &j, status.MPI_SOURCE, send_Buffer, &request[0]);
+        send_Tetrad_Index(&i, &j, status.MPI_SOURCE, send_Buffer, &send_Request);
         
-        if (status.MPI_TAG == TAG_ED) {
-            recv_ED_Forces(recv_Buffer); // TAG_ED, store ED forces & energies into tetrad
-            
-        } else if (status.MPI_TAG == TAG_NB) {
-            recv_NB_Forces(recv_Buffer); // TAG_NB, store NB forces & energies into tetrads
-        }
+        // TAG_ED, store ED forces & energies into tetrad
+        if (status.MPI_TAG == TAG_ED) { recv_ED_Forces(recv_Buffer); }
+        // TAG_NB, store NB forces & energies into tetrads
+        if (status.MPI_TAG == TAG_NB) { recv_NB_Forces(recv_Buffer); }
 
-        MPI_Wait(&request[0], MPI_STATUSES_IGNORE);
+        MPI_Wait(&send_Request, MPI_STATUSES_IGNORE);
         
     }
     
@@ -418,38 +415,6 @@ void Master::write_Energy(int istep) {
     
     // Wrtie out energies
     io.write_Energies(istep, energies);
-    
-}
-
-
-
-void Master::write_Forces(void) {
-    
-    int i, j, index;
-    double * ED_Forces     = new double [3 * io.crd.total_Atoms];
-    double * random_Forces = new double [3 * io.crd.total_Atoms];
-    double * NB_Forces     = new double [3 * io.crd.total_Atoms];
-    
-    // Initialise arrays
-    for (i = 0; i < 3 * io.crd.total_Atoms; i++) {
-        ED_Forces[i] = random_Forces[i] = NB_Forces[i] = 0.0;
-    }
-    
-    // Gather all forcees together into three arrays
-    for (i = 0; i < io.prm.num_Tetrads; i++) {
-        for (index = io.displs[i], j = 0; j < 3 * io.tetrad[i].num_Atoms; index++, j++) {
-            ED_Forces[index]     += io.tetrad[i].ED_Forces[j];
-            random_Forces[index] += io.tetrad[i].random_Forces[j];
-            NB_Forces[index]     += io.tetrad[i].NB_Forces[j];
-        }
-    }
-    
-    // Write out all forces
-    io.write_Forces(ED_Forces, random_Forces, NB_Forces);
-    
-    delete []ED_Forces;
-    delete []random_Forces;
-    delete []NB_Forces;
     
 }
 
