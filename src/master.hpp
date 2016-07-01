@@ -127,6 +127,15 @@ public:
     void generate_Pair_Lists(void);
     
     /**
+     * Function:  Initialise the forces & energies of tetrads to 0
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
+    void initialise_Forces_n_Energies(void);
+    
+    /**
      * Function:  Master send the index of Tetrads to workers for ED & NB forces calculation.
      *            It also calculate the random forces.
      *

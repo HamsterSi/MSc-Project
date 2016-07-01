@@ -198,6 +198,25 @@ void Master::generate_Pair_Lists(void) {
 
 
 
+void Master::initialise_Forces_n_Energies(void) {
+
+    for (int i = 0; i < io.prm.num_Tetrads; i++) {
+        
+        for (int j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
+            io.tetrad[i].ED_Forces[j]     = 0.0;
+            io.tetrad[i].random_Forces[j] = 0.0;
+            io.tetrad[i].NB_Forces[j]     = 0.0;
+        }
+        
+        io.tetrad[i].ED_Energy = 0.0;
+        io.tetrad[i].NB_Energy = 0.0;
+        io.tetrad[i].EL_Energy = 0.0;
+    }
+    
+}
+
+
+
 void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer, MPI_Request* request) {
     
     if (*i < io.prm.num_Tetrads) { // Send tetrad index for ED calculation
@@ -213,13 +232,12 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer, MPI_Re
         edmd.calculate_Random_Forces(&io.tetrad[*i]);
         
     } else if (*j < num_Pairs) { // i >= num_Tetrads, send tetrad indexes for NB calculation
-        int index = pair_Lists[*j][0];
-        buffer[0][3 * max_Atoms + 1] = (double) index;
-        io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[0]);
         
-        index = pair_Lists[*j][1];
-        buffer[1][3 * max_Atoms + 1] = (double) index;
-        io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[1]);
+        for (int index, k = 0; k < 2; k++) {
+            index = pair_Lists[*j][k];
+            buffer[k][3 * max_Atoms + 1] = (double) pair_Lists[*j][k];
+            io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, buffer[k]);
+        }
         
         // Send data to available workers
         MPI_Isend(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, dest, TAG_NB, comm, request);
@@ -247,19 +265,15 @@ void Master::recv_ED_Forces(double** buffer) {
 
 void Master::recv_NB_Forces(double** buffer) {
     
-    int i, j, index;
-    
-    //cout << "worker: " << buffer[0][3 * max_Atoms + 1] << " " << buffer[1][3 * max_Atoms + 1] << " " << buffer[0][3*max_Atoms] << " " << buffer[0][3*max_Atoms] << endl;
-    
-    for (i = 0; i < 2; i++) {
-        index = (int) buffer[i][3 * max_Atoms + 1];
+    for (int i = 0; i < 2; i++) {
+        int index = (int) buffer[i][3 * max_Atoms + 1];
         
         // Assign the NB & EL energies to tetrad
         io.tetrad[index].NB_Energy += buffer[0][3 * max_Atoms];
         io.tetrad[index].EL_Energy += buffer[1][3 * max_Atoms];
         
         // Add the NB forces into tetrad
-        for (j = 0; j < 3 * io.tetrad[index].num_Atoms; j++) {
+        for (int j = 0; j < 3 * io.tetrad[index].num_Atoms; j++) {
             io.tetrad[index].NB_Forces[j] += buffer[i][j];
         }
     }
@@ -291,15 +305,8 @@ void Master::cal_Forces(void) {
     MPI_Status status;
     MPI_Request send_Request, recv_Request;
 
-    // Initialise the forces & energies in the tetrads
-    for (i = 0; i < io.prm.num_Tetrads; i++) {
-        for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            io.tetrad[i].ED_Forces[j] = io.tetrad[i].random_Forces[j] =
-            io.tetrad[i].NB_Forces[j] = 0.0;
-        }
-        io.tetrad[i].ED_Energy = io.tetrad[i].NB_Energy =
-        io.tetrad[i].EL_Energy = 0.0;
-    }
+    // Initialise the forces & energies of tetrads
+    initialise_Forces_n_Energies();
     
     // Send tetrad indexes & coordinates for ED/NB forces calculation at the beginning
     for (i = 0, j = 0; i < size - 1; i++) {
@@ -316,9 +323,8 @@ void Master::cal_Forces(void) {
         // Send tetrad index & coordinates if there is any more
         send_Tetrad_Index(&i, &j, status.MPI_SOURCE, send_Buffer, &send_Request);
         
-        // TAG_ED, store ED forces & energies into tetrad
+        // store forces & energies into tetrads according MPI Tags
         if (status.MPI_TAG == TAG_ED) { recv_ED_Forces(recv_Buffer); }
-        // TAG_NB, store NB forces & energies into tetrads
         if (status.MPI_TAG == TAG_NB) { recv_NB_Forces(recv_Buffer); }
 
         MPI_Wait(&send_Request, MPI_STATUSES_IGNORE);
