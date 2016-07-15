@@ -30,14 +30,12 @@ void master_Code(void) {
     // allocate memory for arrays, set the frequencies of iterations, etc.
     master.initialise();
     
-    cout << "\nMaster sending data to Workers." << endl;
-    cout << ">>> Sending parameters..." << endl;
+    cout << "\nMaster sending data to workers.\n>>> Sending parameters..." << endl;
     master.send_Parameters();
     
     cout << ">>> Sending tetrads..." << endl;
     master.send_Tetrads();
-    cout << "Data sending completed." << endl;
-    cout << "\nStart simulation...\n" << endl;
+    cout << "Data sending completed.\n\nStart simulation...\n" << endl;
     
     for (int istep = 0, icyc = 0; icyc < 1; icyc++) {//master.io.ncycs; icyc++) {//
 
@@ -75,10 +73,9 @@ void master_Code(void) {
     
     // Finalise the simulation, send signal to workers to stop their work
     master.finalise();
-    cout << "Simulation ended." << endl;
-    
+
     double time_Usage = double (clock() - start_Time) / CLOCKS_PER_SEC;
-    cout << "Time usage of simualtion: " << time_Usage << endl << endl;
+    cout << "Simulation ended.\nTime usage of simualtion: " << time_Usage << endl << endl;
     
 }
 
@@ -86,10 +83,7 @@ void master_Code(void) {
 
 void worker_Code(void) {
     
-    int flag, signal = 1;
     Worker worker;
-    MPI_Status status;
-    MPI_Request send_Request, recv_Request;
     
     // Receive parameters & initialisation
     worker.recv_Parameters();
@@ -97,25 +91,8 @@ void worker_Code(void) {
     // Receive all tetrads
     worker.recv_Tetrads();
     
-    // Receive tetrad indexes & coordinates for Ed/NB calculation
-    MPI_Irecv(&(worker.recv_Buf[0][0]), 2 * (3 * worker.max_Atoms + 2), MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_Request);
-    MPI_Wait(&recv_Request, &status);
-    
-    if (status.MPI_TAG == TAG_ED) { worker.ED_Calculation(&send_Request); }
-    if (status.MPI_TAG == TAG_NB) { worker.NB_Calculation(&send_Request); }
-    
-    while (signal == 1) {
-        
-        MPI_Irecv(&(worker.recv_Buf[0][0]), 2 * (3 * worker.max_Atoms + 2), MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_Request);
-        
-        MPI_Wait(&send_Request, &status);
-        MPI_Wait(&recv_Request, &status);
-        
-        if (status.MPI_TAG == TAG_ED) { worker.ED_Calculation(&send_Request); }
-        if (status.MPI_TAG == TAG_NB) { worker.NB_Calculation(&send_Request); }
-        if (status.MPI_TAG == TAG_SIGNAL) { signal = 0; }
-        
-    }
+    // Start ED/NB force calculation
+    worker.force_Calculation();
     
 }
 

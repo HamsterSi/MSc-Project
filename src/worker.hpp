@@ -36,7 +36,7 @@ using namespace std;
  */
 class Worker {
     
-public:
+private:
 
     int num_Tetrads;    // The number of total tetrads
     
@@ -94,22 +94,32 @@ public:
     void recv_Tetrads(void);
     
     /**
-     * Function:  Compute ED forces of tetrads and send the ED forces & energy back to master.
+     * Function:  Compute ED forces of tetrads.
      *
-     * Parameter: MPI_Request* request -> Communication request
+     * Parameter: None
      *
      * Return:    None
      */
-    void ED_Calculation(MPI_Request* request);
+    void ED_Calculation(void);
     
     /**
-     * Function:  Compute NB forces of tetrads. Send the NB forces & energies back to master.
+     * Function:  Compute NB forces of tetrads.
      *
-     * Parameter: MPI_Request* request -> Communication request
+     * Parameter: None
      *
      * Return:    None
      */
-    void NB_Calculation(MPI_Request* request);
+    void NB_Calculation(void);
+    
+    /**
+     * Function:  Responsible for receive instructions from master to calculate ED/NB forces and
+     *            send forces & energies back to master.
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
+    void force_Calculation(void);
     
 };
 
