@@ -233,6 +233,7 @@ void Master::send_Tetrad_Index(int* i, int* j, int dest, double** buffer, MPI_Re
         
     } else if (*j < num_Pairs) { // i >= num_Tetrads, send tetrad indexes for NB calculation
         
+        // Assign data to the send buffer for ED calculation
         for (int index, k = 0; k < 2; k++) {
             index = pair_Lists[*j][k];
             buffer[k][3 * max_Atoms + 1] = (double) pair_Lists[*j][k];
@@ -299,12 +300,13 @@ void Master::clip_NB_Forces(void) {
 
 void Master::cal_Forces(void) {
     
-    int i, j;
+    int i, j, k, index;
     double ** send_Buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
     double ** recv_Buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
     MPI_Status status;
+    //MPI_Request request[size - 1], send_Request[size - 1], recv_Request[size - 1];
     MPI_Request send_Request, recv_Request;
-
+    
     // Initialise the forces & energies of tetrads
     initialise_Forces_n_Energies();
     
@@ -316,7 +318,7 @@ void Master::cal_Forces(void) {
     
     // Receive ED or NB forces & energies from workers & send new tetrad indexes & coordinates
     for (; i < num_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs; i++) {
-
+        
         MPI_Irecv(&(recv_Buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &recv_Request); // Receive ED/NB forces from workers
         MPI_Wait(&recv_Request, &status);
         
@@ -326,10 +328,36 @@ void Master::cal_Forces(void) {
         // store forces & energies into tetrads according MPI Tags
         if (status.MPI_TAG == TAG_ED) { recv_ED_Forces(recv_Buffer); }
         if (status.MPI_TAG == TAG_NB) { recv_NB_Forces(recv_Buffer); }
-
+        
         MPI_Wait(&send_Request, MPI_STATUSES_IGNORE);
         
     }
+    
+    // Having an array of send and recv requests on the master, one for each worker.
+    
+    // Then once you have sent work, you can call MPI_Waitany() to see if any of the requests have completed.
+    
+    // If one has completed, then you save the forces and send a new task, then go back to calling MPI_Waitany().
+    
+    // The key thing here is that the receives for the other workers can go on while you are processing the forces and generating new tasks.
+    /*
+    for (i = 0, j = 0; i < num_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs; i++) {
+        
+        for (k = 0; k < size - 1; k++) {
+            send_Tetrad_Index(&i, &j, k + 1, send_Buffer, &send_Request[i]);
+            MPI_Irecv(&(recv_Buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, &recv_Request[i]);
+        }
+        
+        for (k = 0; k < size - 1; k++) {
+            MPI_Waitany(size - 1, send_Request, &index, &status);
+            
+            send_Tetrad_Index(&i, &j, index + 1, send_Buffer, &request[index]);
+            
+            if (status.MPI_TAG == TAG_ED) { recv_ED_Forces(recv_Buffer); }
+            if (status.MPI_TAG == TAG_NB) { recv_NB_Forces(recv_Buffer); }
+        }
+        
+    }*/
     
     // Clip NB forces into range (-1.0, 1.0)
     clip_NB_Forces();

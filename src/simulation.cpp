@@ -47,7 +47,7 @@ void master_Code(void) {
 
             cout << i << endl;
         
-            master.cal_Forces(); // Master sends tetrad indexes & coordinates to workers, worker send ED/NB forces back
+            master.cal_Forces();     // Calculate ED/NB forces
             master.cal_Velocities(); // Calculate velocities
             master.cal_Coordinate(); // Calculate coordinates
     
