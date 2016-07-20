@@ -108,11 +108,10 @@ void Worker::recv_Tetrads(void) {
 void Worker::ED_Calculation(void) {
     
     // Assign values for tetrad indexes and coordinates
-    int index = (int) recv_Buf[0][3 * max_Atoms + 1];
-    send_Buf[0][3 * max_Atoms + 1] = recv_Buf[0][3 * max_Atoms + 1];
-
+    int index = send_Buf[0][3 * max_Atoms + 1] = (int) recv_Buf[0][3 * max_Atoms + 1];
+    
     // Calculate ED forces (ED energy), Parameters:
-    // Tetrad* tetrad, double* old_Crds, double* ED_Forces, double* new_Crds, int atoms
+    // PARAMETERS: Tetrad* tetrad, double* old_Crds, double* ED_Forces, double* new_Crds, int atoms
     edmd.calculate_ED_Forces(&tetrad[index], recv_Buf[0], send_Buf[0], send_Buf[1], 3 * max_Atoms);
     
 }
@@ -121,11 +120,9 @@ void Worker::ED_Calculation(void) {
 
 void Worker::NB_Calculation(void) {
     
-    // Assign values for tetrad indexes and coordinates
-    int i = (int) recv_Buf[0][3 * max_Atoms + 1];
-    send_Buf[0][3 * max_Atoms + 1] = recv_Buf[0][3 * max_Atoms + 1];
-    int j = (int) recv_Buf[1][3 * max_Atoms + 1];
-    send_Buf[1][3 * max_Atoms + 1] = recv_Buf[1][3 * max_Atoms + 1];
+    // Assign tetrad indexes from recv buffer to send buffer
+    int i = send_Buf[0][3 * max_Atoms + 1] = (int) recv_Buf[0][3 * max_Atoms + 1];
+    int j = send_Buf[1][3 * max_Atoms + 1] = (int) recv_Buf[1][3 * max_Atoms + 1];
     
     // Calculate NB forces, NB energy & Electrostatic Energy
     edmd.calculate_NB_Forces(&tetrad[i], &tetrad[j], recv_Buf, send_Buf, 3 * max_Atoms);
@@ -136,39 +133,41 @@ void Worker::NB_Calculation(void) {
 
 void Worker::force_Calculation(void) {
     
-    int signal = 1, count = 0;
+    int signal = 1, num_Buf = 2 * (3 * max_Atoms + 2);
     MPI_Status status;
     MPI_Request send_Request, recv_Request;
     
-    // Receive tetrad indexes & coordinates for Ed/NB calculation
-    MPI_Irecv(&(recv_Buf[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_Request);
-    MPI_Wait(&recv_Request, &status);
+    // Receive the first tetrad index(es) & coordinates from master for ED/NB calculation
+    MPI_Recv(&(recv_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &status);
     
-    if (status.MPI_TAG == TAG_ED) {
-        ED_Calculation();
-        MPI_Isend(&(send_Buf[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_ED, comm, &send_Request); // Send ED forces, ED energy, new coordinates back to master
-    }
-    if (status.MPI_TAG == TAG_NB) {
-        NB_Calculation();
-        MPI_Isend(&(send_Buf[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm, &send_Request); // Send NB forces, energies & indexes back to master
+    switch (status.MPI_TAG) {
+        case TAG_ED: ED_Calculation(); // ED force calculation & send ED forces, energy back to master
+            MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_ED, comm, &send_Request);
+            break;
+        case TAG_NB: NB_Calculation(); // NB force calculation & send NB forces, energy back to master
+            MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_NB, comm, &send_Request);
+            break;
+        default: break;
     }
     
+    // The loop to take new jobs & send results back to the master
     while (signal == 1) {
         
-        MPI_Irecv(&(recv_Buf[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_Request);
+        MPI_Irecv(&(recv_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &recv_Request);
 
         MPI_Wait(&send_Request, &status);
         MPI_Wait(&recv_Request, &status);
         
-        if (status.MPI_TAG == TAG_ED) {
-            ED_Calculation();
-            MPI_Isend(&(send_Buf[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_ED, comm, &send_Request); // Send ED forces, ED energy, new coordinates back to master
+        switch (status.MPI_TAG) {
+            case TAG_ED: ED_Calculation();
+                MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_ED, comm, &send_Request);
+                break;
+            case TAG_NB: NB_Calculation();
+                MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_NB, comm, &send_Request);
+                break;
+            case TAG_SIGNAL: signal = 0; break;
+            default: break;
         }
-        if (status.MPI_TAG == TAG_NB) {
-            NB_Calculation();
-            MPI_Isend(&(send_Buf[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, 0, TAG_NB, comm, &send_Request); // Send NB forces, energies & indexes back to master
-        }
-        if (status.MPI_TAG == TAG_SIGNAL) { signal = 0; }
         
     }
     

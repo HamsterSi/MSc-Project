@@ -136,17 +136,21 @@ public:
     void initialise_Forces_n_Energies(void);
     
     /**
-     * Function:  Master send the index of Tetrads to workers for ED & NB forces calculation.
-     *            It also calculate the random forces.
+     * Function:  Master send the index(es) and the coordinates of Tetrads to workers 
+     *            for ED & NB forces calculation, and receive the forces from workers
+     *            The master also calculates the random forces.
      *
-     * Parameter: int* i          -> The index for ED forces calculation & iteration
-     *            int* j          -> The index for NB forces calculation
-     *            int dest        -> The MPI destination
-     *            double** buffer -> The MPI send buffer
+     * Parameter: int* i            -> The index for ED forces calculation & iteration
+     *            int* j            -> The index for NB forces calculation
+     *            int dest          -> The MPI destination
+     *            double** send_Buf -> The MPI send buffer
+     *            double** recv_Buf -> The MPI recv buffer
+     *            MPI_Request* send_Request -> The MPI send request
+     *            MPI_Request* recv_Request -> The MPI recv request
      *
      * Return:    None
      */
-    void send_Tetrad_Index(int* i, int* j, int dest, double** buffer, MPI_Request* request);
+    void send_n_Recv_Forces(int* i, int* j, int dest, double** send_Buf, double** recv_Buf, MPI_Request* send_Request, MPI_Request* recv_Request);
 
     /**
      * Function:  Receive ED forces and ED energies from worker, store them into tetrads
