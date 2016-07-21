@@ -138,7 +138,7 @@ void Worker::force_Calculation(void) {
     MPI_Request send_Request, recv_Request;
     
     // Receive the first tetrad index(es) & coordinates from master for ED/NB calculation
-    MPI_Recv(&(recv_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &status);
+    MPI_Recv(&(recv_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &recv_Status);
     
     switch (recv_Status.MPI_TAG) {
         case TAG_ED: ED_Calculation(); // ED force calculation & send ED forces, energy back
