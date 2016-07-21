@@ -134,17 +134,17 @@ void Worker::NB_Calculation(void) {
 void Worker::force_Calculation(void) {
     
     int signal = 1, num_Buf = 2 * (3 * max_Atoms + 2);
-    MPI_Status status;
+    MPI_Status send_Status, recv_Status;
     MPI_Request send_Request, recv_Request;
     
     // Receive the first tetrad index(es) & coordinates from master for ED/NB calculation
     MPI_Recv(&(recv_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &status);
     
-    switch (status.MPI_TAG) {
-        case TAG_ED: ED_Calculation(); // ED force calculation & send ED forces, energy back to master
+    switch (recv_Status.MPI_TAG) {
+        case TAG_ED: ED_Calculation(); // ED force calculation & send ED forces, energy back
             MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_ED, comm, &send_Request);
             break;
-        case TAG_NB: NB_Calculation(); // NB force calculation & send NB forces, energy back to master
+        case TAG_NB: NB_Calculation(); // NB force calculation & send NB forces, energy back
             MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_NB, comm, &send_Request);
             break;
         default: break;
@@ -154,11 +154,11 @@ void Worker::force_Calculation(void) {
     while (signal == 1) {
         
         MPI_Irecv(&(recv_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &recv_Request);
-
-        MPI_Wait(&send_Request, &status);
-        MPI_Wait(&recv_Request, &status);
         
-        switch (status.MPI_TAG) {
+        MPI_Wait(&recv_Request, &recv_Status);
+        MPI_Wait(&send_Request, &send_Status);
+        
+        switch (recv_Status.MPI_TAG) {
             case TAG_ED: ED_Calculation();
                 MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_ED, comm, &send_Request);
                 break;
