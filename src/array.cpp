@@ -52,9 +52,9 @@ void Array::allocate_Tetrad_Arrays(Tetrad* tetrad) {
     tetrad->eigenvectors  = allocate_2D_Array(tetrad->num_Evecs, 3 * tetrad->num_Atoms);
     tetrad->velocities    = new double[3 * tetrad->num_Atoms];
     tetrad->coordinates   = new double[3 * tetrad->num_Atoms];
-    tetrad->ED_Forces     = new double[3 * tetrad->num_Atoms];
+    tetrad->ED_Forces     = new double[3 * tetrad->num_Atoms + 1];
     tetrad->random_Forces = new double[3 * tetrad->num_Atoms];
-    tetrad->NB_Forces     = new double[3 * tetrad->num_Atoms];
+    tetrad->NB_Forces     = new double[3 * tetrad->num_Atoms + 2];
     
 }
 

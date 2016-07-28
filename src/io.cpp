@@ -287,10 +287,6 @@ void IO::initialise_Tetrad_Crds(void) {
             tetrad[i].random_Forces[j] = 0.0;
             tetrad[i].NB_Forces[j]     = 0.0;
         }
-        
-        // Initialise energies & tempreature to 0
-        tetrad[i].ED_Energy = tetrad[i].NB_Energy   = 0.0;
-        tetrad[i].EL_Energy = tetrad[i].temperature = 0.0;
     }
     
 }

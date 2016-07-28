@@ -31,11 +31,8 @@ Worker::Worker(void) {
 Worker::~Worker(void) {
     
     // Deallocate arrays
-    array.deallocate_2D_Array(send_Buf);
-    array.deallocate_2D_Array(recv_Buf);
-    
     for (int i = 0; i < num_Tetrads; i++) {
-        array.deallocate_Tetrad_Arrays(&tetrad[i]);
+        Array::deallocate_Tetrad_Arrays(&tetrad[i]);
     }
     
 }
@@ -53,8 +50,6 @@ void Worker::recv_Parameters(void) {
     num_Tetrads = parameters[0]; // The number of tetrads
     max_Atoms   = parameters[1]; // The maximum number of atoms in tetrads
     
-    send_Buf = array.allocate_2D_Array(2, 3 * max_Atoms + 2);
-    recv_Buf = array.allocate_2D_Array(2, 3 * max_Atoms + 2);
     int * tetrad_Para = new int[2 * num_Tetrads];
     
     // Receive edmd parameters & assignment
@@ -71,7 +66,7 @@ void Worker::recv_Parameters(void) {
         tetrad[i].num_Atoms = tetrad_Para[2 * i];
         tetrad[i].num_Evecs = tetrad_Para[2*i+1];
         
-        array.allocate_Tetrad_Arrays(&tetrad[i]);
+        Array::allocate_Tetrad_Arrays(&tetrad[i]);
     }
     
     delete [] tetrad_Para;
@@ -105,27 +100,36 @@ void Worker::recv_Tetrads(void) {
 
 
 
-void Worker::ED_Calculation(void) {
+
+void Worker::ED_Calculation(int index[], int num_Buf, double** recv_Buf, MPI_Request send_Request[]) {
     
-    // Assign values for tetrad indexes and coordinates
-    int index = send_Buf[0][3 * max_Atoms + 1] = (int) recv_Buf[0][3 * max_Atoms + 1];
+    // Calculate ED forces & energy
+    index[0] = (int) recv_Buf[0][num_Buf];
+    index[1] = 0;
+    index[2] = TAG_ED;
+    edmd.calculate_ED_Forces(&tetrad[index[0]], recv_Buf[0], num_Buf);
     
-    // Calculate ED forces (ED energy), Parameters:
-    // PARAMETERS: Tetrad* tetrad, double* old_Crds, double* ED_Forces, double* new_Crds, int atoms
-    edmd.calculate_ED_Forces(&tetrad[index], recv_Buf[0], send_Buf[0], send_Buf[1], 3 * max_Atoms);
+    // send ED forces, energy back
+    MPI_Isend(index, 3, MPI_INT, 0, TAG_INDEX, comm, &send_Request[0]);
+    MPI_Isend(tetrad[index[0]].ED_Forces,  num_Buf + 1, MPI_DOUBLE, 0, TAG_ED + 1, comm, &send_Request[1]);
+    MPI_Isend(tetrad[index[0]].coordinates, num_Buf,    MPI_DOUBLE, 0, TAG_ED + 2, comm, &send_Request[2]);
     
 }
 
 
 
-void Worker::NB_Calculation(void) {
-    
-    // Assign tetrad indexes from recv buffer to send buffer
-    int i = send_Buf[0][3 * max_Atoms + 1] = (int) recv_Buf[0][3 * max_Atoms + 1];
-    int j = send_Buf[1][3 * max_Atoms + 1] = (int) recv_Buf[1][3 * max_Atoms + 1];
+void Worker::NB_Calculation(int index[], int num_Buf, double** recv_Buf, MPI_Request send_Request[]) {
     
     // Calculate NB forces, NB energy & Electrostatic Energy
-    edmd.calculate_NB_Forces(&tetrad[i], &tetrad[j], recv_Buf, send_Buf, 3 * max_Atoms);
+    index[0] = (int) recv_Buf[0][num_Buf];
+    index[1] = (int) recv_Buf[1][num_Buf];
+    index[2] = TAG_NB;
+    edmd.calculate_NB_Forces(&tetrad[index[0]], &tetrad[index[1]], recv_Buf, num_Buf);
+    
+    // send NB forces, energy back
+    MPI_Isend(index, 3, MPI_INT, 0, TAG_INDEX, comm, &send_Request[0]);
+    MPI_Isend(tetrad[index[0]].NB_Forces, num_Buf + 2, MPI_DOUBLE, 0, TAG_NB + 1, comm, &send_Request[1]);
+    MPI_Isend(tetrad[index[1]].NB_Forces, num_Buf + 2, MPI_DOUBLE, 0, TAG_NB + 2, comm, &send_Request[2]);
     
 }
 
@@ -133,43 +137,86 @@ void Worker::NB_Calculation(void) {
 
 void Worker::force_Calculation(void) {
     
-    int signal = 1, num_Buf = 2 * (3 * max_Atoms + 2);
+    int signal = 1, index[3], num_Buf = 3 * max_Atoms;
+    double ** recv_Buf = Array::allocate_2D_Array(2, num_Buf + 1);
+    
+    MPI_Request send_Request[3], recv_Request;
     MPI_Status send_Status, recv_Status;
-    MPI_Request send_Request, recv_Request;
     
     // Receive the first tetrad index(es) & coordinates from master for ED/NB calculation
-    MPI_Recv(&(recv_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &recv_Status);
+    MPI_Recv(&(recv_Buf[0][0]), 2 * (num_Buf + 1), MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &recv_Status);
     
     switch (recv_Status.MPI_TAG) {
-        case TAG_ED: ED_Calculation(); // ED force calculation & send ED forces, energy back
-            MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_ED, comm, &send_Request);
-            break;
-        case TAG_NB: NB_Calculation(); // NB force calculation & send NB forces, energy back
-            MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_NB, comm, &send_Request);
-            break;
+        case TAG_ED: ED_Calculation(index, num_Buf, recv_Buf, send_Request); break;
+        case TAG_NB: NB_Calculation(index, num_Buf, recv_Buf, send_Request); break;
         default: break;
     }
     
     // The loop to take new jobs & send results back to the master
     while (signal == 1) {
         
-        MPI_Irecv(&(recv_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &recv_Request);
+        MPI_Irecv(&(recv_Buf[0][0]), 2 * (num_Buf + 1), MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &recv_Request);
         
-        MPI_Wait(&recv_Request, &recv_Status);
-        MPI_Wait(&send_Request, &send_Status);
+        MPI_Wait(&recv_Request,    &recv_Status);
+        MPI_Wait(&send_Request[0], &send_Status);
+        MPI_Wait(&send_Request[1], &send_Status);
+        MPI_Wait(&send_Request[2], &send_Status);
         
         switch (recv_Status.MPI_TAG) {
-            case TAG_ED: ED_Calculation();
-                MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_ED, comm, &send_Request);
-                break;
-            case TAG_NB: NB_Calculation();
-                MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, 0, TAG_NB, comm, &send_Request);
-                break;
+            case TAG_ED: ED_Calculation(index, num_Buf, recv_Buf, send_Request); break;
+            case TAG_NB: NB_Calculation(index, num_Buf, recv_Buf, send_Request); break;
             case TAG_SIGNAL: signal = 0; break;
             default: break;
         }
         
+        //cout << " W: " << index[0] << " " << index[1] << " " << index[2] << endl;
+    
     }
+    
+    
+    /*
+     while (signal == 1) {
+     
+     MPI_Recv(&(recv_Buf[0][0]), 2 * (num_Buf + 1), MPI_DOUBLE, 0, MPI_ANY_TAG, comm, &recv_Status);
+     
+     switch (recv_Status.MPI_TAG) {
+     case TAG_ED:
+     // Calculate ED forces & energy
+     index[0] = (int) recv_Buf[0][num_Buf];
+     index[1] = 0;
+     index[2] = TAG_ED;
+     edmd.calculate_ED_Forces(&tetrad[index[0]], recv_Buf[0], num_Buf);
+     
+     // send ED forces, energy back
+     MPI_Send(index, 3, MPI_INT, 0, TAG_INDEX, comm);
+     cout << "ED1 " << index[0] << " " << index[1] << " " << index[2] << endl;
+     MPI_Send(tetrad[index[0]].ED_Forces,  num_Buf + 1, MPI_DOUBLE, 0, TAG_ED + 1, comm);
+     cout << "ED2 " << index[0] << " " << index[1] << " " << index[2] << endl;
+     MPI_Send(tetrad[index[0]].coordinates, num_Buf,    MPI_DOUBLE, 0, TAG_ED + 2, comm);
+     //cout << "ED3 " << index[0] << " " << index[1] << " " << index[2] << endl;
+     break;
+     
+     case TAG_NB:
+     // Calculate NB forces, NB energy & Electrostatic Energy
+     index[0] = (int) recv_Buf[0][num_Buf];
+     index[1] = (int) recv_Buf[1][num_Buf];
+     index[2] = TAG_NB;
+     edmd.calculate_NB_Forces(&tetrad[index[0]], &tetrad[index[1]], recv_Buf, num_Buf);
+     
+     // send NB forces, energy back
+     MPI_Send(index, 3, MPI_INT, 0, TAG_INDEX, comm);
+     MPI_Send(tetrad[index[0]].NB_Forces, num_Buf + 2, MPI_DOUBLE, 0, TAG_NB + 1, comm);
+     MPI_Send(tetrad[index[1]].NB_Forces, num_Buf + 2, MPI_DOUBLE, 0, TAG_NB + 2, comm);
+     //cout << "NB " << index[0] << " " << index[1] << endl;
+     break;
+     
+     case TAG_SIGNAL: signal = 0; break;
+     default: break;
+     }
+     
+     }*/
+
+    Array::deallocate_2D_Array(recv_Buf);
     
 }
 

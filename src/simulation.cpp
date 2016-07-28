@@ -43,7 +43,7 @@ void master_Code(void) {
         
         master.generate_Pair_Lists(); // Generate pair lists
         
-        for (int i = 0; i < master.io.ntsync; i++) {//1; i++) {//
+        for (int i = 0; i < 100; i++) {//master.io.ntsync; i++) {//
 
             cout << i << endl;
         

@@ -201,35 +201,34 @@ void Master::generate_Pair_Lists(void) {
 void Master::initialise_Forces_n_Energies(void) {
 
     for (int i = 0; i < io.prm.num_Tetrads; i++) {
-        
         for (int j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
             io.tetrad[i].ED_Forces[j]     = 0.0;
             io.tetrad[i].random_Forces[j] = 0.0;
             io.tetrad[i].NB_Forces[j]     = 0.0;
         }
         
-        io.tetrad[i].ED_Energy = 0.0;
-        io.tetrad[i].NB_Energy = 0.0;
-        io.tetrad[i].EL_Energy = 0.0;
+        io.tetrad[i].ED_Forces[3 * io.tetrad[i].num_Atoms] = 0.0;
+        io.tetrad[i].NB_Forces[3 * io.tetrad[i].num_Atoms] = 0.0;
+        io.tetrad[i].NB_Forces[3 * io.tetrad[i].num_Atoms + 1] = 0.0;
     }
     
 }
 
 
 
-void Master::send_n_Recv_Forces(int* i, int* j, int dest, double** send_Buf, double** recv_Buf, MPI_Request* send_Request, MPI_Request* recv_Request) {
+void Master::send_Tetrad_Index(int* i, int* j, int dest, int index[], double** send_Buf, MPI_Request* send_Request, MPI_Request* recv_Request) {
     
-    int k, index, num_Buf = 2 * (3 * max_Atoms + 2);
+    int num_Buf = 3 * max_Atoms;
     
     if (*i < io.prm.num_Tetrads) { // Send tetrad index for ED calculation
         
         // Assign data to the send buffer for ED calculation
-        send_Buf[0][3 * max_Atoms + 1] = (double) (*i);
+        send_Buf[0][num_Buf] = (double) (*i);
         io.array.assignment(3 * io.tetrad[*i].num_Atoms, io.tetrad[*i].coordinates, send_Buf[0]);
         
         // Send data to available workers
-        MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, dest, TAG_ED,      comm, send_Request);
-        MPI_Irecv(&(recv_Buf[0][0]), num_Buf, MPI_DOUBLE, dest, MPI_ANY_TAG, comm, recv_Request);
+        MPI_Isend(&(send_Buf[0][0]), 2 * (num_Buf + 1), MPI_DOUBLE, dest, TAG_ED, comm, send_Request);
+        MPI_Irecv(index, 3, MPI_INT, dest, TAG_INDEX, comm, recv_Request);
         
         // Calculate random forces
         edmd.calculate_Random_Forces(&io.tetrad[*i]);
@@ -237,14 +236,14 @@ void Master::send_n_Recv_Forces(int* i, int* j, int dest, double** send_Buf, dou
     } else if (*j < num_Pairs) { // i >= num_Tetrads, send tetrad indexes for NB calculation
         
         // Assign data to the send buffer for ED calculation
-        for (k = 0; k < 2; k++) {
-            index = send_Buf[k][3 * max_Atoms + 1] = pair_Lists[*j][k];
-            io.array.assignment(3 * io.tetrad[index].num_Atoms, io.tetrad[index].coordinates, send_Buf[k]);
-        }
+        int i1 = send_Buf[0][num_Buf] = pair_Lists[*j][0];
+        int i2 = send_Buf[1][num_Buf] = pair_Lists[*j][1];
+        io.array.assignment(3 * io.tetrad[i1].num_Atoms, io.tetrad[i1].coordinates, send_Buf[0]);
+        io.array.assignment(3 * io.tetrad[i2].num_Atoms, io.tetrad[i2].coordinates, send_Buf[1]);
         
         // Send data to available workers
-        MPI_Isend(&(send_Buf[0][0]), num_Buf, MPI_DOUBLE, dest, TAG_NB,      comm, send_Request);
-        MPI_Irecv(&(recv_Buf[0][0]), num_Buf, MPI_DOUBLE, dest, MPI_ANY_TAG, comm, recv_Request);
+        MPI_Isend(&(send_Buf[0][0]), 2 * (num_Buf + 1), MPI_DOUBLE, dest, TAG_NB, comm, send_Request);
+        MPI_Irecv(index, 3, MPI_INT, dest, TAG_INDEX, comm, recv_Request);
         
         (*j)++;
     }
@@ -255,16 +254,14 @@ void Master::send_n_Recv_Forces(int* i, int* j, int dest, double** send_Buf, dou
 
 void Master::cal_Forces(void) {
     
-    int i, j, index;
+    int i, j, rank, index[size - 1][3], num_Buf = 3 * max_Atoms;
+    double *** send_Buf = new double ** [size - 1];
+    for (i = 0; i < size - 1; i++) {
+        send_Buf[i] = io.array.allocate_2D_Array(2, num_Buf + 1);
+    }
     MPI_Status send_Status, recv_Status;
     MPI_Request send_Request[size - 1], recv_Request[size - 1];
-    
-    double *** send_Buf = new double ** [size - 1];
-    double *** recv_Buf = new double ** [size - 1];
-    for (i = 0; i < size - 1; i++) {
-        send_Buf[i] = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
-        recv_Buf[i] = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
-    }
+    MPI_Request recv_Reques1[size - 1], recv_Reques2[size - 1];
     
     // Initialise the forces & energies of tetrads
     initialise_Forces_n_Energies();
@@ -276,70 +273,44 @@ void Master::cal_Forces(void) {
        If one has completed, then you save the forces and send a new task, then go back to calling MPI_Waitany().
     
        The key thing here is that the receives for the other workers can go on while you are processing the forces and generating new tasks.*/
-    
+
     for (i = 0, j = 0; i < size - 1; i++) {
-        send_n_Recv_Forces(&i, &j, i + 1, send_Buf[i], recv_Buf[i], &send_Request[i], &recv_Request[i]);
+        send_Tetrad_Index(&i, &j, i + 1, index[i], send_Buf[i], &send_Request[i], &recv_Request[i]);
     }
     
-    for (; i < num_Pairs + io.prm.num_Tetrads + size - 1 && j <= num_Pairs; i++) {
+    for (; i < num_Pairs + io.prm.num_Tetrads + size - 1 && j < num_Pairs + size - 1; i++) {
+    
+        //cout << "m " << i << endl;
+        MPI_Waitany(size - 1, recv_Request, &rank, &recv_Status);
+        //cout << " >> " << i << ", " << j << ", " << rank + 1 << ", " << recv_Status.MPI_SOURCE << ", " << index[rank][0] << ", " << index[rank][1] << endl;
         
-        MPI_Waitany(size - 1, recv_Request, &index, &recv_Status);
-        MPI_Wait(&send_Request[index], &send_Status);
+        if (index[rank][2] == TAG_ED) {
+            MPI_Irecv(io.tetrad[index[rank][0]].ED_Forces, num_Buf + 1, MPI_DOUBLE, rank + 1, TAG_ED + 1, comm, &recv_Reques1[rank]);
+            MPI_Irecv(io.tetrad[index[rank][0]].coordinates, num_Buf,   MPI_DOUBLE, rank + 1, TAG_ED + 2, comm, &recv_Reques2[rank]);
+            
+        } else if (index[rank][2] == TAG_NB) {
+            MPI_Irecv(io.tetrad[index[rank][0]].NB_Forces, num_Buf + 2, MPI_DOUBLE, rank + 1, TAG_NB + 1, comm, &recv_Reques1[rank]);
+            MPI_Irecv(io.tetrad[index[rank][1]].NB_Forces, num_Buf + 2, MPI_DOUBLE, rank + 1, TAG_NB + 2, comm, &recv_Reques2[rank]);
+        }
         
-        if (recv_Status.MPI_TAG == TAG_ED) { recv_ED_Forces(recv_Buf[index]); }
-        if (recv_Status.MPI_TAG == TAG_NB) { recv_NB_Forces(recv_Buf[index]); }
+        MPI_Wait(&send_Request[rank], &send_Status);
         
-        send_n_Recv_Forces(&i, &j, index + 1, send_Buf[index], recv_Buf[index], &send_Request[index], &recv_Request[index]);
+        send_Tetrad_Index(&i, &j, rank + 1, index[rank],send_Buf[rank], &send_Request[rank], &recv_Request[rank]);
+        
+        MPI_Wait(&recv_Reques1[rank], &recv_Status);
+        MPI_Wait(&recv_Reques2[rank], &recv_Status);
 
     }
     
     // Clip NB forces into range (-1.0, 1.0)
     clip_NB_Forces();
-    
-    //io.array.deallocate_2D_Array(send_Buf);
+
     for (i = 0; i < size - 1; i++) {
         io.array.deallocate_2D_Array(send_Buf[i]);
-        io.array.deallocate_2D_Array(recv_Buf[i]);
-    }
-    delete [] send_Buf;
-    delete [] recv_Buf;
+    } delete [] send_Buf;
     
 }
 
-
-
-
-void Master::recv_ED_Forces(double** buffer) {
-    
-    int i, index = (int) buffer[0][3 * max_Atoms + 1];
-    
-    io.tetrad[index].ED_Energy = buffer[0][3 * max_Atoms];
-    
-    for (i = 0; i < 3 * io.tetrad[index].num_Atoms; i++) {
-        io.tetrad[index].ED_Forces[i]   = buffer[0][i];
-        io.tetrad[index].coordinates[i] = buffer[1][i];
-    }
-    
-}
-
-
-
-void Master::recv_NB_Forces(double** buffer) {
-    
-    for (int i = 0; i < 2; i++) {
-        int index = (int) buffer[i][3 * max_Atoms + 1];
-        
-        // Assign the NB & EL energies to tetrad
-        io.tetrad[index].NB_Energy += buffer[0][3 * max_Atoms];
-        io.tetrad[index].EL_Energy += buffer[1][3 * max_Atoms];
-        
-        // Add the NB forces into tetrad
-        for (int j = 0; j < 3 * io.tetrad[index].num_Atoms; j++) {
-            io.tetrad[index].NB_Forces[j] += buffer[i][j];
-        }
-    }
-    
-}
 
 
 
@@ -428,9 +399,9 @@ void Master::write_Energy(int istep) {
     
     // Gather energies & temperature of tetrads together
     for (int i = 0; i < io.prm.num_Tetrads; i++) {
-        energies[0] += io.tetrad[i].ED_Energy;
-        energies[1] += io.tetrad[i].NB_Energy;
-        energies[2] += io.tetrad[i].EL_Energy;
+        energies[0] += io.tetrad[i].ED_Forces[3 * io.tetrad[i].num_Atoms];
+        energies[1] += io.tetrad[i].NB_Forces[3 * io.tetrad[i].num_Atoms];
+        energies[2] += io.tetrad[i].NB_Forces[3 * io.tetrad[i].num_Atoms + 1];
         energies[3] += io.tetrad[i].temperature;
     }
     
@@ -470,9 +441,9 @@ void Master::finalise(void) {
     cout << "Writing New Crd  out at     " << io.new_Crd_File << endl << endl;
 
     // Send signal to stop all worker processes
-    double ** buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 2);
+    double ** buffer = io.array.allocate_2D_Array(2, 3 * max_Atoms + 1);
     for (int signal = TAG_SIGNAL, i = 1; i < size; i++) {
-        MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 2), MPI_DOUBLE, i, TAG_SIGNAL, comm);
+        MPI_Send(&(buffer[0][0]), 2 * (3 * max_Atoms + 1), MPI_DOUBLE, i, TAG_SIGNAL, comm);
     }
     io.array.deallocate_2D_Array(buffer);
     

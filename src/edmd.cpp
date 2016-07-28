@@ -61,14 +61,15 @@ void EDMD::initialise(double _dt, double _gamma, double _tautp, double _temperat
 
 
 
-void EDMD::calculate_ED_Forces(Tetrad* tetrad, double* old_Crds, double* ED_Forces, double* new_Crds, int atoms) {
+void EDMD::calculate_ED_Forces(Tetrad* tetrad, double* old_Crds, int atoms) {
     
     int i, j;
-    double temp_Forces[3], rotmat[9], v[3];
+    double rotmat[9], v[3];
     
     // Allocate memory for temp arrays
     double * temp_Crds = new double [3 * tetrad->num_Atoms];
     double * proj      = new double [tetrad->num_Evecs];
+    double ** temp_Frs = Array::allocate_2D_Array(tetrad->num_Atoms, 3);
     double ** avg_Crds = Array::allocate_2D_Array(3, tetrad->num_Atoms);
     double ** crds     = Array::allocate_2D_Array(3, tetrad->num_Atoms);
     
@@ -110,7 +111,6 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double* old_Crds, double* ED_Forc
     
     // Step 3 & Step 4, can be done in the same loop
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        tetrad->ED_Forces[i] = 0.0;
         temp_Crds[i] = tetrad->avg_Structure[i];
     }
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
@@ -130,28 +130,34 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad, double* old_Crds, double* ED_Forc
         
         // Step 5: rotate 'shaken' coordinates back into right frame
         temp_Crds[3*i] -= v[0]; temp_Crds[3*i+1] -= v[1]; temp_Crds[3*i+2] -= v[2];
-        new_Crds[3 * i] = rotmat[0] * temp_Crds[3*i] + rotmat[3] * temp_Crds[3*i+1] + rotmat[6] * temp_Crds[3*i+2];
-        new_Crds[3*i+1] = rotmat[1] * temp_Crds[3*i] + rotmat[4] * temp_Crds[3*i+1] + rotmat[7] * temp_Crds[3*i+2];
-        new_Crds[3*i+2] = rotmat[2] * temp_Crds[3*i] + rotmat[5] * temp_Crds[3*i+1] + rotmat[8] * temp_Crds[3*i+2];
+        tetrad->coordinates[3 * i] = rotmat[0] * temp_Crds[3*i] + rotmat[3] * temp_Crds[3*i+1] + rotmat[6] * temp_Crds[3*i+2];
+        tetrad->coordinates[3*i+1] = rotmat[1] * temp_Crds[3*i] + rotmat[4] * temp_Crds[3*i+1] + rotmat[7] * temp_Crds[3*i+2];
+        tetrad->coordinates[3*i+2] = rotmat[2] * temp_Crds[3*i] + rotmat[5] * temp_Crds[3*i+1] + rotmat[8] * temp_Crds[3*i+2];
         
         // Step 6: rotate forces back to original orientation of coordinates
-        temp_Forces[0] = rotmat[0] * tetrad->ED_Forces[3*i] + rotmat[3] * tetrad->ED_Forces[3*i+1] + rotmat[6] * tetrad->ED_Forces[3*i+2];
-        temp_Forces[1] = rotmat[1] * tetrad->ED_Forces[3*i] + rotmat[4] * tetrad->ED_Forces[3*i+1] + rotmat[7] * tetrad->ED_Forces[3*i+2];
-        temp_Forces[2] = rotmat[2] * tetrad->ED_Forces[3*i] + rotmat[5] * tetrad->ED_Forces[3*i+1] + rotmat[8] * tetrad->ED_Forces[3*i+2];
+        temp_Frs[i][0] = rotmat[0] * tetrad->ED_Forces[3*i] + rotmat[3] * tetrad->ED_Forces[3*i+1] + rotmat[6] * tetrad->ED_Forces[3*i+2];
+        temp_Frs[i][1] = rotmat[1] * tetrad->ED_Forces[3*i] + rotmat[4] * tetrad->ED_Forces[3*i+1] + rotmat[7] * tetrad->ED_Forces[3*i+2];
+        temp_Frs[i][2] = rotmat[2] * tetrad->ED_Forces[3*i] + rotmat[5] * tetrad->ED_Forces[3*i+1] + rotmat[8] * tetrad->ED_Forces[3*i+2];
+
+    }
+    
+    for (i = 0; i < tetrad->num_Atoms; i++) {
         
-        ED_Forces[3 * i] = temp_Forces[0];
-        ED_Forces[3*i+1] = temp_Forces[1];
-        ED_Forces[3*i+2] = temp_Forces[2];
+        tetrad->ED_Forces[3 * i] = temp_Frs[i][0];
+        tetrad->ED_Forces[3*i+1] = temp_Frs[i][1];
+        tetrad->ED_Forces[3*i+2] = temp_Frs[i][2];
+        
     }
 
     // Step 7: calculate the 'potential energy' (in units of kT), stroed in the ED forces array for easy sending to master
-    ED_Forces[atoms] = 0.0;
+    tetrad->ED_Forces[atoms] = 0.0;
     for (i = 0; i < tetrad->num_Evecs; i++) {
-        ED_Forces[atoms] += (proj[i] * proj[i] / tetrad->eigenvalues[i]);
+        tetrad->ED_Forces[atoms] += (proj[i] * proj[i] / tetrad->eigenvalues[i]);
     }
-    ED_Forces[atoms] *= 0.5 * scaled; // ED Energy
+    tetrad->ED_Forces[atoms] *= 0.5 * scaled; // ED Energy
     
     // Deallocate memory of temp arrays
+    Array::deallocate_2D_Array(temp_Frs);
     Array::deallocate_2D_Array(avg_Crds);
     Array::deallocate_2D_Array(crds);
     delete [] temp_Crds; delete [] proj;
@@ -225,7 +231,7 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
 
 
 
-void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double** crds, double** NB_Forces, int atoms) {
+void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double** crds, int atoms) {
     
     int i, j;
     double dx, dy, dz, sqdist;
@@ -235,7 +241,9 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double** crds, double** N
     double qfac = 0.0;   // qfac: electrostatics factor, set up for dd-dielectric constant of 4r, qfac=332.064/4.0, no electrostatics...
     
     // Initialise energies & NB forces to 0
-    for (i = 0 ; i < atoms + 1; i++) { NB_Forces[0][i] = NB_Forces[1][i] = 0.0; }
+    for (i = 0 ; i < atoms + 2; i++) {
+        t1->NB_Forces[i] = t2->NB_Forces[i] = 0.0;
+    }
     
     for (i = 0; i < t1->num_Atoms; i++) {
         for (j = 0; j < t2->num_Atoms; j++) {
@@ -253,22 +261,25 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double** crds, double** N
                 q = t1->abq[3*i+2] * t2->abq[3*j+2];
                 
                 // NB Energy & Electrostatic Energy
-                NB_Forces[0][atoms] += 0.25 * krep * a * a;     // NB Energy
-                NB_Forces[1][atoms] += 0.5 * qfac * q * sqdist; // Electrostatic Energy
+                t1->NB_Forces[atoms]   += 0.25 * krep * a * a;     // NB Energy
+                t1->NB_Forces[atoms+1] += 0.5 * qfac * q * sqdist; // Electrostatic Energy
                 
                 // NB forces
                 pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
-                NB_Forces[0][3 * i] -= dx * pair_Force;
-                NB_Forces[0][3*i+1] -= dy * pair_Force;
-                NB_Forces[0][3*i+2] -= dz * pair_Force;
+                t1->NB_Forces[3 * i] -= dx * pair_Force;
+                t1->NB_Forces[3*i+1] -= dy * pair_Force;
+                t1->NB_Forces[3*i+2] -= dz * pair_Force;
                 
-                NB_Forces[1][3 * j] += dx * pair_Force;
-                NB_Forces[1][3*j+1] += dy * pair_Force;
-                NB_Forces[1][3*j+2] += dz * pair_Force;
+                t2->NB_Forces[3 * j] += dx * pair_Force;
+                t2->NB_Forces[3*j+1] += dy * pair_Force;
+                t2->NB_Forces[3*j+2] += dz * pair_Force;
             }
             
         }
     }
+    
+    t2->NB_Forces[atoms]   = t1->NB_Forces[atoms];
+    t2->NB_Forces[atoms+1] = t1->NB_Forces[atoms+1];
     
 }
 

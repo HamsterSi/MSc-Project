@@ -120,7 +120,7 @@ public:
      *
      * Return:    None
      */
-    void calculate_ED_Forces(Tetrad* tetrad, double* old_Crds, double* ED_Forces, double* new_Crds, int atoms);
+    void calculate_ED_Forces(Tetrad* tetrad, double* old_Crds, int atoms);
     
     /**
      * Function:  Calculate the LV random forces.
@@ -153,7 +153,7 @@ public:
      *
      * Return:    None
      */
-    void calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double** crds, double** NB_Forces, int atoms);
+    void calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double** crds, int atoms);
     
     /**
      * Function:  Update velocities & Berendsen temperature control

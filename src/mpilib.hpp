@@ -29,9 +29,10 @@
 // Define the MPI tag for message passing
 #define TAG_SIGNAL 1
 #define TAG_DATA   2    // For passing parameters (number of tetrads, etc.)
-#define TAG_ED     3    // For message passing of ED forces calculation
-#define TAG_NB     4    // For message passing of NB forces calculation
-#define TAG_TETRAD 5    // For passing tetrads between master and workers
+#define TAG_INDEX  3
+#define TAG_ED     4    // For message passing of ED forces calculation
+#define TAG_NB     7    // For message passing of NB forces calculation
+#define TAG_TETRAD 10   // For passing tetrads between master and workers
 
 using namespace std;
 

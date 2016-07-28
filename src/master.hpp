@@ -150,25 +150,7 @@ public:
      *
      * Return:    None
      */
-    void send_n_Recv_Forces(int* i, int* j, int dest, double** send_Buf, double** recv_Buf, MPI_Request* send_Request, MPI_Request* recv_Request);
-
-    /**
-     * Function:  Receive ED forces and ED energies from worker, store them into tetrads
-     *
-     * Parameter: double** buffer -> The buffer with ED forces & energies
-     *
-     * Return:    None
-     */
-    void recv_ED_Forces(double** buffer);
-    
-    /**
-     * Function:  Receive NB forces and NB & EL energies from worker, store them into tetrads
-     *
-     * Parameter: double** buffer -> The buffer with NB forces & energies
-     *
-     * Return:    None
-     */
-    void recv_NB_Forces(double** buffer);
+    void send_Tetrad_Index(int* i, int* j, int dest, int index[], double** send_Buf, MPI_Request* send_Request, MPI_Request* recv_Request);
     
     /**
      * Function:  Clip the NB forces into range (-1.0, 1.0)

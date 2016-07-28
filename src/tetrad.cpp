@@ -24,10 +24,7 @@ Tetrad::Tetrad(void) {
     
     num_Atoms = 0;
     num_Evecs = 0;
-    
-    ED_Energy = 0.0;
-    NB_Energy = 0.0;
-    EL_Energy = 0.0;
+ 
     temperature = 0.0;
     
 }

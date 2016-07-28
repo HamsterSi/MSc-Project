@@ -21,6 +21,7 @@
 #define worker_hpp
 
 #include <iostream>
+#include <ctime>
 #include "mpi.h"
 
 #include "array.hpp"
@@ -45,12 +46,6 @@ private:
     Tetrad *tetrad;     // Tetrad array, used to store tetrads
     
     EDMD edmd;          // EDMD class, functions will be called to calculate forces
-    
-    Array array;        // The array class for array operation
-    
-    double ** send_Buf; // The buffer for sending data
-    
-    double ** recv_Buf; // The buffer for receiving data
     
     MPI_Comm comm;      // MPI Communicator
     
@@ -100,7 +95,7 @@ public:
      *
      * Return:    None
      */
-    void ED_Calculation(void);
+    void ED_Calculation(int index[], int num_Buf, double** recv_Buf, MPI_Request send_Request[]);
     
     /**
      * Function:  Compute NB forces of tetrads.
@@ -109,7 +104,7 @@ public:
      *
      * Return:    None
      */
-    void NB_Calculation(void);
+    void NB_Calculation(int index[], int num_Buf, double** recv_Buf, MPI_Request send_Request[]);
     
     /**
      * Function:  Responsible for receive instructions from master to calculate ED/NB forces and

@@ -54,12 +54,6 @@ public:
     
     double *NB_Forces;     // The NB forces
     
-    double ED_Energy;      // The ED energy
-    
-    double NB_Energy;      // The NB energy
-    
-    double EL_Energy;      // The electrostatic energy
-    
     double temperature;    // The temperature of tetrad
     
     double *velocities;    // The velocities of tetrad
