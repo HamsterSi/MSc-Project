@@ -91,20 +91,26 @@ public:
     /**
      * Function:  Compute ED forces of tetrads.
      *
-     * Parameter: None
+     * Parameter: int index[]       -> The tetrad index & the index of force type
+     *            int num_Buf       -> The triple of the number of atoms in tetrads
+     *            double** recv_Buf -> The recevied data buffer (coordinates)
+     *            MPI_Request send_Rqt[] -> The send request
      *
      * Return:    None
      */
-    void ED_Calculation(int index[], int num_Buf, double** recv_Buf, MPI_Request send_Request[]);
+    void ED_Calculation(int index[], int num_Buf, double** recv_Buf, MPI_Request send_Rqt[]);
     
     /**
      * Function:  Compute NB forces of tetrads.
      *
-     * Parameter: None
+     * Parameter: int index[]       -> The tetrad index & the index of force type
+     *            int num_Buf       -> The triple of the number of atoms in tetrads
+     *            double** recv_Buf -> The recevied data buffer (coordinates)
+     *            MPI_Request send_Rqt[] -> The send request
      *
      * Return:    None
      */
-    void NB_Calculation(int index[], int num_Buf, double** recv_Buf, MPI_Request send_Request[]);
+    void NB_Calculation(int index[], int num_Buf, double** recv_Buf, MPI_Request send_Rqt[]);
     
     /**
      * Function:  Responsible for receive instructions from master to calculate ED/NB forces and

@@ -44,6 +44,8 @@ public:
     
     EDMD edmd;            // The EDMD class for calculation
     
+    Array array;          // The array class for array operation
+    
     int size;             // The size of MPI processes
     
     int max_Atoms;        // The maximum number of atoms in tetrads
@@ -143,14 +145,14 @@ public:
      * Parameter: int* i            -> The index for ED forces calculation & iteration
      *            int* j            -> The index for NB forces calculation
      *            int dest          -> The MPI destination
+     *            int index[]       -> The tetrad index & the index of force type
      *            double** send_Buf -> The MPI send buffer
-     *            double** recv_Buf -> The MPI recv buffer
      *            MPI_Request* send_Request -> The MPI send request
      *            MPI_Request* recv_Request -> The MPI recv request
      *
      * Return:    None
      */
-    void send_Tetrad_Index(int* i, int* j, int dest, int index[], double** send_Buf, MPI_Request* send_Request, MPI_Request* recv_Request);
+    void send_n_Recv(int* i, int* j, int dest, int index[], double** send_Buf, MPI_Request* send_Request, MPI_Request* recv_Request);
     
     /**
      * Function:  Clip the NB forces into range (-1.0, 1.0)
@@ -210,11 +212,20 @@ public:
     /**
      * Function:  Master writes the trajectories.
      *
-     * Parameter: int istep -> The iterations of simulation
+     * Parameter: int ini_Step -> The first iteration to write out the number of atoms in DNA
      *
      * Return:    None
      */
-    void write_Trajectories(int istep);
+    void write_Trajectories(int ini_Step);
+    
+    /**
+     * Function:  Master writes the energies, temperature and trajectories.
+     *
+     * Parameter: int istep    -> The iterations of simulation
+     *
+     * Return:    None
+     */
+    void write_Info(int istep);
     
     /**
      * Function:  Master writes a new crd file.

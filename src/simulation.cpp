@@ -24,20 +24,13 @@ void master_Code(void) {
 
     Master master;
     
-    clock_t start_Time = clock();
+    master.initialise();      // Initialises simulaton (reading files, set parameters, etc.)
     
-    // Master initialises the simulaton, including reading data from input files,
-    // allocate memory for arrays, set the frequencies of iterations, etc.
-    master.initialise();
+    master.send_Parameters(); // Send parameters to all workers
     
-    cout << "\nMaster sending data to workers.\n>>> Sending parameters..." << endl;
-    master.send_Parameters();
+    master.send_Tetrads();    // Send tetrads to all workers
     
-    cout << ">>> Sending tetrads..." << endl;
-    master.send_Tetrads();
-    cout << "Data sending completed.\n\nStart simulation...\n" << endl;
-    
-    for (int istep = 0, icyc = 0; icyc < 1; icyc++) {//master.io.ncycs; icyc++) {//
+    for (int istep = 0, icyc = 0; icyc < 2; icyc++) {//master.io.ncycs; icyc++) {//
 
         //cout << "\nIteration: " << icyc << endl;
         
@@ -48,34 +41,24 @@ void master_Code(void) {
             cout << i << endl;
         
             master.cal_Forces();     // Calculate ED/NB forces
+            
             master.cal_Velocities(); // Calculate velocities
+            
             master.cal_Coordinate(); // Calculate coordinates
     
         }
         
         istep += master.io.ntsync;
         
-        // Process the velocities & coordinates of tetrads together
-        master.data_Processing();
+        master.data_Processing(); // Divide velocities & coordinates by 4
         
-        // Write out energies & tmeperature, and the trajectories of DNA
-        if (istep % master.io.ntwt == 0) {
-            master.write_Energy(istep);
-            master.write_Trajectories(istep-master.io.ntsync);
-        }
+        if (istep % master.io.ntwt == 0) { master.write_Info(istep); } // Write energy & trajectory
         
-        // Write out a new crd file
-        if (istep % master.io.ntpr == 0) {
-            master.write_Crds();
-        }
+        if (istep % master.io.ntpr == 0) { master.write_Crds(); } // Update crd file
         
     }
     
-    // Finalise the simulation, send signal to workers to stop their work
-    master.finalise();
-
-    double time_Usage = double (clock() - start_Time) / CLOCKS_PER_SEC;
-    cout << "Simulation ended.\nTime usage of simualtion: " << time_Usage << endl << endl;
+    master.finalise(); // Finalise simulation, send signal to terminate all workers
     
 }
 
@@ -85,14 +68,11 @@ void worker_Code(void) {
     
     Worker worker;
     
-    // Receive parameters & initialisation
-    worker.recv_Parameters();
+    worker.recv_Parameters();   // Receive parameters & initialisation
     
-    // Receive all tetrads
-    worker.recv_Tetrads();
-    
-    // Start ED/NB force calculation
-    worker.force_Calculation();
+    worker.recv_Tetrads();      // Receive all tetrads
+   
+    worker.force_Calculation(); // Start ED/NB force calculation
     
 }
 

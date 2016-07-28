@@ -19,19 +19,38 @@
 
 #include "tetrad.hpp"
 
-/*
-Tetrad::Tetrad(void) {
+
+void Tetrad::allocate_Tetrad_Arrays(void) {
     
-    num_Atoms = 0;
-    num_Evecs = 0;
- 
-    temperature = 0.0;
+    avg_Structure = new double[3 * num_Atoms];
+    masses        = new double[3 * num_Atoms];
+    abq           = new double[3 * num_Atoms];
+    eigenvalues   = new double[num_Evecs];
+    eigenvectors  = Array::allocate_2D_Array(num_Evecs, 3 * num_Atoms);
+    velocities    = new double[3 * num_Atoms];
+    coordinates   = new double[3 * num_Atoms];
+    ED_Forces     = new double[3 * num_Atoms + 1];
+    random_Forces = new double[3 * num_Atoms];
+    NB_Forces     = new double[3 * num_Atoms + 2];
     
 }
 
 
 
-Tetrad::~Tetrad(void) { }*/
+void Tetrad::deallocate_Tetrad_Arrays(void) {
+    
+    delete [] avg_Structure;
+    delete [] masses;
+    delete [] abq;
+    delete [] eigenvalues;
+    Array::deallocate_2D_Array(eigenvectors);
+    delete [] velocities;
+    delete [] coordinates;
+    delete [] ED_Forces;
+    delete [] random_Forces;
+    delete [] NB_Forces;
+    
+}
 
 
 

@@ -21,6 +21,7 @@
 #define tetrad_hpp
 
 #include <iostream>
+#include "Array.hpp"
 
 using namespace std;
 
@@ -60,6 +61,25 @@ public:
     
     double *coordinates;   // The coordinates of tetrad
    
+public:
+    
+    /**
+     * Function:  Allocate memory space for all arrays in tetrad
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
+    void allocate_Tetrad_Arrays(void);
+    
+    /**
+     * Function:  Deallocate the memory space  of all arrays in tetrad
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
+    void deallocate_Tetrad_Arrays(void);
 
 };
 

@@ -51,24 +51,6 @@ public:
     static void deallocate_2D_Array(double** array);
     
     /**
-     * Function:  Allocate all arrays in tetrad
-     *
-     * Parameter: Tetrad* tetrad -> The tetrad whose arrays to be allocated
-     *
-     * Return:    None
-     */
-    static void allocate_Tetrad_Arrays(Tetrad* tetrad);
-    
-    /**
-     * Function:  Deallocate all arrays in tetrad
-     *
-     * Parameter: Tetrad* tetrad -> The tetrad whose arrays to be deallocated
-     *
-     * Return:    None
-     */
-    static void deallocate_Tetrad_Arrays(Tetrad* tetrad);
-    
-    /**
      * Function:  Assign values from source array to dest array (for 1D array)
      *
      * Parameter: int num        -> The number of elements to be assigned
