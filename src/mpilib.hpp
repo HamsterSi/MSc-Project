@@ -49,11 +49,12 @@ public:
      * Function:  Create the MPI_Datatype for tetrads
      *
      * Parameter: MPI_Datatype* MPI_Tetrad -> The MPI data type for tetrad
+     *            int num_Tetrads          -> The number of tetrads
      *            Tetrad* tetrad           -> The instance of a tetrad
      *
      * Return:    None
      */
-    static void create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, Tetrad* tetrad);
+    static void create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, int num_Tetrads, Tetrad* tetrad);
     
     /**
      * Function:  Free the MPI_Datatype of tetrads

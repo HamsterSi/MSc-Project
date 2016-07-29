@@ -20,35 +20,37 @@
 #include "mpilib.hpp"
 
 
-void MPI_Library::create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, Tetrad* tetrad) {
-  
+void MPI_Library::create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, int num_Tetrads, Tetrad* tetrad) {
     
-    int i, counts[5], num_Atoms = 3 * tetrad->num_Atoms;
-    MPI_Datatype old_Types[5];
-    MPI_Aint  base, displs[5];
+    int i, j, * counts = new int [5 * num_Tetrads];
+    MPI_Datatype * old_Types = new MPI_Datatype [5 * num_Tetrads];
+    MPI_Aint base,  * displs = new MPI_Aint [5 * num_Tetrads];
     
-    // Assign values for counts & old types
-    for (i = 0; i < 5; i++) {
-        if (i < 3) counts[i] = num_Atoms;
-        else if (i == 3) counts[i] = tetrad->num_Evecs;
-        else counts[i] = tetrad->num_Evecs * num_Atoms;
+    for (i = 0; i < num_Tetrads; i++) {
         
-        old_Types[i] = MPI_DOUBLE;
+        // The number of elements in every array
+        counts[5 * i] = counts[5*i+1] = counts[5*i+2] = 3 * tetrad[i].num_Atoms;
+        counts[5*i+3] = tetrad[i].num_Evecs;
+        counts[5*i+4] = tetrad[i].num_Evecs * (3 * tetrad[i].num_Atoms);
+        
+        // The old data type of arrays
+        for (j = 0; j < 5; j++) { old_Types[5*i+j] = MPI_DOUBLE; }
+        
+        // Get the memory address of every elements in tetrad
+        MPI_Get_address(&(tetrad[i].avg_Structure[0]),   &displs[5 * i]);
+        MPI_Get_address(&(tetrad[i].masses[0]),          &displs[5*i+1]);
+        MPI_Get_address(&(tetrad[i].abq[0]),             &displs[5*i+2]);
+        MPI_Get_address(&(tetrad[i].eigenvalues[0]),     &displs[5*i+3]);
+        MPI_Get_address(&(tetrad[i].eigenvectors[0][0]), &displs[5*i+4]);
+        
     }
     
-    // Get the memory address of every elements in tetrad
-    MPI_Get_address(tetrad, &base);
-    MPI_Get_address(tetrad->avg_Structure, &displs[0]);
-    MPI_Get_address(tetrad->masses,        &displs[1]);
-    MPI_Get_address(tetrad->abq,           &displs[2]);
-    MPI_Get_address(tetrad->eigenvalues,   &displs[3]);
-    MPI_Get_address(&(tetrad->eigenvectors[0][0]),  &displs[4]);
-    
     // Calculate the displacements
-    for (i = 4; i >= 0; i--) { displs[i] -= base; }
+    MPI_Get_address(&(tetrad[0]), &base);
+    for (i = 5 * num_Tetrads - 1; i >= 0; i--) { displs[i] -= base; }
     
     // Create the MPI data type "MPI_Tetrad".
-    MPI_Type_create_struct(5, counts, displs, old_Types, MPI_Tetrad);
+    MPI_Type_create_struct(5 * num_Tetrads, counts, displs, old_Types, MPI_Tetrad);
     MPI_Type_commit(MPI_Tetrad);
 
 }

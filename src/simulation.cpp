@@ -24,41 +24,39 @@ void master_Code(void) {
 
     Master master;
     
-    master.initialise();      // Initialises simulaton (reading files, set parameters, etc.)
+    // Initialises simulaton (reading files, set parameters, etc.)
+    master.initialise();
     
-    master.send_Parameters(); // Send parameters to all workers
+    // Master sends simulation parameters & tetrads
+    master.send_Parameters();
+    master.send_Tetrads();
     
-    master.send_Tetrads();    // Send tetrads to all workers
-    
-    for (int istep = 0, icyc = 0; icyc < 2; icyc++) {//master.io.ncycs; icyc++) {//
+    for (int istep = 0; istep < 100; istep += master.io.ntsync) {//master.io.nsteps; istep += master.io.ntsync) {
 
-        //cout << "\nIteration: " << icyc << endl;
+        // Generate pair lists for NB force calculation
+        master.generate_Pair_Lists();
         
-        master.generate_Pair_Lists(); // Generate pair lists
-        
-        for (int i = 0; i < 100; i++) {//master.io.ntsync; i++) {//
-
+        // Loop to calculate forces, then updating the velocities & coordinates
+        for (int i = 0; i < 1; i++) {//master.io.ntsync; i++) {//
             cout << i << endl;
-        
-            master.cal_Forces();     // Calculate ED/NB forces
             
-            master.cal_Velocities(); // Calculate velocities
-            
-            master.cal_Coordinate(); // Calculate coordinates
+            master.calculate_Forces();
+            master.update_Velocities();
+            master.update_Coordinates();
     
         }
         
-        istep += master.io.ntsync;
+        // Divide velocities & coordinates by 4
+        master.data_Processing();
         
-        master.data_Processing(); // Divide velocities & coordinates by 4
-        
-        if (istep % master.io.ntwt == 0) { master.write_Info(istep); } // Write energy & trajectory
-        
-        if (istep % master.io.ntpr == 0) { master.write_Crds(); } // Update crd file
+        // Write out the energy & temperature, trajectory, update crd file
+        if (istep % master.io.ntwt == 0) { master.write_Info(istep); }
+        if (istep % master.io.ntpr == 0) { master.write_Crds(); }
         
     }
     
-    master.finalise(); // Finalise simulation, send signal to terminate all workers
+    // Finalise simulation, terminate all workers
+    master.finalise();
     
 }
 
@@ -68,11 +66,14 @@ void worker_Code(void) {
     
     Worker worker;
     
-    worker.recv_Parameters();   // Receive parameters & initialisation
+    // Receive parameters & initialisation
+    worker.recv_Parameters();
     
-    worker.recv_Tetrads();      // Receive all tetrads
+    // Receive all tetrads
+    worker.recv_Tetrads();
    
-    worker.force_Calculation(); // Start ED/NB force calculation
+    // Start ED/NB force calculation
+    worker.force_Calculation();
     
 }
 

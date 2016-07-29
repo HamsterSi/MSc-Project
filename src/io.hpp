@@ -80,18 +80,14 @@ public:
     
     int irest;      // Indicates to read which crd file
     int nsteps;     // The total steps of iterations
-    int ntsync;     // The frequency of snyc
-    int ntwt;       // The frequency of writing of trajectories
-    int ntpr;       // The frequency of writing of info (Energies & temperature, crd file)
-    int ncycs;      // Total cycles
-    
-    bool circular;  // The Shape of DNA
-    
+    int ntsync;     // The frequency of synchronization
+    int ntwt;       // The frequency of updating the crd file
+    int ntpr;       // The frequency of writing of energy & trajectory
+
     // The strings used to store file paths
     string prm_File;
     string crd_File;
     string energy_File;
-    string forces_File;
     string trj_File;
     string new_Crd_File;
     
@@ -193,7 +189,7 @@ public:
      *
      * Returns:    None.
      */
-    void update_Crd(double* velocities, double* coordinates);
+    void update_Crd_File(double* velocities, double* coordinates);
     
 };
 

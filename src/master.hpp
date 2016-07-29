@@ -40,15 +40,13 @@ class Master {
     
 public:
    
-    IO io;                // The IO class for input and output
-    
     EDMD edmd;            // The EDMD class for calculation
+    
+    IO io;                // The IO class for input and output
     
     Array array;          // The array class for array operation
     
     int size;             // The size of MPI processes
-    
-    int max_Atoms;        // The maximum number of atoms in tetrads
     
     int num_Pairs;        // The number of pairs that have NB forces to be calculated
     
@@ -146,13 +144,12 @@ public:
      *            int* j            -> The index for NB forces calculation
      *            int dest          -> The MPI destination
      *            int index[]       -> The tetrad index & the index of force type
-     *            double** send_Buf -> The MPI send buffer
-     *            MPI_Request* send_Request -> The MPI send request
-     *            MPI_Request* recv_Request -> The MPI recv request
+     *            MPI_Request* send_Rqt -> The MPI send request
+     *            MPI_Request* recv_Rqt -> The MPI recv request
      *
      * Return:    None
      */
-    void send_n_Recv(int* i, int* j, int dest, int index[], double** send_Buf, MPI_Request* send_Request, MPI_Request* recv_Request);
+    void send_n_Recv(int* i, int* j, int dest, int index[], MPI_Request* send_Rqt, MPI_Request* recv_Rqt);
     
     /**
      * Function:  Clip the NB forces into range (-1.0, 1.0)
@@ -171,25 +168,25 @@ public:
      *
      * Return:    None
      */
-    void cal_Forces(void);
+    void calculate_Forces(void);
     
     /**
-     * Function:  Master calculates velocities of tetrads
+     * Function:  Master calculates velocities of all tetrads
      *
      * Parameter: None
      *
      * Return:    None
      */
-    void cal_Velocities(void);
+    void update_Velocities(void);
     
     /**
-     * Function:  Master calculates coordinates of tetrads
+     * Function:  Master calculates coordinates of all tetrads
      *
      * Parameter: None
      *
      * Return:    None
      */
-    void cal_Coordinate(void);
+    void update_Coordinates(void);
     
     /**
      * Function:  Master processes the velocities & coordinates of DNA
@@ -212,16 +209,16 @@ public:
     /**
      * Function:  Master writes the trajectories.
      *
-     * Parameter: int ini_Step -> The first iteration to write out the number of atoms in DNA
+     * Parameter: int istep -> The first iteration to write out the number of atoms in DNA
      *
      * Return:    None
      */
-    void write_Trajectories(int ini_Step);
+    void write_Trajectories(int istep);
     
     /**
      * Function:  Master writes the energies, temperature and trajectories.
      *
-     * Parameter: int istep    -> The iterations of simulation
+     * Parameter: int istep -> The iterations of simulation
      *
      * Return:    None
      */

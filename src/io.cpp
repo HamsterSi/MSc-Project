@@ -28,14 +28,10 @@ IO::IO(void) {
     ntsync = 100;
     ntwt   = 100;
     ntpr   = 1000;
-    ncycs  = 1000;
-    
-    circular  = false;
     
     prm_File     = "./test/GC90c12.prm";
     crd_File     = "./test/GC90_6c.crd";
     energy_File  = "./data/energies.eng";
-    forces_File  = "./data/forces.fcs";
     trj_File     = "./data/trajectory.trj";
     new_Crd_File = "./data/crd.crd";
     
@@ -72,7 +68,7 @@ void IO::read_Cofig(EDMD* edmd) {
     if (fin.is_open()) {
     
         // Read config data line by line and get the desired data
-        for (int i = 1; i < 20; i++) {
+        for (int i = 1; i < 18; i++) {
             fin.getline(line, sizeof(line));
             stringstream data_Line(line);
             istringstream iss;
@@ -84,24 +80,21 @@ void IO::read_Cofig(EDMD* edmd) {
                 case  4: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> ntwt;   break;
                 case  5: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> ntpr;   break;
                 case  6: data_Line >> s1 >> s2 >> s3; iss.str(s3);
-                    iss >> boolalpha >> circular; break;
-                case  7: data_Line >> s1 >> s2 >> s3; iss.str(s3);
                     iss >> edmd->dt   ; edmd->dt    *= edmd->constants.timefac; break;
-                case  8: data_Line >> s1 >> s2 >> s3; iss.str(s3);
+                case  7: data_Line >> s1 >> s2 >> s3; iss.str(s3);
                     iss >> edmd->gamma; edmd->gamma /= edmd->constants.timefac; break;
-                case  9: data_Line >> s1 >> s2 >> s3; iss.str(s3);
+                case  8: data_Line >> s1 >> s2 >> s3; iss.str(s3);
                     iss >> edmd->tautp; edmd->tautp *= edmd->constants.timefac; break;
-                case 10: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->temperature;
+                case  9: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->temperature;
                     edmd->scaled = edmd->constants.Boltzmann * edmd->temperature;   break;
-                case 11: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Cutoff; break;
-                case 12: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->atom_Cutoff; break;
-                case 13: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Least ; break;
-                case 14: data_Line >> s1 >> s2 >> prm_File;     break;
-                case 15: data_Line >> s1 >> s2 >> crd_File;     break;
-                case 16: data_Line >> s1 >> s2 >> energy_File;  break;
-                case 17: data_Line >> s1 >> s2 >> forces_File;  break;
-                case 18: data_Line >> s1 >> s2 >> trj_File;     break;
-                case 19: data_Line >> s1 >> s2 >> new_Crd_File; break;
+                case 10: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Cutoff; break;
+                case 11: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->atom_Cutoff; break;
+                case 12: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Least ; break;
+                case 13: data_Line >> s1 >> s2 >> prm_File;     break;
+                case 14: data_Line >> s1 >> s2 >> crd_File;     break;
+                case 15: data_Line >> s1 >> s2 >> energy_File;  break;
+                case 16: data_Line >> s1 >> s2 >> trj_File;     break;
+                case 17: data_Line >> s1 >> s2 >> new_Crd_File; break;
             }
         }
         
@@ -114,7 +107,6 @@ void IO::read_Cofig(EDMD* edmd) {
     
     // Remove old file before new simualtion starts
     file = energy_File.c_str();  remove(file);
-    file = forces_File.c_str();  remove(file);
     file = trj_File.c_str();     remove(file);
     file = new_Crd_File.c_str(); remove(file);
     
@@ -344,7 +336,7 @@ void IO::write_Trajectory(int istep, int index, double* coordinates) {
 
 
 
-void IO::update_Crd(double* velocities, double* coordinates) {
+void IO::update_Crd_File(double* velocities, double* coordinates) {
     
     int i, j;
     ofstream fout;

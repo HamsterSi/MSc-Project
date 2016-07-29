@@ -41,8 +41,6 @@ private:
 
     int num_Tetrads;    // The number of total tetrads
     
-    int max_Atoms;      // The maximum number of atoms in tetrads
-    
     Tetrad *tetrad;     // Tetrad array, used to store tetrads
     
     EDMD edmd;          // EDMD class, functions will be called to calculate forces
@@ -91,26 +89,24 @@ public:
     /**
      * Function:  Compute ED forces of tetrads.
      *
-     * Parameter: int index[]       -> The tetrad index & the index of force type
-     *            int num_Buf       -> The triple of the number of atoms in tetrads
-     *            double** recv_Buf -> The recevied data buffer (coordinates)
-     *            MPI_Request send_Rqt[] -> The send request
+     * Parameter: int index[]            -> The tetrad index & the index of force type
+     *            MPI_Request send_Rqt[] -> The MPI send request
+     *            MPI_Request recv_Rqt[] -> The MPI recv request
      *
      * Return:    None
      */
-    void ED_Calculation(int index[], int num_Buf, double** recv_Buf, MPI_Request send_Rqt[]);
+    void ED_Calculation(int index[], MPI_Request send_Rqt[], MPI_Request recv_Rqt[]);
     
     /**
      * Function:  Compute NB forces of tetrads.
      *
-     * Parameter: int index[]       -> The tetrad index & the index of force type
-     *            int num_Buf       -> The triple of the number of atoms in tetrads
-     *            double** recv_Buf -> The recevied data buffer (coordinates)
-     *            MPI_Request send_Rqt[] -> The send request
+     * Parameter: int index[]            -> The tetrad index & the index of force type
+     *            MPI_Request send_Rqt[] -> The MPI send request
+     *            MPI_Request recv_Rqt[] -> The MPI recv request
      *
      * Return:    None
      */
-    void NB_Calculation(int index[], int num_Buf, double** recv_Buf, MPI_Request send_Rqt[]);
+    void NB_Calculation(int index[], MPI_Request send_Rqt[], MPI_Request recv_Rqt[]);
     
     /**
      * Function:  Responsible for receive instructions from master to calculate ED/NB forces and

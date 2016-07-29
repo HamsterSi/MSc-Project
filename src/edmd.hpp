@@ -112,15 +112,11 @@ public:
     /**
      * Function:  Calculate ED forces for every tetrad, the results are stored in the Tetrad class
      *
-     * Parameter: Tetrad* tetrad    -> The instance of Tetrad cleass
-     *            double* old_Crds  -> The previous coordinates of the tetrad
-     *            double* ED_Forces -> The calculated ED forces of the tetrad
-     *            double* new_Crds  -> The calculated coordinates
-     *            int atoms     -> The maximum atoms * 3
+     * Parameter: Tetrad* tetrad -> The tetrad whose ED forces to be calculated
      *
      * Return:    None
      */
-    void calculate_ED_Forces(Tetrad* tetrad, double* old_Crds, int atoms);
+    void calculate_ED_Forces(Tetrad* tetrad);
     
     /**
      * Function:  Calculate the LV random forces.
@@ -145,15 +141,12 @@ public:
     /**
      * Function:  Calculate NB forces, results stored in Tetrad class
      *
-     * Parameter: Tetrad* t1    -> The instance 1 of Tetrad cleass
-     *            Tetrad* t2    -> The instance 2 of Tetrad cleass
-     *            double** crds -> The coodinates of tetrads
-     *            double** NB_Forces -> The NB forces of tetrads
-     *            int atoms     -> The maximum atoms * 3
+     * Parameter: Tetrad* t1 -> The tetrad whose NB forces to be calculated
+     *            Tetrad* t2 -> The tetrad whose NB forces to be calculated
      *
      * Return:    None
      */
-    void calculate_NB_Forces(Tetrad* t1, Tetrad* t2, double** crds, int atoms);
+    void calculate_NB_Forces(Tetrad* t1, Tetrad* t2);
     
     /**
      * Function:  Update velocities & Berendsen temperature control
