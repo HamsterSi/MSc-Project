@@ -41,9 +41,9 @@ private:
 
     int num_Tetrads;    // The number of total tetrads
     
-    Tetrad *tetrad;     // Tetrad array, used to store tetrads
+    Tetrad *tetrad;     // The Tetrad array to store all tetrads
     
-    EDMD edmd;          // EDMD class, functions will be called to calculate forces
+    EDMD edmd;          // EDMD class to calculate ED/NB forces
     
     MPI_Comm comm;      // MPI Communicator
     
@@ -89,26 +89,26 @@ public:
     /**
      * Function:  Compute ED forces of tetrads.
      *
-     * Parameter: int index[]            -> The tetrad index & the index of force type
-     *            MPI_Request send_Rqt[] -> The MPI send request
+     * Parameter: int index[] -> The tetrad index & the index of force type
+     *            MPI_Request send_Request[] -> The MPI send request
      *
      * Return:    None
      */
-    void ED_Calculation(int index[], MPI_Request send_Rqt[]);
+    void ED_Calculation(int index[], MPI_Request send_Request[]);
     
     /**
      * Function:  Compute NB forces of tetrads.
      *
-     * Parameter: int index[]            -> The tetrad index & the index of force type
-     *            MPI_Request send_Rqt[] -> The MPI send request
+     * Parameter: int index[] -> The tetrad index & the index of force type
+     *            MPI_Request send_Request[] -> The MPI send request
      *
      * Return:    None
      */
-    void NB_Calculation(int index[], MPI_Request send_Rqt[]);
+    void NB_Calculation(int index[], MPI_Request send_Request[]);
     
     /**
-     * Function:  Responsible for receive instructions from master to calculate ED/NB forces and
-     *            send forces & energies back to master.
+     * Function:  Function for workers whose ranks are >= 2. Responsible for receive new tasks
+     *            from master to calculate ED/NB forces and send forces & energies to rank 1.
      *
      * Parameter: None
      *
@@ -116,14 +116,43 @@ public:
      */
     void force_Calculation(void);
     
+    /**
+     * Function:  Function for the worker (rank 1). Receive the ED forces &
+     *            coordinates from other workers.
+     *
+     * Parameter: int index  -> The index of the tetrad
+     *            int source -> The source where the ED forces & coordinates from.
+     *
+     * Return:    None
+     */
     void recv_ED_Forces(int index, int source);
     
+    /**
+     * Function:  Function for the worker (rank 1). Set all array elements of 
+     *            the NB forces of tetrads to 0.
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
     void empty_NB_Forces(void);
     
+    /**
+     * Function: Function for the worker (rank 1). Sum up the NB forces & NB 
+     *           energy, electrostatic energy received from other workers.
+     *
+     * Parameter: int index[]        -> The indexes of tetrads
+     *            int source         -> The source where the NB forces from.
+     *            double* NB_Forces1 -> The NB forces of one tetrad
+     *            double* NB_Forces2 -> The NB forces of one tetrad
+     *
+     * Return:    None
+     */
     void sum_NB_Forces(int index[], int source, double* NB_Forces1, double* NB_Forces2);
     
     /**
-     * Function:  Clip the NB forces into range (-1.0, 1.0)
+     * Function:  Function for the worker (rank 1). Clip the NB forces into range
+     *            (-1.0, 1.0) after received all NB forces & summed up.
      *
      * Parameter: None
      *
@@ -131,7 +160,15 @@ public:
      */
     void clip_NB_Forces(void);
     
-    void NB_Force_Processing(void);
+    /**
+     * Function:  Function for the worker (rank 1). It received singals from both the
+     *            master & other workers to process the ED/NB forces.
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
+    void force_Processing(void);
     
 };
 

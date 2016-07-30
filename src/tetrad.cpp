@@ -22,7 +22,7 @@
 
 void Tetrad::allocate_Tetrad_Arrays(void) {
     
-    avg_Structure = new double[3 * num_Atoms];
+    avg           = new double[3 * num_Atoms];
     masses        = new double[3 * num_Atoms];
     abq           = new double[3 * num_Atoms];
     eigenvalues   = new double[num_Evecs];
@@ -39,7 +39,7 @@ void Tetrad::allocate_Tetrad_Arrays(void) {
 
 void Tetrad::deallocate_Tetrad_Arrays(void) {
     
-    delete [] avg_Structure;
+    delete [] avg;
     delete [] masses;
     delete [] abq;
     delete [] eigenvalues;

@@ -40,23 +40,25 @@ class Master {
     
 public:
    
-    EDMD edmd;            // The EDMD class for calculation
+    EDMD edmd;   // The EDMD class for EDMD calculation
     
-    IO io;                // The IO class for input and output
+    IO io;       // The IO class for inputs and outputs
     
-    Array array;          // The array class for array operation
+    Array array; // The array for 2D array operation
     
-    int size;             // The size of MPI processes
+    int       num_Pairs;    // The number of non-bonded pairs
     
-    int num_Pairs;        // The number of pairs that have NB forces to be calculated
-    
-    double ** pair_Lists; // The array to store pair lists
+    double ** pair_Lists;   // The 2D array of NB pair lists
 
-    double * velocities;  // Store the velocities of all atoms
+    double * velocities;    // The velocities of the DNA
     
-    double * coordinates; // Store the coordinates of all atoms
+    double * coordinates;   // The coordinates of the DNA
     
-    MPI_Comm comm;        // The MPI communicator
+    int size;               // The size of MPI processes
+    
+    MPI_Comm comm;          // The MPI communicator
+    
+    MPI_Datatype MPI_Force; // MPI_Datatype for receiving ED/NB forces
     
     
 public:
@@ -140,16 +142,16 @@ public:
      *            for ED & NB forces calculation, and receive the forces from workers
      *            The master also calculates the random forces.
      *
-     * Parameter: int* i            -> The index for ED forces calculation & iteration
-     *            int* j            -> The index for NB forces calculation
-     *            int dest          -> The MPI destination
-     *            int index[]       -> The tetrad index & the index of force type
-     *            MPI_Request* send_Rqt -> The MPI send request
-     *            MPI_Request* recv_Rqt -> The MPI recv request
+     * Parameter: int* i      -> The index for ED force calculation & iteration
+     *            int* j      -> The index for NB force calculation
+     *            int dest    -> The MPI send & recv destination
+     *            int index[] -> The tetrad indexes & the index of force type
+     *            MPI_Request* send_Request -> The MPI send request
+     *            MPI_Request* recv_Request -> The MPI recv request
      *
      * Return:    None
      */
-    void send_n_Recv(int* i, int* j, int dest, int index[], MPI_Request* send_Rqt, MPI_Request* recv_Rqt);
+    void send_n_Recv(int* i, int* j, int dest, int index[], MPI_Request* send_Request, MPI_Request* recv_Request);
     
     /**
      * Function:  Master distrubute ED/NB forces calculation among worker processes,
@@ -200,7 +202,7 @@ public:
     /**
      * Function:  Master writes the trajectories.
      *
-     * Parameter: int istep -> The first iteration to write out the number of atoms in DNA
+     * Parameter: int istep -> The first iteration to write the number of atoms of the DNA
      *
      * Return:    None
      */

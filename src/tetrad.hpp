@@ -21,7 +21,7 @@
 #define tetrad_hpp
 
 #include <iostream>
-#include "Array.hpp"
+#include "array.hpp"
 
 using namespace std;
 
@@ -39,21 +39,21 @@ public:
     
     int num_Evecs;         // The number of eigenvectors & eigenvalues
     
-    double *avg_Structure; // The average structure of tetrad
+    double *avg;           // The reference average structure of tetrad
     
-    double *masses;        // The masses of atoms in tetrad
+    double *masses;        // The masses of every atom in tetrad
     
-    double *abq;           // The abq
+    double *abq;           // The non-bonded parameters
     
     double *eigenvalues;   // The eigenvalues
     
     double **eigenvectors; // The eigenvectors
-    
-    double *ED_Forces;     // The ED forces
+
+    double *ED_Forces;     // The ED forces (Laset element is ED energy)
     
     double *random_Forces; // The random forces
     
-    double *NB_Forces;     // The NB forces
+    double *NB_Forces;     // The NB forces (Laset two elements are NB energy & Electrostatic Energy)
     
     double temperature;    // The temperature of tetrad
     

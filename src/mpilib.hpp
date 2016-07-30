@@ -27,14 +27,14 @@
 #include "tetrad.hpp"
 
 // Define the MPI tag for message passing
-#define TAG_SIGNAL 1
-#define TAG_DATA   2    // For passing parameters (number of tetrads, etc.)
-#define TAG_INDEX  3
-#define TAG_ED     4    // For message passing of ED forces calculation
-#define TAG_NB     7    // For message passing of NB forces calculation
-#define TAG_TETRAD 10   // For passing tetrads between master and workers
-#define TAG_CLEAN  11
-#define TAG_ALL_NB 12
+#define TAG_SIGNAL 1  // The singal to specify task types
+#define TAG_DATA   2  // For passing parameters (number of tetrads, etc.)
+#define TAG_INDEX  3  // The tetrad index(es) and force types for ED/NB force calculation
+#define TAG_ED     4  // For ED forces calculation
+#define TAG_NB     7  // For NB forces calculation
+#define TAG_TETRAD 10 // For passing tetrads between master and workers
+#define TAG_CLEAN  11 // For empty the NB forces of all tetrads
+#define TAG_FORCE  12 // For passing forces between master and workers
 
 using namespace std;
 
@@ -70,22 +70,22 @@ public:
     /**
      * Function:  Create the MPI_Datatype for tetrads
      *
-     * Parameter: MPI_Datatype* MPI_NB -> The MPI data type of NB forces
-     *            int num_Tetrads      -> The number of tetrads
-     *            Tetrad* tetrad       -> The parameters of all tetrads
+     * Parameter: MPI_Datatype* MPI_Force -> The MPI data type of NB forces
+     *            int num_Tetrads         -> The number of tetrads
+     *            Tetrad* tetrad          -> The parameters of all tetrads
      *
      * Return:    None
      */
-    static void create_MPI_NB(MPI_Datatype* MPI_NB, int num_Tetrads, Tetrad* tetrad);
+    static void create_MPI_Force(MPI_Datatype* MPI_Force, int num_Tetrads, Tetrad* tetrad);
     
     /**
      * Function:  Free the MPI_Datatype of tetrads
      *
-     * Parameter: MPI_Datatype* MPI_NB -> The MPI data type of NB forces
+     * Parameter: MPI_Datatype* MPI_Force -> The MPI data type of NB forces
      *
      * Return:    None
      */
-    static void free_MPI_NB(MPI_Datatype* MPI_NB);
+    static void free_MPI_Force(MPI_Datatype* MPI_Force);
     
 };
 

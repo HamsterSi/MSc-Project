@@ -38,7 +38,7 @@ void MPI_Library::create_MPI_Tetrad(MPI_Datatype* MPI_Tetrad, int num_Tetrads, T
         for (j = 0; j < 6; j++) { old_Types[6*i+j] = MPI_DOUBLE; }
         
         // Get the memory address of every elements in tetrad
-        MPI_Get_address(&(tetrad[i].avg_Structure[0]),   &displs[6 * i]);
+        MPI_Get_address(&(tetrad[i].avg[0]),             &displs[6 * i]);
         MPI_Get_address(&(tetrad[i].masses[0]),          &displs[6*i+1]);
         MPI_Get_address(&(tetrad[i].abq[0]),             &displs[6*i+2]);
         MPI_Get_address(&(tetrad[i].eigenvalues[0]),     &displs[6*i+3]);
@@ -71,36 +71,38 @@ void MPI_Library::free_MPI_Tetrad(MPI_Datatype* MPI_Tetrad) {
 
 
 
-void MPI_Library::create_MPI_NB(MPI_Datatype* MPI_NB, int num_Tetrads, Tetrad* tetrad) {
+void MPI_Library::create_MPI_Force(MPI_Datatype* MPI_Force, int num_Tetrads, Tetrad* tetrad) {
     
-    int i, j, * counts = new int [3 * num_Tetrads];
-    MPI_Datatype * old_Types = new MPI_Datatype [3 * num_Tetrads];
-    MPI_Aint base,  * displs = new MPI_Aint [3 * num_Tetrads];
+    int i, j, * counts = new int [4 * num_Tetrads];
+    MPI_Datatype * old_Types = new MPI_Datatype [4 * num_Tetrads];
+    MPI_Aint base,  * displs = new MPI_Aint [4 * num_Tetrads];
     
     for (i = 0; i < num_Tetrads; i++) {
         
         // The number of elements in every array
-        counts[3 * i] = 3 * tetrad[i].num_Atoms + 1; // ED
-        counts[3*i+1] = 3 * tetrad[i].num_Atoms;   // Crds
-        counts[3*i+2] = 3 * tetrad[i].num_Atoms + 2; // NB
+        counts[4 * i] = 3 * tetrad[i].num_Atoms + 1; // ED
+        counts[4*i+1] = 3 * tetrad[i].num_Atoms;     // Crds
+        counts[4*i+2] = 3 * tetrad[i].num_Atoms;     // random
+        counts[4*i+3] = 3 * tetrad[i].num_Atoms + 2; // NB
         
         // The old data type of NB forces
-        for (j = 0; j < 3; j++) { old_Types[3*i+j] = MPI_DOUBLE; }
+        for (j = 0; j < 4; j++) { old_Types[4*i+j] = MPI_DOUBLE; }
         
         // Get the memory address of every elements in tetrad
-        MPI_Get_address(&(tetrad[i].ED_Forces[0]),   &displs[3 * i]);
-        MPI_Get_address(&(tetrad[i].coordinates[0]), &displs[3*i+1]);
-        MPI_Get_address(&(tetrad[i].NB_Forces[0]),   &displs[3*i+2]);
+        MPI_Get_address(&(tetrad[i].ED_Forces[0]),     &displs[4 * i]);
+        MPI_Get_address(&(tetrad[i].coordinates[0]),   &displs[4*i+1]);
+        MPI_Get_address(&(tetrad[i].random_Forces[0]), &displs[4*i+2]);
+        MPI_Get_address(&(tetrad[i].NB_Forces[0]),     &displs[4*i+3]);
         
     }
     
     // Calculate the displacements
     MPI_Get_address(&(tetrad[0]), &base);
-    for (i = 3 * num_Tetrads - 1; i >= 0; i--) { displs[i] -= base; }
+    for (i = 4 * num_Tetrads - 1; i >= 0; i--) { displs[i] -= base; }
     
     // Create the MPI data type "MPI_Tetrad".
-    MPI_Type_create_struct(3 * num_Tetrads, counts, displs, old_Types, MPI_NB);
-    MPI_Type_commit(MPI_NB);
+    MPI_Type_create_struct(4 * num_Tetrads, counts, displs, old_Types, MPI_Force);
+    MPI_Type_commit(MPI_Force);
     
     delete [] counts;
     delete [] old_Types;
@@ -110,11 +112,12 @@ void MPI_Library::create_MPI_NB(MPI_Datatype* MPI_NB, int num_Tetrads, Tetrad* t
 
 
 
-void MPI_Library::free_MPI_NB(MPI_Datatype* MPI_NB) {
+void MPI_Library::free_MPI_Force(MPI_Datatype* MPI_Force) {
     
-    MPI_Type_free(MPI_NB);
+    MPI_Type_free(MPI_Force);
     
 }
+
 
 
 

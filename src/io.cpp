@@ -139,7 +139,7 @@ void IO::read_Prm(void) {
             
             // Line 3 onwards: Reference (average) structure for the tetrad (x1,y1,z1,x2,y2,z2, etc as in .crd file)
             for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {
-                fin >> tetrad[i].avg_Structure[j];
+                fin >> tetrad[i].avg[j];
             }
             
             // Line ? onwards: Masses for each atom (amu)

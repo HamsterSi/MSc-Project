@@ -75,9 +75,9 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     
     // Copy average structure & coordinates from tetrads
     for (i = 0; i < tetrad->num_Atoms; i++) {
-        avg_Crds[0][i] = tetrad->avg_Structure[3 * i];
-        avg_Crds[1][i] = tetrad->avg_Structure[3*i+1];
-        avg_Crds[2][i] = tetrad->avg_Structure[3*i+2];
+        avg_Crds[0][i] = tetrad->avg[3 * i];
+        avg_Crds[1][i] = tetrad->avg[3*i+1];
+        avg_Crds[2][i] = tetrad->avg[3*i+2];
         
         crds[0][i] = tetrad->coordinates[3 * i];
         crds[1][i] = tetrad->coordinates[3*i+1];
@@ -95,9 +95,9 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     
     // Calculate the offset vector of tetrads
     for (v[0] = v[1] = v[2] = 0.0, i = 0; i < tetrad->num_Atoms; i++) {
-        v[0] += (tetrad->avg_Structure[3 * i] - (rotmat[0] * tetrad->coordinates[3*i] + rotmat[1] * tetrad->coordinates[3*i+1] + rotmat[2] * tetrad->coordinates[3*i+2]));
-        v[1] += (tetrad->avg_Structure[3*i+1] - (rotmat[3] * tetrad->coordinates[3*i] + rotmat[4] * tetrad->coordinates[3*i+1] + rotmat[5] * tetrad->coordinates[3*i+2]));
-        v[2] += (tetrad->avg_Structure[3*i+2] - (rotmat[6] * tetrad->coordinates[3*i] + rotmat[7] * tetrad->coordinates[3*i+1] + rotmat[8] * tetrad->coordinates[3*i+2]));
+        v[0] += (tetrad->avg[3 * i] - (rotmat[0] * tetrad->coordinates[3*i] + rotmat[1] * tetrad->coordinates[3*i+1] + rotmat[2] * tetrad->coordinates[3*i+2]));
+        v[1] += (tetrad->avg[3*i+1] - (rotmat[3] * tetrad->coordinates[3*i] + rotmat[4] * tetrad->coordinates[3*i+1] + rotmat[5] * tetrad->coordinates[3*i+2]));
+        v[2] += (tetrad->avg[3*i+2] - (rotmat[6] * tetrad->coordinates[3*i] + rotmat[7] * tetrad->coordinates[3*i+1] + rotmat[8] * tetrad->coordinates[3*i+2]));
     }
     v[0] /= tetrad->num_Atoms; v[1] /= tetrad->num_Atoms; v[2] /= tetrad->num_Atoms;
     
@@ -112,7 +112,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     // Step 3 & Step 4, can be done in the same loop
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         tetrad->ED_Forces[i] = 0.0;
-        temp_Crds[i] = tetrad->avg_Structure[i];
+        temp_Crds[i] = tetrad->avg[i];
     }
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         for (j = 0; j < tetrad->num_Evecs; j++) {
@@ -143,11 +143,9 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     }
     
     for (i = 0; i < tetrad->num_Atoms; i++) {
-        
         tetrad->ED_Forces[3 * i] = temp_Frs[i][0];
         tetrad->ED_Forces[3*i+1] = temp_Frs[i][1];
         tetrad->ED_Forces[3*i+2] = temp_Frs[i][2];
-        
     }
 
     // Step 7: calculate the 'potential energy' (in units of kT), stroed in the ED forces array for easy sending to master
@@ -279,7 +277,7 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
         }
     }
     
-    t2->NB_Forces[3 * t2->num_Atoms]   = t1->NB_Forces[3 * t1->num_Atoms];
+    t2->NB_Forces[3 * t2->num_Atoms]     = t1->NB_Forces[3 * t1->num_Atoms];
     t2->NB_Forces[3 * t2->num_Atoms + 1] = t1->NB_Forces[3 * t1->num_Atoms + 1];
     
 }
@@ -289,28 +287,24 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
 void EDMD::update_Velocities(Tetrad* tetrad) {
     
     int i;
-    double kentical_Energy = 0.0;
-    double target_KE;
-    double tscal;  // Berendsen T-coupling factor
-    double gamfac; // Velocity scale factor
+    double kentic_Energy = 0.0;
+    double target_KE; // The target kinetic energy
+    double tscal;     // The Berendsen T-coupling factor
+    double gamfac = 1.0 / (1.0 + gamma * dt); // Velocity scale factor
     
-    gamfac = 1.0 / (1.0 + gamma * dt);
-    
-    // Simple Langevin dynamics, gamfac = 0.9960
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
+        // Simple Langevin dynamics, gamfac = 0.9960
         tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
-    }
-    
-    // Berendsen temperature control
-    for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        kentical_Energy += 0.5 * tetrad->masses[i] * tetrad->velocities[i] * tetrad->velocities[i];
+        
+        // Berendsen temperature control
+        kentic_Energy += 0.5 * tetrad->masses[i] * tetrad->velocities[i] * tetrad->velocities[i];
     }
     
     target_KE = 0.5 * scaled * 3 * tetrad->num_Atoms;
-    tscal = sqrt(1.0 + (dt/tautp) * ((target_KE/kentical_Energy) - 1.0));
+    tscal = sqrt(1.0 + (dt/tautp) * ((target_KE/kentic_Energy) - 1.0));
     
     // Calculate temperature of tetrad
-    tetrad->temperature = kentical_Energy * 2 / (constants.Boltzmann * 3 * tetrad->num_Atoms);
+    tetrad->temperature = kentic_Energy * 2 / (constants.Boltzmann * 3 * tetrad->num_Atoms);
     tetrad->temperature *= tscal * tscal;
     
     // Update velocities
