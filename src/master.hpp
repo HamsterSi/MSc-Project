@@ -152,15 +152,6 @@ public:
     void send_n_Recv(int* i, int* j, int dest, int index[], MPI_Request* send_Rqt, MPI_Request* recv_Rqt);
     
     /**
-     * Function:  Clip the NB forces into range (-1.0, 1.0)
-     *
-     * Parameter: None
-     *
-     * Return:    None
-     */
-    void clip_NB_Forces(void);
-    
-    /**
      * Function:  Master distrubute ED/NB forces calculation among worker processes,
      *            send tetrad indexes to workers and receive forces & energies back.
      *

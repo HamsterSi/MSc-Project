@@ -209,33 +209,23 @@ void Master::initialise_Forces_n_Energies(void) {
 
 
 
+
 void Master::send_n_Recv(int* i, int* j, int dest, int index[], MPI_Request* send_Rqt, MPI_Request* recv_Rqt) {
     
     if (*i < io.prm.num_Tetrads) { // Send tetrad index for ED calculation
 
-        // Send data to available workers
         index[0] = *i; index[1] = 0.0; index[2] = TAG_ED;
-        
-        MPI_Isend(index, 3, MPI_INT, dest, TAG_INDEX, comm, &send_Rqt[0]);
-        MPI_Isend(io.tetrad[index[0]].coordinates, 3 * io.tetrad[index[0]].num_Atoms,
-                  MPI_DOUBLE, dest, TAG_ED, comm, &send_Rqt[1]);
-
+        MPI_Isend(index, 3, MPI_INT, dest, TAG_INDEX, comm, send_Rqt);
         MPI_Irecv(index, 3, MPI_INT, dest, TAG_INDEX, comm, recv_Rqt);
         
         // Calculate random forces
-        edmd.calculate_Random_Forces(&io.tetrad[*i]);
+        edmd.calculate_Random_Forces(&io.tetrad[index[0]]);
         
+
     } else if (*j < num_Pairs) { // i >= num_Tetrads, send tetrad indexes for NB calculation
         
-        // Send data to available workers
         index[0] = pair_Lists[*j][0]; index[1] = pair_Lists[*j][1]; index[2] = TAG_NB;
-        
-        MPI_Isend(index, 3, MPI_INT, dest, TAG_INDEX, comm, &send_Rqt[0]);
-        MPI_Isend(io.tetrad[index[0]].coordinates, 3 * io.tetrad[index[0]].num_Atoms,
-                  MPI_DOUBLE, dest, TAG_NB + 1, comm, &send_Rqt[1]);
-        MPI_Isend(io.tetrad[index[1]].coordinates, 3 * io.tetrad[index[1]].num_Atoms,
-                  MPI_DOUBLE, dest, TAG_NB + 2, comm, &send_Rqt[2]);
-        
+        MPI_Isend(index, 3, MPI_INT, dest, TAG_INDEX, comm, send_Rqt);
         MPI_Irecv(index, 3, MPI_INT, dest, TAG_INDEX, comm, recv_Rqt);
         
         (*j)++;
@@ -246,10 +236,10 @@ void Master::send_n_Recv(int* i, int* j, int dest, int index[], MPI_Request* sen
 
 
 void Master::calculate_Forces(void) {
-    
-    int i, j, rank, index[size - 1][3];
-    MPI_Request send_Rqt[size - 1][3];
-    MPI_Request recv_Rqt1[size - 1], recv_Rqt2[size - 1][2];
+
+    int i, j, k, rank = 0, index[size-2][3];
+    MPI_Datatype MPI_NB;
+    MPI_Request send_Rqt[size-2], recv_Rqt[size-2];
     MPI_Status send_Status, recv_Status;
     
     // Initialise the forces & energies of tetrads
@@ -257,62 +247,36 @@ void Master::calculate_Forces(void) {
     
     /* Having an array of send and recv requests on the master, one for each worker.
     
-       Then once you have sent work, you can call MPI_Waitany() to see if any of the requests have completed.
+       Then once you have sent work, call MPI_Waitany() to see if any of the requests have completed.
     
-       If one has completed, then you save the forces and send a new task, then go back to calling MPI_Waitany().
+       If one has completed, then save the forces and send a new task, go back to calling MPI_Waitany().
     
        The key thing here is that the receives for the other workers can go on while you are processing the forces and generating new tasks.*/
-
-    for (i = 0, j = 0; i < size - 1; i++) {
-        send_n_Recv(&i, &j, i + 1, index[i], send_Rqt[i], &recv_Rqt1[i]);
+    
+    index[1][2] = TAG_CLEAN;
+    MPI_Send(index[1], 3, MPI_INT, 1, TAG_INDEX, comm);
+    
+    for (i = 0, j = 0; i < size - 2; i++) {
+        send_n_Recv(&i, &j, i + 2, index[i], &send_Rqt[i], &recv_Rqt[i]);
     }
     
-    for (; i < num_Pairs + io.prm.num_Tetrads + size - 1 && j < num_Pairs + size - 1; i++) {
-    
-        MPI_Waitany(size - 1, recv_Rqt1, &rank, &recv_Status);
-        //cout << " >> " << i << ", " << j << ", " << rank + 1 << ", " << recv_Status.MPI_SOURCE << ", " << index[rank][0] << ", " << index[rank][1] << endl;
+    for (; i < num_Pairs + io.prm.num_Tetrads + size - 2 && j <= num_Pairs; i++) {
         
-        if (index[rank][2] == TAG_ED) {
-            MPI_Irecv(io.tetrad[index[rank][0]].ED_Forces, 3 * io.tetrad[index[rank][0]].num_Atoms + 1,
-                      MPI_DOUBLE, rank + 1, TAG_ED + 1, comm, &recv_Rqt2[rank][0]);
-            MPI_Irecv(io.tetrad[index[rank][0]].coordinates, 3 * io.tetrad[index[rank][0]].num_Atoms,
-                      MPI_DOUBLE, rank + 1, TAG_ED + 2, comm, &recv_Rqt2[rank][1]);
-            
-        } else if (index[rank][2] == TAG_NB) {
-            MPI_Irecv(io.tetrad[index[rank][0]].NB_Forces, 3 * io.tetrad[index[rank][0]].num_Atoms + 2,
-                      MPI_DOUBLE, rank + 1, TAG_NB + 1, comm, &recv_Rqt2[rank][0]);
-            MPI_Irecv(io.tetrad[index[rank][1]].NB_Forces, 3 * io.tetrad[index[rank][1]].num_Atoms + 2,
-                      MPI_DOUBLE, rank + 1, TAG_NB + 2, comm, &recv_Rqt2[rank][1]);
-        }
+        MPI_Waitany(size - 2, recv_Rqt, &rank, &recv_Status);
         
-        MPI_Wait(&send_Rqt[rank][0], &send_Status);
-        
-        send_n_Recv(&i, &j, rank + 1, index[rank], send_Rqt[rank], &recv_Rqt1[rank]);
-        
-        MPI_Wait(&recv_Rqt2[rank][0], &recv_Status);
-        MPI_Wait(&recv_Rqt2[rank][1], &recv_Status);
+        //cout << i << "rank: " << rank + 2 << " " << index[rank][0] << " " << index[rank][1] << " " << index[rank][2] << endl;
 
+        send_n_Recv(&i, &j, rank + 2, index[rank], &send_Rqt[rank], &recv_Rqt[rank]);
+        
     }
     
-    // Clip NB forces into range (-1.0, 1.0)
-    clip_NB_Forces();
-
-}
-
-
-
-
-void Master::clip_NB_Forces(void) {
+    index[1][2] = TAG_ALL_NB;
+    MPI_Send(index[1], 3, MPI_INT, 1, TAG_INDEX, comm);
     
-    double max_Forces = 1.0;
-    
-    for (int i  = 0; i < io.prm.num_Tetrads; i++) {
-        for (int j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            io.tetrad[i].NB_Forces[j] = min( max_Forces, io.tetrad[i].NB_Forces[j]);
-            io.tetrad[i].NB_Forces[j] = max(-max_Forces, io.tetrad[i].NB_Forces[j]);
-        }
-    }
-    
+    MPI_Library::create_MPI_NB(&MPI_NB, io.prm.num_Tetrads, io.tetrad);
+    MPI_Recv(io.tetrad, 1, MPI_NB, 1, TAG_ALL_NB, comm, &recv_Status);
+    MPI_Library::free_MPI_NB(&MPI_NB);
+
 }
 
 

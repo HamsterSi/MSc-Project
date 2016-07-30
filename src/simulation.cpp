@@ -24,6 +24,8 @@ void master_Code(void) {
 
     Master master;
     
+    clock_t start_Time = clock();
+    
     // Initialises simulaton (reading files, set parameters, etc.)
     master.initialise();
     
@@ -31,13 +33,13 @@ void master_Code(void) {
     master.send_Parameters();
     master.send_Tetrads();
     
-    for (int istep = 0; istep < 100; istep += master.io.ntsync) {//master.io.nsteps; istep += master.io.ntsync) {
+    for (int istep = 0; istep < master.io.nsteps; istep += master.io.ntsync) {//1000; istep += master.io.ntsync) {//
 
         // Generate pair lists for NB force calculation
         master.generate_Pair_Lists();
         
         // Loop to calculate forces, then updating the velocities & coordinates
-        for (int i = 0; i < 1; i++) {//master.io.ntsync; i++) {//
+        for (int i = 0; i < master.io.ntsync; i++) {//1; i++) {//
             cout << i << endl;
             
             master.calculate_Forces();
@@ -58,6 +60,9 @@ void master_Code(void) {
     // Finalise simulation, terminate all workers
     master.finalise();
     
+    double time_Usage = double (clock() - start_Time) / CLOCKS_PER_SEC;
+    cout << "Time usage of simualtion: " << time_Usage << endl << endl;
+    
 }
 
 
@@ -66,6 +71,9 @@ void worker_Code(void) {
     
     Worker worker;
     
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    
     // Receive parameters & initialisation
     worker.recv_Parameters();
     
@@ -73,7 +81,8 @@ void worker_Code(void) {
     worker.recv_Tetrads();
    
     // Start ED/NB force calculation
-    worker.force_Calculation();
+    if (rank == 1) { worker.NB_Force_Processing(); }
+    else { worker.force_Calculation(); }
     
 }
 
