@@ -23,6 +23,7 @@
 Master::Master(void) {
     
     num_Pairs = 0;
+    max_Atoms = 0;
     
     comm      = MPI_COMM_WORLD;
     MPI_Comm_size(comm, &size); // Get size of MPI processes
@@ -34,12 +35,18 @@ Master::Master(void) {
 Master::~Master(void) {
     
     // Deallocate memory of arrays
-    array.deallocate_2D_Array(pair_Lists);
+    array.deallocate_2D_Double_Array(pair_Lists);
+    array.deallocate_2D_Int_Array(ED_Index);
+    array.deallocate_2D_Int_Array(NB_Index);
+    array.deallocate_2D_Double_Array(NB_Forces);
     delete [] velocities;
     delete [] coordinates;
     
     // Free the MPI_Datatyep
-    MPI_Library::free_MPI_Force(&MPI_Force);
+    for (int i = 0; i < io.prm.num_Tetrads; i++) {
+        mpi.free_MPI_ED_Forces(&(MPI_ED_Forces[i]));
+    }
+    mpi.free_MPI_Crds(&MPI_Crds);
     
 }
 
@@ -54,22 +61,28 @@ void Master::initialise(void) {
     // Initialise coordinates & velocities of tetrads from the crd file
     io.initialise_Tetrad_Crds();
     
-    // Inintialise the frequencies of iterations & outputs
+    // Inintialise the frequencies of outputs
     io.ntwt -= io.ntwt % io.ntsync; if (io.ntwt == 0) io.ntwt = 1;
     io.ntpr -= io.ntpr % io.ntsync; if (io.ntpr == 0) io.ntpr = 1;
     
-    // The total number of NB pairs & allocate memory for pair lists
-    num_Pairs   = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
-    pair_Lists  = array.allocate_2D_Array(num_Pairs, 2);
+    // Create new MPI_Datatype for force calcation.
+    MPI_ED_Forces = new MPI_Datatype [io.prm.num_Tetrads]; // For every tetrad
+    for (int i = 0; i < io.prm.num_Tetrads; i++) {
+        if(max_Atoms < io.tetrad[i].num_Atoms) max_Atoms = io.tetrad[i].num_Atoms;
+        mpi.create_MPI_ED_Forces(&(MPI_ED_Forces[i]), &(io.tetrad[i]));
+    }
+    mpi.create_MPI_Crds(&MPI_Crds, io.prm.num_Tetrads, io.tetrad);
     
-    // Create new MPI_Datatype to receive ED/NB forces of all tetrads from rank 1
-    MPI_Library::create_MPI_Force(&MPI_Force, io.prm.num_Tetrads, io.tetrad);
-    
-    // Allocate memory for velocities & coordinates
+    // Allocate memory for arrays
+    num_Pairs  = io.prm.num_Tetrads * (io.prm.num_Tetrads - 1) / 2;
+    pair_Lists = array.allocate_2D_Double_Array(num_Pairs, 2);
+    ED_Index = array.allocate_2D_Int_Array(size - 1, 2);
+    NB_Index = array.allocate_2D_Int_Array(size - 1, 2);
+    NB_Forces  = array.allocate_2D_Double_Array(io.prm.num_Tetrads, 3 * max_Atoms + 2);
     velocities  = new double [3 * io.crd.total_Atoms];
     coordinates = new double [3 * io.crd.total_Atoms];
     
-    // Print information of the simulation
+    // Print information of the EDMD simulation
     cout << endl << "Initialising simulation..." << endl << endl;
     cout << "The number of MPI Processes : " << size << endl << endl;
     
@@ -100,20 +113,19 @@ void Master::initialise(void) {
 void Master::send_Parameters(void) {
     
     int i, * tetrad_Para = new int[2 * io.prm.num_Tetrads];
-    double edmd_Para[9] = { edmd.dt, edmd.gamma, edmd.tautp,
-        edmd.temperature, edmd.scaled, edmd.mole_Cutoff,
-        edmd.atom_Cutoff, edmd.mole_Least, io.prm.num_Tetrads };
-    MPI_Status status;
+    double edmd_Para[11] = { edmd.dt, edmd.gamma, edmd.tautp, edmd.temperature,
+        edmd.scaled, edmd.mole_Cutoff, edmd.atom_Cutoff, edmd.mole_Least,
+        (double)io.prm.num_Tetrads, (double)num_Pairs, (double)max_Atoms };
     
-    // Assign the number of atoms & evecs of tetrads into the sending array
+    // Assign the number of atoms & evecs of tetrads into a single array
     for (i = 0; i < io.prm.num_Tetrads; i++) {
         tetrad_Para[2 * i] = io.tetrad[i].num_Atoms;
         tetrad_Para[2*i+1] = io.tetrad[i].num_Evecs;
     }
     
-    // Broadcast the simulation parameters and tetrad parameters to all workers
+    // Broadcast the simulation and tetrad parameters to all workers
     cout << "Master sending parameters to workers..." << endl;
-    MPI_Bcast(edmd_Para  , 9, MPI_DOUBLE, 0, comm);
+    MPI_Bcast(edmd_Para, 11, MPI_DOUBLE, 0, comm);
     MPI_Bcast(tetrad_Para, 2 * io.prm.num_Tetrads, MPI_INT, 0, comm);
     
     delete [] tetrad_Para;
@@ -129,13 +141,13 @@ void Master::send_Tetrads(void) {
     cout << "Master sending tetrads to workers...\n" << endl;
     
     // Create MPI_Datatype "MPI_Tetrad" for all tetrads
-    MPI_Library::create_MPI_Tetrad(&MPI_Tetrad, io.prm.num_Tetrads, io.tetrad);
+    mpi.create_MPI_Tetrad(&MPI_Tetrad, io.prm.num_Tetrads, io.tetrad);
     
     // Broadcast tetrads to all workers
     MPI_Bcast(io.tetrad, 1, MPI_Tetrad, 0, comm);
     
     // Free the MPI_Datatype "MPI_Tetrad"
-    MPI_Library::free_MPI_Tetrad(&MPI_Tetrad);
+    mpi.free_MPI_Tetrad(&MPI_Tetrad);
     
     cout << "Simulation starting..." << endl;
 }
@@ -168,11 +180,11 @@ void Master::cal_Centre_of_Mass(double** com) {
 void Master::generate_Pair_Lists(void) {
     
     int i, j;
-    double r, ** com = array.allocate_2D_Array(io.prm.num_Tetrads, 3);
+    double r, ** com = array.allocate_2D_Double_Array(io.prm.num_Tetrads, 3);
     
-    cal_Centre_of_Mass(com); // Calculate the centre of mass
+    cal_Centre_of_Mass(com);
     
-    // Loop to generate pairlists
+    // Loop to generate pair lists
     for (num_Pairs = 0, i = 0; i < io.prm.num_Tetrads; i++) {
         for (j = i + 1; j < io.prm.num_Tetrads; j++) {
             
@@ -193,119 +205,134 @@ void Master::generate_Pair_Lists(void) {
         }
     }
     
-    array.deallocate_2D_Array(com);
+    array.deallocate_2D_Double_Array(com);
     
 }
 
 
 
-void Master::initialise_Forces_n_Energies(void) {
-
-    // Set all elements of the force arrays to zero
-    for (int i = 0; i < io.prm.num_Tetrads; i++) {
-        
-        for (int j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            io.tetrad[i].ED_Forces[j]     = 0.0;
-            io.tetrad[i].random_Forces[j] = 0.0;
-            io.tetrad[i].NB_Forces[j]     = 0.0;
-        }
-        
-        io.tetrad[i].ED_Forces[3 * io.tetrad[i].num_Atoms] =
-        io.tetrad[i].NB_Forces[3 * io.tetrad[i].num_Atoms] =
-        io.tetrad[i].NB_Forces[3 * io.tetrad[i].num_Atoms + 1] = 0.0;
+void Master::generate_Indexes(void) {
+    
+    int i, loop;
+    
+    // Divide NB force calculation into simuilar chunk (balanced workload)
+    // For every part of the NB force caulation, it has the start point &
+    // how many NB forces to be calculated
+    for (i = 0; i < size - 1; i++) {
+        ED_Index[i][1] = io.prm.num_Tetrads / (size - 1);
+        NB_Index[i][1] = num_Pairs / (size - 1);
+    }
+    
+    loop = io.prm.num_Tetrads - (ED_Index[0][1] * (size - 1));
+    for (i = 0; i < loop; i++) { ED_Index[i][1] += 1; }
+    loop = num_Pairs - (NB_Index[0][1] * (size - 1));
+    for (i = 0; i < loop; i++) { NB_Index[i][1] += 1; }
+    
+    ED_Index[0][0] = NB_Index[0][0] = 0;
+    for (i = 1; i < size - 1; i++) {
+        ED_Index[i][0] = ED_Index[i - 1][0] + ED_Index[i - 1][1];
+        NB_Index[i][0] = NB_Index[i - 1][0] + NB_Index[i - 1][1];
     }
     
 }
 
 
-
-
-void Master::send_n_Recv(int* i, int* j, int dest, int index[], MPI_Request* send_Request, MPI_Request* recv_Request) {
+void Master::send_Workload_Indexes(void) {
     
-    // Send new tetrad index for ED calculation & receive the calculation finish signal,
-    // Calculate the random forces
-    if (*i < io.prm.num_Tetrads) {
-
-        index[0] = * i;
-        index[1] = 0.0;
-        index[2] = TAG_ED;
-        
-        MPI_Isend(index, 3, MPI_INT, dest, TAG_INDEX, comm, send_Request);
-        
-        MPI_Irecv(index, 3, MPI_INT, dest, TAG_INDEX, comm, recv_Request);
-        
-    // i >= number of tetrads, then send two tetrad indexes for NB calculation,
-    // and receive the calculation finish signal
-    } else if (*j < num_Pairs) {
-        
-        index[0] = pair_Lists[*j][0];
-        index[1] = pair_Lists[*j][1];
-        index[2] = TAG_NB;
-        
-        MPI_Isend(index, 3, MPI_INT, dest, TAG_INDEX, comm, send_Request);
-        
-        MPI_Irecv(index, 3, MPI_INT, dest, TAG_INDEX, comm, recv_Request);
-        
-        (*j)++;
+    MPI_Request send_Request[3][size - 1];
+    MPI_Status send_Status[3][size - 1];
+    
+    // Send the pair lists & the displacements of pair lists to workers
+    for (int i = 0; i < size - 1; i++) {
+        MPI_Isend(&(pair_Lists[0][0]), 2 * num_Pairs, MPI_DOUBLE, i + 1,
+                  TAG_PAIRS,     comm, &(send_Request[0][i]));
+        MPI_Isend(&(NB_Index[0][0]), 2 * (size - 1),  MPI_INT,    i + 1,
+                  TAG_PAIRS + 1, comm, &(send_Request[1][i]));
+        MPI_Isend(&(ED_Index[0][0]), 2 * (size - 1),  MPI_INT,    i + 1,
+                  TAG_PAIRS + 2, comm, &(send_Request[2][i]));
     }
+    MPI_Waitall(size - 1, send_Request[0], send_Status[0]);
+    MPI_Waitall(size - 1, send_Request[1], send_Status[1]);
+    MPI_Waitall(size - 1, send_Request[2], send_Status[2]);
     
 }
+
 
 
 
 void Master::calculate_Forces(void) {
-
-    int i, j, rank, index[size-2][3];
-    MPI_Request send_Request[size-2], recv_Request[size-2];
-    MPI_Status send_Status, recv_Status;
-
-    // Initialise the ED/NB forces & energies of tetrads to 0,
-    // and send signal to rank 1 to initialise forces as well.
-    initialise_Forces_n_Energies();
-    index[0][0] = index[0][1] = index[0][2] = TAG_CLEAN;
-    MPI_Send(index[0], 3, MPI_INT, 1, TAG_INDEX, comm);
     
-    // Send new tasks to worker from rank 2 ~ & receive their finish singal.
-    for (i = 0, j = 0; i < size - 2; i++) {
-        send_n_Recv(&i, &j, i + 2, index[i], &send_Request[i], &recv_Request[i]);
+    int i, j, rank, signal = TAG_FORCE;
+    MPI_Request send_Request[size - 1], recv_Request[io.prm.num_Tetrads];
+    MPI_Status send_Status[size - 1], recv_Status[io.prm.num_Tetrads];
+    
+    // Broadcast the cooridnates
+    for (i = 0; i < size - 1; i++) {
+        MPI_Isend(&signal, 1, MPI_INT, i + 1, TAG_FORCE, comm, &(send_Request[i]));
+    }
+    MPI_Bcast(io.tetrad, 1, MPI_Crds, 0, comm);
+    MPI_Waitall(size - 1, send_Request, send_Status);
+    
+    // Receive the ED forces
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        MPI_Irecv(&(io.tetrad[i]), 1, MPI_ED_Forces[i], MPI_ANY_SOURCE, TAG_ED + i, comm, &(recv_Request[i]));
     }
     
-    // Loop to receive finish singal from workers & generate new tasks and send to idle workers
-    for (; i < num_Pairs + io.prm.num_Tetrads + size - 2 && j <= num_Pairs; i++) {
-        
-        // Wait any worker to finish its calculation
-        MPI_Waitany(size - 2, recv_Request, &rank, &recv_Status);
-        MPI_Wait(&(send_Request[rank]), &send_Status);
-        
-        // Send new tetrad index(es) to idle workers
-        send_n_Recv(&i, &j, rank + 2, index[rank], &send_Request[rank], &recv_Request[rank]);
-        
-    }
+    // Reduce and sum up all NB force together & assign NB forces to tetrads
+    MPI_Reduce(MPI_IN_PLACE, &(NB_Forces[0][0]), io.prm.num_Tetrads * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_SUM, 0, comm);
+    process_NB_Forces();
+    MPI_Waitall(io.prm.num_Tetrads, recv_Request, recv_Status);
     
-    // Send signal to require all ED/NB forces & receive all forces from rank 1
-    index[0][0] = index[0][1] = index[0][2] = TAG_FORCE;
-    MPI_Send(index[0], 3, MPI_INT, 1, TAG_INDEX, comm);
-    MPI_Recv(io.tetrad, 1, MPI_Force, 1, TAG_FORCE, comm, &recv_Status);
-    
-    double temp[6][3];
-    for (int i = 0; i < 6; i++) {  temp[i][0] = temp[i][1] = temp[i][2] = 0.0;  }
-    for (int i = 0; i < io.prm.num_Tetrads; i++) {
-        for (int j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
-            temp[5][0] += io.tetrad[i].ED_Forces[j];
-            temp[5][1] += io.tetrad[i].NB_Forces[j];
-            temp[5][2] += io.tetrad[i].coordinates[j];
+    /*
+    double temp[2] = {0.0, 0.0};
+    for (i = 0; i < io.prm.num_Tetrads; i++) {
+        for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
+            temp[0] += io.tetrad[i].NB_Forces[j];
         }
+        temp[1] += io.tetrad[i].NB_Forces[j];
     }
-    //cout << "M new forces: " << temp[5][0] << " " << temp[5][1] << " " << temp[5][2] << endl;
-
+    cout << "M new forces: " << temp[0] << " " << temp[1] << endl;
+    */
 }
 
 
 
 
-void Master::update_Velocities(void) {
+void Master::process_NB_Forces(void) {
     
-    // Calculate velocities of every tetrad
+    int i, j;
+    double temp = 0.0;
+    for (i  = 0; i < io.prm.num_Tetrads; i++) {
+        for (j = 0; j < 3 * io.tetrad[i].num_Atoms; j++) {
+            
+            // Clip the NB forces between -1.0 and 1.0
+            if (NB_Forces[i][j] < -1.0)  NB_Forces[i][j]  =  -1.0;
+            else if (NB_Forces[i][j] > 1.0) NB_Forces[i][j] = 1.0;
+            
+            // Assign NB forces to tetrads
+            io.tetrad[i].NB_Forces[j] = NB_Forces[i][j];
+            
+            // Clear the NB force array for next use
+            NB_Forces[i][j] = 0.0;
+            
+        }
+        
+        // NB energy & Electrostatic Energy
+        io.tetrad[i].NB_Forces[j]     = NB_Forces[i][j];
+        io.tetrad[i].NB_Forces[j + 1] = NB_Forces[i][j + 1];
+        temp += NB_Forces[i][j];
+        
+        NB_Forces[i][j] = NB_Forces[i][j + 1] = 0.0;
+    }
+    
+    cout << temp<<endl;
+}
+
+
+
+
+void Master::update_Velocity(void) {
+    
     for (int i = 0; i < io.prm.num_Tetrads; i++) {
         edmd.update_Velocities(&io.tetrad[i]);
     }
@@ -314,9 +341,8 @@ void Master::update_Velocities(void) {
 
 
 
-void Master::update_Coordinates(void) {
+void Master::update_Coordinate(void) {
     
-    // Calculate coordinates of all tetrads
     for (int i = 0; i < io.prm.num_Tetrads; i++) {
         edmd.update_Coordinates(&io.tetrad[i]);
     }
@@ -325,7 +351,7 @@ void Master::update_Coordinates(void) {
 
 
 
-void Master::data_Processing(void) {
+void Master::merge_Vels_n_Crds(void) {
     
     int i, j, index;
     
@@ -342,7 +368,7 @@ void Master::data_Processing(void) {
         }
     }
     
-    // Process the beginning & end tetrads
+    // Process the first & last 3 tetrads
     index = io.displs[io.crd.num_BP - 3];
     for (i = 0; index < io.displs[io.crd.num_BP]; index++, i++) {
         velocities [index] += velocities [i]; velocities [i] = velocities [index];
@@ -366,7 +392,7 @@ void Master::data_Processing(void) {
 
 
 
-void Master::write_Energy(int istep) {
+void Master::write_Info(int istep) {
     
     double energies[4] = {0.0};
     
@@ -382,27 +408,12 @@ void Master::write_Energy(int istep) {
     energies[3] /= io.prm.num_Tetrads;
     
     // Wrtie out energies
-    io.write_Energies(istep, energies);
+    io.write_Energies(istep + io.ntsync, energies);
     
-}
-
-
-
-void Master::write_Trajectories(int istep) {
-
+    // Write trajectory
     // io.displs[io.crd.num_BP - 3] is the index that the afterwards 3
     // tetrads the same as the first three tetrads
     io.write_Trajectory(istep, io.displs[io.crd.num_BP - 3], coordinates);
-    
-}
-
-
-
-void Master::write_Info(int istep) {
-    
-    write_Energy(istep + io.ntsync);
-    
-    write_Trajectories(istep);
     
 }
 
@@ -417,15 +428,15 @@ void Master::write_Crds(void) {
 
 
 void Master::finalise(void) {
-
-    int i, index[3];
     
-    // Send signal to terminate all workers
-    for (index[2] = TAG_SIGNAL, i = 1; i < size; i++) {
-        MPI_Send(index, 3, MPI_INT, i, TAG_INDEX, comm);
+    MPI_Request send_Request[size - 1];
+    MPI_Status send_Status[size - 1];
+    
+    // Send the terminate signal to all workers
+    for (int signal = TAG_END, i = 0; i < size - 1; i++) {
+        MPI_Isend(&signal, 1, MPI_INT, i + 1, TAG_END, comm, &(send_Request[i]));
     }
-    
-    cout << "\nSimulation ecompleted..." << endl << endl;
+    MPI_Waitall(size - 1, send_Request, send_Status);
     
 }
 

@@ -133,10 +133,11 @@ public:
      *            !  and J.F. Monahan augmented with quadratic bounding curves.
      *
      * Parameter: Tetrad* tetrad -> The instance of Tetrad cleass
+     *            int rank       -> The rank of worker used as the random seed
      *
      * Return:    None
      */
-    void calculate_Random_Forces(Tetrad* tetrad);
+    void calculate_Random_Forces(Tetrad* tetrad, int rank);
     
     /**
      * Function:  Calculate NB forces, results stored in Tetrad class

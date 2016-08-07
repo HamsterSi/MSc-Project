@@ -26,7 +26,7 @@ void Tetrad::allocate_Tetrad_Arrays(void) {
     masses        = new double[3 * num_Atoms];
     abq           = new double[3 * num_Atoms];
     eigenvalues   = new double[num_Evecs];
-    eigenvectors  = Array::allocate_2D_Array(num_Evecs, 3 * num_Atoms);
+    eigenvectors  = Array::allocate_2D_Double_Array(num_Evecs, 3 * num_Atoms);
     velocities    = new double[3 * num_Atoms];
     coordinates   = new double[3 * num_Atoms];
     ED_Forces     = new double[3 * num_Atoms + 1];
@@ -43,7 +43,7 @@ void Tetrad::deallocate_Tetrad_Arrays(void) {
     delete [] masses;
     delete [] abq;
     delete [] eigenvalues;
-    Array::deallocate_2D_Array(eigenvectors);
+    Array::deallocate_2D_Double_Array(eigenvectors);
     delete [] velocities;
     delete [] coordinates;
     delete [] ED_Forces;

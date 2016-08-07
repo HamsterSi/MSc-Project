@@ -18,82 +18,90 @@
  */
 
 #include "simulation.hpp"
-
-
+ 
+ 
 void master_Code(void) {
 
     Master master;
     
     clock_t start_Time = clock();
     
-    // Initialises simulaton (reading files, set parameters, etc.)
     master.initialise();
     
-    // Master sends simulation parameters & tetrads
     master.send_Parameters();
     master.send_Tetrads();
     
-    for (int istep = 0; istep < 10000; istep += master.io.ntsync) {//master.io.nsteps; istep += master.io.ntsync) {//
+    //for (int istep = 0; istep < master.io.nsteps; istep += master.io.ntsync) {
+    for (int istep = 0; istep < 100; istep += master.io.ntsync) {
 
-        // Generate pair lists for NB force calculation
-        master.generate_Pair_Lists();
-        cout << istep << endl;
+        master.generate_Pair_Lists(); // For NB force calculation
+        master.generate_Indexes();
+        master.send_Workload_Indexes();
         
-        // Loop to calculate forces, then updating the velocities & coordinates
-        for (int i = 0; i < 1; i++) {//master.io.ntsync; i++) {//
-            //cout << i << endl;
+        cout << "istep : " << istep << endl;
+        
+        //for (int i = 0; i < master.io.ntsync; i++) {
+        for (int i = 0; i < 100; i++) {
+            
+            cout << i << endl;
             
             master.calculate_Forces();
-            master.update_Velocities();
-            master.update_Coordinates();
+            master.update_Velocity();
+            master.update_Coordinate();
     
         }
+    
+        master.merge_Vels_n_Crds(); // Divide velocities & coordinates by 4
         
-        // Divide velocities & coordinates by 4
-        master.data_Processing();
-        
-        // Write out the energy & temperature, trajectory, update crd file
         if (istep % master.io.ntwt == 0) { master.write_Info(istep); }
         if (istep % master.io.ntpr == 0) { master.write_Crds(); }
         
     }
     
-    // Finalise simulation, terminate all workers
     master.finalise();
     
     double time_Usage = double (clock() - start_Time) / CLOCKS_PER_SEC;
-    cout << "Time usage of simualtion: " << time_Usage << endl << endl;
-    
+    cout << "Simulation ended.\nTime usage of simualtion: " << time_Usage << endl << endl;
+	
 }
 
 
 
 void worker_Code(void) {
     
-    int rank;
     Worker worker;
-    
-    // Get the rank of the worker processes
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    
-    // Receive parameters from master & initialisation
+
     worker.recv_Parameters();
-    
-    // Receive all tetrads
     worker.recv_Tetrads();
-   
-    // Start ED/NB force calculation --
     
-    // The workers (rank >= 2) calculate ED/NB forces according to the instructions
-    // from master, and send finish signal back to master to require new work while
-    // sending ED/NB forces to rank 1 to process it after ont calculation.
-    
-    // Rank 1 is responsible for processing the ED/NB forces from other workers, and
-    // then send all ED/NB forces back to the master after the force calculation.
-    if (rank == 1) { worker.force_Processing(); }
-    else { worker.force_Calculation(); }
+    worker.force_Calculation();
     
 }
+
+
+  
+/*
+                   _ooOoo_
+                  o8888888o
+                  88" . "88
+                  (| -_- |)
+                  O\  =  /O
+               ____/`---'\____
+             .'  \\|     |//  `.
+            /  \\|||  :  |||//  \
+           /  _||||| -:- |||||-  \
+           |   | \\\  -  /// |   |
+           | \_|  ''\---/''  |   |
+           \  .-\__  `-`  ___/-. /
+         ___`. .'  /--.--\  `. . __
+      ."" '<  `.___\_<|>_/___.'  >'"".
+     | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+     \  \ `-.   \_ __\ /__ _/   .-` /  /
+======`-.____`-.___\_____/___.-`____.-'======
+                   `=---='
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            佛祖保佑       永无BUG
+ */
 
 
 

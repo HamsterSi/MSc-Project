@@ -348,7 +348,7 @@ void IO::update_Crd_File(double* velocities, double* coordinates) {
         fout << crd.num_BP << endl;
         
         // Write out the number of atoms of every base pair
-        for (int i = 0; i < crd.num_BP; i++) {
+        for (i = 0; i < crd.num_BP; i++) {
             fout << crd.BP_Atoms[i] << endl;
         }
         

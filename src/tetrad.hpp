@@ -49,11 +49,11 @@ public:
     
     double **eigenvectors; // The eigenvectors
 
-    double *ED_Forces;     // The ED forces (Laset element is ED energy)
+    double *ED_Forces;     // The ED forces (Laset element: ED energy)
     
     double *random_Forces; // The random forces
     
-    double *NB_Forces;     // The NB forces (Laset two elements are NB energy & Electrostatic Energy)
+    double *NB_Forces;     // The NB forces (Laset two elements: NB energy & Electrostatic Energy)
     
     double temperature;    // The temperature of tetrad
     

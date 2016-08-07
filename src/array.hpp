@@ -39,7 +39,7 @@ public:
      *
      * Return:    A 2D array
      */
-    static double** allocate_2D_Array(int rows, int cols);
+    static double** allocate_2D_Double_Array(int rows, int cols);
     
     /**
      * Function:  free the memory space of 2D array
@@ -48,18 +48,26 @@ public:
      *
      * Return:    None
      */
-    static void deallocate_2D_Array(double** array);
+    static void deallocate_2D_Double_Array(double** array);
     
     /**
-     * Function:  Assign values from source array to dest array (for 1D array)
+     * Function:  Create a 2D array with continguous memory space
      *
-     * Parameter: int num        -> The number of elements to be assigned
-     *            double* source -> The source array
-     *            double* dest   -> The dest array
+     * Parameter: int rows -> The number of rows
+     *            int cols -> The number of columns
+     *
+     * Return:    A 2D array
+     */
+    static int** allocate_2D_Int_Array(int rows, int cols);
+    
+    /**
+     * Function:  free the memory space of 2D array
+     *
+     * Parameter: double** array -> The 2D array to be freed
      *
      * Return:    None
      */
-    static void assignment(int num, double* source, double* dest);
+    static void deallocate_2D_Int_Array(int** array);
     
 };
 

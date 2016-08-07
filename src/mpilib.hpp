@@ -26,15 +26,15 @@
 
 #include "tetrad.hpp"
 
-// Define the MPI tag for message passing
-#define TAG_SIGNAL 1  // The singal to specify task types
-#define TAG_DATA   2  // For passing parameters (number of tetrads, etc.)
-#define TAG_INDEX  3  // The tetrad index(es) and force types for ED/NB force calculation
-#define TAG_ED     4  // For ED forces calculation
-#define TAG_NB     7  // For NB forces calculation
-#define TAG_TETRAD 10 // For passing tetrads between master and workers
-#define TAG_CLEAN  11 // For empty the NB forces of all tetrads
-#define TAG_FORCE  12 // For passing forces between master and workers
+// Define MPI tags for message passing
+#define TAG_DATA   1  // For passing the EDMD simulation parameters
+#define TAG_TETRAD 2  // For passing the tetrads from master to workers
+#define TAG_PAIRS  3  // For non-bonded data (such as the pair list)
+#define TAG_END    6  // For terminate simualtion
+#define TAG_FORCE  7
+#define TAG_NB     8  // For NB force calculation
+#define TAG_ED     9  // For ED force calculation
+
 
 using namespace std;
 
@@ -43,7 +43,7 @@ using namespace std;
  * Brief: A class which contains two functions for creating and freeing the MPI data type
  *        for tetrads.
  */
-class MPI_Library{
+class MPI_Lib{
     
 public:
     
@@ -52,7 +52,7 @@ public:
      *
      * Parameter: MPI_Datatype* MPI_Tetrad -> The MPI data type for tetrad
      *            int num_Tetrads          -> The number of tetrads
-     *            Tetrad* tetrad           -> The parameters of all tetrads
+     *            Tetrad* tetrad           -> The tetrad array
      *
      * Return:    None
      */
@@ -70,22 +70,41 @@ public:
     /**
      * Function:  Create the MPI_Datatype for tetrads
      *
-     * Parameter: MPI_Datatype* MPI_Force -> The MPI data type of NB forces
-     *            int num_Tetrads         -> The number of tetrads
-     *            Tetrad* tetrad          -> The parameters of all tetrads
+     * Parameter: MPI_Datatype* MPI_Forces -> The MPI data type of ED forces
+     *            Tetrad* tetrad           -> One tetrad
      *
      * Return:    None
      */
-    static void create_MPI_Force(MPI_Datatype* MPI_Force, int num_Tetrads, Tetrad* tetrad);
+    static void create_MPI_ED_Forces(MPI_Datatype* MPI_ED_Forces, Tetrad* tetrad);
     
     /**
      * Function:  Free the MPI_Datatype of tetrads
      *
-     * Parameter: MPI_Datatype* MPI_Force -> The MPI data type of NB forces
+     * Parameter: MPI_Datatype* MPI_ED_Forces -> The MPI data type of ED forces
      *
      * Return:    None
      */
-    static void free_MPI_Force(MPI_Datatype* MPI_Force);
+    static void free_MPI_ED_Forces(MPI_Datatype* MPI_ED_Forces);
+    
+    /**
+     * Function:  Create the MPI_Datatype for tetrads
+     *
+     * Parameter: MPI_Datatype* MPI_Crds -> The MPI data type of coordinates
+     *            int num_Tetrads        -> The number of tetrads
+     *            Tetrad* tetrad         -> he tetrad array
+     *
+     * Return:    None
+     */
+    static void create_MPI_Crds(MPI_Datatype* MPI_Crds, int num_Tetrads, Tetrad* tetrad);
+    
+    /**
+     * Function:  Free the MPI_Datatype of tetrads
+     *
+     * Parameter: MPI_Datatype* MPI_Crds -> The MPI data type of coordinates
+     *
+     * Return:    None
+     */
+    static void free_MPI_Crds(MPI_Datatype* MPI_Crds);
     
 };
 

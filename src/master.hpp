@@ -31,6 +31,7 @@
 
 using namespace std;
 
+
 /**
  * Brief: The Master class is responsible for initialsation and finalisation the simulation 
  *        as well as doing the simualtion on velocities, coordinates and other calculations.
@@ -39,26 +40,39 @@ using namespace std;
 class Master {
     
 public:
+    
+    int size;    // The number of MPI processes
    
     EDMD edmd;   // The EDMD class for EDMD calculation
     
     IO io;       // The IO class for inputs and outputs
     
-    Array array; // The array for 2D array operation
+    Array array; // For 2D array allocation & deallocation
     
-    int       num_Pairs;    // The number of non-bonded pairs
+    MPI_Lib mpi; // For creating MPI_Datatype
     
-    double ** pair_Lists;   // The 2D array of NB pair lists
+    int       max_Atoms;  // The maximum number of atoms in tetrads
+    
+    int       num_Pairs;  // The number of non-bonded pairs
+    
+    double ** pair_Lists; // The 2D array of NB pair lists
+    
+    int    ** NB_Index;   // The workload distribution of NB force caulcaiton
+    
+    int    ** ED_Index;   // The workload distribution of ED force caulcaiton
+    
+    double ** NB_Forces;  // The 2D array to store the NB forces
+    
+    double * velocities;  // The velocities of the DNA
+    
+    double * coordinates; // The coordinates of the DNA
+    
+    MPI_Comm comm;        // The MPI communicator
+    
+    MPI_Datatype * MPI_ED_Forces; // For receiving ED forces, the random terms & coordinates
+    
+    MPI_Datatype   MPI_Crds;      // For sending all coordinates of tetrads
 
-    double * velocities;    // The velocities of the DNA
-    
-    double * coordinates;   // The coordinates of the DNA
-    
-    int size;               // The size of MPI processes
-    
-    MPI_Comm comm;          // The MPI communicator
-    
-    MPI_Datatype MPI_Force; // MPI_Datatype for receiving ED/NB forces
     
     
 public:
@@ -92,7 +106,7 @@ public:
     void initialise(void);
     
     /**
-     * Function:  Master sends the number of tetrads, edmd parameters, number of atoms
+     * Function:  Master sends the EDMD simualtion parameters, the number of atoms
      *            and number of evecs in every tetrad to worker processes
      *
      * Parameter: None
@@ -102,7 +116,7 @@ public:
     void send_Parameters(void);
     
     /**
-     * Function:  Master sends tetrads to workers
+     * Function:  Master sends all tetrads to workers
      *
      * Parameter: None
      *
@@ -129,33 +143,32 @@ public:
     void generate_Pair_Lists(void);
     
     /**
-     * Function:  Initialise the forces & energies of tetrads to 0
+     * Function:  Master divides the workload (according to the pair lists) of the NB force
+     *            calculation into similar size chunk.
+     *            It is actually the displacements of the pair lists.
      *
      * Parameter: None
      *
      * Return:    None
      */
-    void initialise_Forces_n_Energies(void);
+    void generate_Indexes(void);
     
     /**
-     * Function:  Master send the index(es) and the coordinates of Tetrads to workers 
-     *            for ED & NB forces calculation, and receive the forces from workers
-     *            The master also calculates the random forces.
+     * Function:  Master broadcast the NB parameters (pair lsit, pair index) to all workers
      *
-     * Parameter: int* i      -> The index for ED force calculation & iteration
-     *            int* j      -> The index for NB force calculation
-     *            int dest    -> The MPI send & recv destination
-     *            int index[] -> The tetrad indexes & the index of force type
-     *            MPI_Request* send_Request -> The MPI send request
-     *            MPI_Request* recv_Request -> The MPI recv request
+     * Parameter: None
      *
      * Return:    None
      */
-    void send_n_Recv(int* i, int* j, int dest, int index[], MPI_Request* send_Request, MPI_Request* recv_Request);
-    
+    void send_Workload_Indexes(void);
+
     /**
-     * Function:  Master distrubute ED/NB forces calculation among worker processes,
-     *            send tetrad indexes to workers and receive forces & energies back.
+     * Function:  Master distrubutes the ED force calculation among worker processes, send
+     *            tetrad index & coordinates to workers and receive forces & energy back.
+     * Function:  Master distrubutes the NB force calculation among all MPI processes
+     *            , send the coordinates of all tetrads to
+     *            workers at first, then after the NB force calculation, a reduction
+     *            operation is made to sum up all NB forces.
      *
      * Parameter: None
      *
@@ -164,49 +177,41 @@ public:
     void calculate_Forces(void);
     
     /**
-     * Function:  Master calculates velocities of all tetrads
+     * Function:  Clip the NB forces into range (-1.0, 1.0) & assign NB forces to tetrads
      *
      * Parameter: None
      *
      * Return:    None
      */
-    void update_Velocities(void);
+    void process_NB_Forces(void);
     
     /**
-     * Function:  Master calculates coordinates of all tetrads
+     * Function:  Master calculates the velocities of all tetrads
      *
      * Parameter: None
      *
      * Return:    None
      */
-    void update_Coordinates(void);
+    void update_Velocity(void);
     
     /**
-     * Function:  Master processes the velocities & coordinates of DNA
+     * Function:  Master calculates the coordinates of all tetrads
      *
      * Parameter: None
      *
      * Return:    None
      */
-    void data_Processing(void);
+    void update_Coordinate(void);
     
     /**
-     * Function:  Master writes out energies of all tetrads
+     * Function:  Master merge the velocities & coordinates of tetrad together
+     *            & divide them by 4 (as they are fourfold overlapped)
      *
-     * Parameter: int istep -> the iterations of simulation
+     * Parameter: None
      *
      * Return:    None
      */
-    void write_Energy(int istep);
-    
-    /**
-     * Function:  Master writes the trajectories.
-     *
-     * Parameter: int istep -> The first iteration to write the number of atoms of the DNA
-     *
-     * Return:    None
-     */
-    void write_Trajectories(int istep);
+    void merge_Vels_n_Crds(void);
     
     /**
      * Function:  Master writes the energies, temperature and trajectories.
@@ -218,7 +223,8 @@ public:
     void write_Info(int istep);
     
     /**
-     * Function:  Master writes a new crd file.
+     * Function:  Master writes a new coordinate file & keeps writing out
+     *            on this file at certain frequency.
      *
      * Parameter: None
      *
@@ -227,13 +233,14 @@ public:
     void write_Crds(void);
     
     /**
-     * Function:  Master terminates worker processes
+     * Function:  Master terminates workers & finalisation the simualtion
      *
      * Parameter: None
      *
      * Return:    None
      */
     void finalise(void);
+    
     
 };
 

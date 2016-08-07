@@ -69,9 +69,9 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     // Allocate memory for temp arrays
     double * temp_Crds = new double [3 * tetrad->num_Atoms];
     double * proj      = new double [tetrad->num_Evecs];
-    double ** temp_Frs = Array::allocate_2D_Array(tetrad->num_Atoms, 3);
-    double ** avg_Crds = Array::allocate_2D_Array(3, tetrad->num_Atoms);
-    double ** crds     = Array::allocate_2D_Array(3, tetrad->num_Atoms);
+    double ** temp_Frs = Array::allocate_2D_Double_Array(tetrad->num_Atoms, 3);
+    double ** avg_Crds = Array::allocate_2D_Double_Array(3, tetrad->num_Atoms);
+    double ** crds     = Array::allocate_2D_Double_Array(3, tetrad->num_Atoms);
     
     // Copy average structure & coordinates from tetrads
     for (i = 0; i < tetrad->num_Atoms; i++) {
@@ -156,26 +156,27 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     tetrad->ED_Forces[3 * tetrad->num_Atoms] *= 0.5 * scaled; // ED Energy
     
     // Deallocate memory of temp arrays
-    Array::deallocate_2D_Array(temp_Frs);
-    Array::deallocate_2D_Array(avg_Crds);
-    Array::deallocate_2D_Array(crds);
+    Array::deallocate_2D_Double_Array(temp_Frs);
+    Array::deallocate_2D_Double_Array(avg_Crds);
+    Array::deallocate_2D_Double_Array(crds);
     delete [] temp_Crds; delete [] proj;
     
 }
 
 
 
-void EDMD::calculate_Random_Forces(Tetrad* tetrad) {
+void EDMD::calculate_Random_Forces(Tetrad* tetrad, int rank) {
     
     int i;
-    static unsigned int RNG_Seed = 3579;
+    static unsigned int RNG_Seed = 13579;
     double random, s = 0.449871, t = -0.386595, a = 0.19600, b = 0.25472;
     double half = 0.5, r1 = 0.27597, r2 = 0.27846, u, v, x, y, q;
     double * noise_Factor = new double[3 * tetrad->num_Atoms];
 
     // Set seed for random number generator
-    srand((RNG_Seed++) + (unsigned)time(0));
-    if (RNG_Seed > 50000000)RNG_Seed = 3579;
+    srand((unsigned)((RNG_Seed++) + rank * rank * rank + time(NULL)));
+    if (RNG_Seed > 50000000) RNG_Seed = 13579;
+    //cout << rank << " " << RNG_Seed + rank << endl;
     
     // Noise factors, sum(noise_Factor) = 3594.75 when gmma = 2.0
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
@@ -295,6 +296,9 @@ void EDMD::update_Velocities(Tetrad* tetrad) {
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         // Simple Langevin dynamics, gamfac = 0.9960
         tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
+        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
+        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
+        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt) * gamfac;
         
         // Berendsen temperature control
         kentic_Energy += 0.5 * tetrad->masses[i] * tetrad->velocities[i] * tetrad->velocities[i];
