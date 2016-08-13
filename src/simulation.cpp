@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  simulation.cpp
- * Brief: Implementation of two functions for the master process and worker processes
+ * Brief: The implementation of the two functions declared
  */
 
 #include "simulation.hpp"
@@ -38,12 +38,8 @@ void master_Code(void) {
         master.generate_Indexes();
         master.send_Workload_Indexes();
         
-        cout << "istep : " << istep << endl;
-        
         //for (int i = 0; i < master.io.ntsync; i++) {
         for (int i = 0; i < 100; i++) {
-            
-            cout << i << endl;
             
             master.calculate_Forces();
             master.update_Velocity();
@@ -51,7 +47,7 @@ void master_Code(void) {
     
         }
     
-        master.merge_Vels_n_Crds(); // Divide velocities & coordinates by 4
+        master.merge_Vels_n_Crds();
         
         if (istep % master.io.ntwt == 0) { master.write_Info(istep); }
         if (istep % master.io.ntpr == 0) { master.write_Crds(); }
@@ -74,7 +70,7 @@ void worker_Code(void) {
     worker.recv_Parameters();
     worker.recv_Tetrads();
     
-    worker.force_Calculation();
+    worker.recv_Messages();
     
 }
 

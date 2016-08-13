@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  array.cpp
- * Brief: Implementation of functions for 2D array allocation and deallocation
+ * Brief: The implementation of the functions for 2D array allocation and deallocation
  */
 
 #include "array.hpp"

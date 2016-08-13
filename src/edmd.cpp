@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  edmd.cpp
- * Brief: Implementation of class functions for ED/MD and other calculations
+ * Brief: The implementation of the EDMD class functions for ED/MD simulation
  */
 
 #include "edmd.hpp"
@@ -109,11 +109,11 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
         }
     }
     
-    // Step 3 & Step 4, can be done in the same loop
+    // Step 3 & Step 4 done in the same loop
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
-        tetrad->ED_Forces[i] = 0.0;
-        temp_Crds[i] = tetrad->avg[i];
+        tetrad->ED_Forces[i] = 0.0; temp_Crds[i] = tetrad->avg[i];
     }
+    
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         for (j = 0; j < tetrad->num_Evecs; j++) {
             // Step 3: re-embed the input coordinates in PC space - a sort of 'shake' procedure.
@@ -126,7 +126,7 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
         }
     }
     
-    // Step 5 & Step 6, merged into one single loop
+    // Step 5 & Step 6 done in a single loop
     for (i = 0; i < tetrad->num_Atoms; i++) {
         
         // Step 5: rotate 'shaken' coordinates back into right frame
@@ -142,13 +142,14 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
 
     }
     
+    // Assign the ED forces from the temporary arrays to tetrads
     for (i = 0; i < tetrad->num_Atoms; i++) {
         tetrad->ED_Forces[3 * i] = temp_Frs[i][0];
         tetrad->ED_Forces[3*i+1] = temp_Frs[i][1];
         tetrad->ED_Forces[3*i+2] = temp_Frs[i][2];
     }
 
-    // Step 7: calculate the 'potential energy' (in units of kT), stroed in the ED forces array for easy sending to master
+    // Step 7: calculate the 'potential energy' (in units of kT), stroed in last entry of the ED force array of tetrad
     tetrad->ED_Forces[3 * tetrad->num_Atoms] = 0.0;
     for (i = 0; i < tetrad->num_Evecs; i++) {
         tetrad->ED_Forces[3 * tetrad->num_Atoms] += (proj[i] * proj[i] / tetrad->eigenvalues[i]);
@@ -159,13 +160,14 @@ void EDMD::calculate_ED_Forces(Tetrad* tetrad) {
     Array::deallocate_2D_Double_Array(temp_Frs);
     Array::deallocate_2D_Double_Array(avg_Crds);
     Array::deallocate_2D_Double_Array(crds);
-    delete [] temp_Crds; delete [] proj;
+    delete [] temp_Crds;
+    delete [] proj;
     
 }
 
 
 
-void EDMD::calculate_Random_Forces(Tetrad* tetrad, int rank) {
+void EDMD::calculate_Random_Terms(Tetrad* tetrad, int rank) {
     
     int i;
     static unsigned int RNG_Seed = 13579;
@@ -173,18 +175,17 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad, int rank) {
     double half = 0.5, r1 = 0.27597, r2 = 0.27846, u, v, x, y, q;
     double * noise_Factor = new double[3 * tetrad->num_Atoms];
 
-    // Set seed for random number generator
+    // Set the seed for random number generator
     srand((unsigned)((RNG_Seed++) + rank * rank * rank + time(NULL)));
     if (RNG_Seed > 50000000) RNG_Seed = 13579;
-    //cout << rank << " " << RNG_Seed + rank << endl;
     
     // Noise factors, sum(noise_Factor) = 3594.75 when gmma = 2.0
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         noise_Factor[i] = sqrt(2.0 * gamma * scaled * tetrad->masses[i] / dt);
-        tetrad->random_Forces[i] = 0.0;
+        tetrad->random_Terms[i] = 0.0;
     }
     
-    // Calculate random forces;
+    // Calculate random terms;
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         /*
          ! Adapted from the following Fortran 77 code
@@ -210,19 +211,16 @@ void EDMD::calculate_Random_Forces(Tetrad* tetrad, int rank) {
                 y = abs(v) - t;
                 q = x*x + y * (a*y - b*x);
                 
-                // Accept P if inside inner ellipse
-                if (q < r1) { break; }
-                // Reject P if outside outer ellipse
-                if (q > r2) { continue; }
-                // Reject P if outside acceptance region
-                if (v*v < -4.0 * log(u) * (u*u)) { break; }
+                if (q < r1) { break; }    // Accept P if inside inner ellipse
+                if (q > r2) { continue; } // Reject P if outside outer ellipse
+                if (v*v < -4.0 * log(u) * (u*u)) { break; } // Reject P if outside region
             }
             
             // Return ratio of P's coordinates as the normal deviate
             random = v/u;
         }
         
-        tetrad->random_Forces[i] = random * noise_Factor[i];
+        tetrad->random_Terms[i] = random * noise_Factor[i];
     }
     
     delete []noise_Factor;
@@ -238,12 +236,14 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
     double a, pair_Force;
     double krep = 100.0; // krep: soft repulsion constant
     double q;            // q: num_atoms vectors of charges
-    double qfac = 0.0;   // qfac: electrostatics factor, set up for dd-dielectric constant of 4r, qfac=332.064/4.0, no electrostatics...
     
-    // Initialise energies & NB forces to 0
+    // qfac: electrostatics factor, set up for dd-dielectric constant of 4r, qfac=332.064/4.0,
+    //no electrostatics...
+    double qfac = 0.0;
+    
+    // Initialise the NB forces & energies to 0
     for (i = 0 ; i < 3 * t1->num_Atoms + 2; i++) { t1->NB_Forces[i] = 0.0; }
     for (i = 0 ; i < 3 * t2->num_Atoms + 2; i++) { t2->NB_Forces[i] = 0.0; }
-    
     
     for (i = 0; i < t1->num_Atoms; i++) {
         for (j = 0; j < t2->num_Atoms; j++) {
@@ -261,8 +261,8 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
                 q = t1->abq[3*i+2] * t2->abq[3*j+2];
                 
                 // NB Energy & Electrostatic Energy
-                t1->NB_Forces[3 * t1->num_Atoms]     += 0.25 * krep * a * a;     // NB Energy
-                t1->NB_Forces[3 * t1->num_Atoms + 1] += 0.5 * qfac * q * sqdist; // Electrostatic Energy
+                t1->NB_Forces[3 * t1->num_Atoms]     += 0.25 * krep * a * a;
+                t1->NB_Forces[3 * t1->num_Atoms + 1] += 0.5 * qfac * q * sqdist;
                 
                 // NB forces
                 pair_Force = -2.0 * krep * a - 2.0 * qfac * q / (sqdist * sqdist);
@@ -278,6 +278,7 @@ void EDMD::calculate_NB_Forces(Tetrad* t1, Tetrad* t2) {
         }
     }
     
+    // NB Energy & Electrostatic Energy, two tetrads are the same.
     t2->NB_Forces[3 * t2->num_Atoms]     = t1->NB_Forces[3 * t1->num_Atoms];
     t2->NB_Forces[3 * t2->num_Atoms + 1] = t1->NB_Forces[3 * t1->num_Atoms + 1];
     
@@ -295,12 +296,9 @@ void EDMD::update_Velocities(Tetrad* tetrad) {
     
     for (i = 0; i < 3 * tetrad->num_Atoms; i++) {
         // Simple Langevin dynamics, gamfac = 0.9960
-        tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
-        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
-        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
-        //tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt) * gamfac;
-        
-        // Berendsen temperature control
+        tetrad->velocities[i] = (tetrad->velocities[i] + tetrad->ED_Forces[i] * dt + (tetrad->random_Terms[i] + tetrad->NB_Forces[i]) * dt / tetrad->masses[i]) * gamfac;
+
+        // Berendsen temperature control. Calculate the actual kentic energy
         kentic_Energy += 0.5 * tetrad->masses[i] * tetrad->velocities[i] * tetrad->velocities[i];
     }
     

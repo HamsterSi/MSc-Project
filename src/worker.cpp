@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  worker.cpp
- * Brief: Implementation of the Worker class functions
+ * Brief: The implementation of the Worker class functions
  */
 
 #include "worker.hpp"
@@ -38,7 +38,7 @@ Worker::~Worker(void) {
     array.deallocate_2D_Int_Array(NB_Index);
     array.deallocate_2D_Double_Array(NB_Forces);
 
-    // Free the MPI_Datatyep
+    // Free the MPI Data type
     for (int i = 0; i < num_Tetrads; i++) {
         tetrad[i].deallocate_Tetrad_Arrays();
         mpi.free_MPI_ED_Forces(&(MPI_ED_Forces[i]));
@@ -62,7 +62,7 @@ void Worker::recv_Parameters(void) {
     max_Atoms   = (int) edmd_Para[10];
     int * tetrad_Para = new int[2 * num_Tetrads];
     
-    // Receive the tetrad parameters * initialise tetrad array
+    // Receive the tetrad parameters & initialise the tetrad array
     MPI_Bcast(tetrad_Para, 2 * num_Tetrads, MPI_INT, 0, comm);
     tetrad = new Tetrad[num_Tetrads];
     
@@ -77,9 +77,9 @@ void Worker::recv_Parameters(void) {
     for (int i = 0; i < num_Tetrads; i++) {
         mpi.create_MPI_ED_Forces(&(MPI_ED_Forces[i]), &(tetrad[i]));
     }
-    mpi.create_MPI_Crds(&MPI_Crds, num_Tetrads, tetrad);
+    mpi.create_MPI_Crds(&MPI_Crds, num_Tetrads, tetrad); // For all tetrads
     
-    // The parameters for pair lists
+    // The parameters for pair lists & workeload
     num_Pairs  = num_Tetrads * (num_Tetrads - 1) / 2;
     pair_Lists = array.allocate_2D_Double_Array(num_Pairs, 2);
     ED_Index   = array.allocate_2D_Int_Array(size - 1, 2);
@@ -106,50 +106,7 @@ void Worker::recv_Tetrads(void) {
 
 
 
-void Worker::EDNB_Calculation() {
-    
-    int i, j, i1, i2;
-    int workload = ED_Index[rank - 1][1];
-    MPI_Request send_Request[workload];
-    MPI_Status send_Status[workload];
-
-    //cout << "W " << rank << ", ED: " << ED_Index[rank - 1][0] << " " << ED_Index[rank - 1][1] << ", NB: " << NB_Index[rank - 1][0] << " " << NB_Index[rank - 1][1] << endl;
-    
-    // Calculate the ED forces
-    for (i = ED_Index[rank - 1][0]; i < ED_Index[rank - 1][0] + ED_Index[rank - 1][1]; i++) {
-    
-        edmd.calculate_ED_Forces(&(tetrad[i]));
-        edmd.calculate_Random_Forces(&(tetrad[i]), rank);
-        
-        MPI_Isend(&(tetrad[i]), 1, MPI_ED_Forces[i], 0, TAG_ED + i, comm, &(send_Request[i - ED_Index[rank - 1][0]]));
-        
-    }
-    
-    // Calculate the NB forces
-    empty_NB_Forces();
-    for (i = NB_Index[rank - 1][0]; i < NB_Index[rank - 1][0] + NB_Index[rank - 1][1]; i++) {
-        
-        i1 = pair_Lists[i][0];
-        i2 = pair_Lists[i][1];
-        edmd.calculate_NB_Forces(&tetrad[i1], &tetrad[i2]);
-        
-        for (j = 0; j < 3 * tetrad[i1].num_Atoms + 2; j++) {
-            NB_Forces[i1][j] += tetrad[i1].NB_Forces[j];
-        }
-        for (j = 0; j < 3 * tetrad[i2].num_Atoms + 2; j++) {
-            NB_Forces[i2][j] += tetrad[i2].NB_Forces[j];
-        }
-    }
-    
-    // Reduce & sum up the NB forces to the master
-    MPI_Reduce(&(NB_Forces[0][0]), &(NB_Forces[0][0]), num_Tetrads * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_SUM, 0, comm);
-    MPI_Waitall(workload, send_Request, send_Status);
-    
-}
-
-
-
-void Worker::force_Calculation(void) {
+void Worker::recv_Messages(void) {
     
     int signal = 1, flag;
     MPI_Status recv_Status;
@@ -166,9 +123,14 @@ void Worker::force_Calculation(void) {
         }
         
         else if (flag && recv_Status.MPI_TAG == TAG_FORCE) {
+            // Receive the force calculation single
             MPI_Recv(&flag, 1, MPI_INT, 0, TAG_FORCE, comm, &recv_Status);
+            
+            // Receive the coordinates of all tetrads
             MPI_Bcast(tetrad, 1, MPI_Crds, 0, comm);
-            EDNB_Calculation();
+            
+            // Start the ED/NB force calculation
+            force_Calculation();
         }
         
         else if (flag && recv_Status.MPI_TAG == TAG_END){
@@ -176,6 +138,55 @@ void Worker::force_Calculation(void) {
         }
 
     }
+    
+}
+
+
+
+
+void Worker::force_Calculation() {
+    
+    int i, j, i1, i2;
+    int index = ED_Index[rank - 1][0];
+    int workload = ED_Index[rank - 1][1];
+    MPI_Request send_Request[workload];
+    MPI_Status send_Status[workload];
+    
+    // Calculate the ED forces and the random terms
+    for (i = index; i < index + workload; i++) {
+        
+        edmd.calculate_ED_Forces(&(tetrad[i]));
+        edmd.calculate_Random_Terms(&(tetrad[i]), rank);
+        
+        MPI_Isend(&(tetrad[i]), 1, MPI_ED_Forces[i], 0, TAG_ED + i, comm, &(send_Request[i - index]));
+        
+    }
+    
+    // Calculate the NB forces
+    empty_NB_Forces();
+    
+    index = NB_Index[rank - 1][0];
+    workload = NB_Index[rank - 1][1];
+    for (i = index; i < index + workload; i++) {
+        
+        i1 = pair_Lists[i][0];
+        i2 = pair_Lists[i][1];
+        edmd.calculate_NB_Forces(&tetrad[i1], &tetrad[i2]);
+        
+        // Sum up the NB forces of the specific tetrads
+        for (j = 0; j < 3 * tetrad[i1].num_Atoms + 2; j++) {
+            NB_Forces[i1][j] += tetrad[i1].NB_Forces[j];
+        }
+        for (j = 0; j < 3 * tetrad[i2].num_Atoms + 2; j++) {
+            NB_Forces[i2][j] += tetrad[i2].NB_Forces[j];
+        }
+    }
+    
+    // Reduce & sum up the NB forces to the master
+    MPI_Reduce(&(NB_Forces[0][0]), &(NB_Forces[0][0]), num_Tetrads * (3 * max_Atoms + 2), MPI_DOUBLE, MPI_SUM, 0, comm);
+    
+    // Wait all ED forces to be received
+    MPI_Waitall(workload, send_Request, send_Status);
     
 }
 

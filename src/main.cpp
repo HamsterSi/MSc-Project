@@ -7,16 +7,16 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  main.cpp
  * Brief: The entry of the program. It is responsible for initialising and finalising
- *        the MPI environment, and it also statrts the ED/MD simualtion by calling 
- *        functions for the master process and worker processes.
+ *        the MPI environment. It also divides the MPI processes into the master and
+ *        the workers, distribute them different works (by calling different functions)
  */
 
 #include <iostream>
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]){
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     
-    // Requires at least 2 processes
+    // The ED/MD simulation requires at least 2 processes
     if (size < 2) {
         cout << "The program requires at least 2 processes." << endl;
         exit(1);

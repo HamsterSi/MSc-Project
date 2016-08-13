@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  worker.hpp
- * Brief: Declaration of the Worker class
+ * Brief: The declaration of the Worker class
  */
 
 #ifndef worker_hpp
@@ -33,7 +33,7 @@
 using namespace std;
 
 /**
- * Brief: The Worker class is mainly used to calculate ED/NB forces
+ * Brief: The Worker class for calculating the ED and NB forces
  */
 class Worker {
     
@@ -45,9 +45,9 @@ public:
     
     Tetrad *tetrad;  // The tetrads array
     
-    EDMD edmd;       // The EDMD class for EDMD calculation
+    EDMD edmd;       // For calculating the ED and NB forces
     
-    Array array;     // For 2D array allocation & deallocation
+    Array array;     // For 2D array operations
     
     MPI_Lib mpi;     // For creating MPI_Datatype
     
@@ -65,9 +65,9 @@ public:
     
     MPI_Comm comm;        // The MPI communicator
     
-    MPI_Datatype * MPI_ED_Forces; // For receiving ED forces, the random terms & coordinates
+    MPI_Datatype * MPI_ED_Forces; // For receiving the ED forces & random terms
     
-    MPI_Datatype   MPI_Crds;      // For sending all coordinates of tetrads
+    MPI_Datatype   MPI_Crds;      // For receiving the coordinates of all tetrads
     
 public:
     
@@ -90,8 +90,8 @@ public:
     ~Worker(void);
     
     /**
-     * Function:  Workers receive the EDMD simualtion parameters, number of atoms
-     *            and number of evecs in every tetrad from master
+     * Function:  Workers receive the EDMD simualtion parameters, the number of atoms
+     *            and number of evecs of tetrads from master
      *
      * Parameter: None
      *
@@ -100,7 +100,7 @@ public:
     void recv_Parameters(void);
     
     /**
-     * Function:  Workers receive all tetrads from master
+     * Function:  Workers receive the parameters of all tetrads from master
      *
      * Parameter: None
      *
@@ -109,23 +109,23 @@ public:
     void recv_Tetrads(void);
     
     /**
-     * Function:  Receive the coordinates of all tetrads from master, compute NB 
-     *            forces of specified tetrads, sum them up and reduce them to master
-     *
-     * Parameter: None
-     *
-     * Return:    None
-     */
-    void EDNB_Calculation();
-    
-    /**
      * Function:  Receive new messages from master & calculate the ED/NB forces
      *
      * Parameter: None
      *
      * Return:    None
      */
-    void force_Calculation(void);
+    void recv_Messages(void);
+    
+    /**
+     * Function:  Receive the coordinates of all tetrads from master, compute NB
+     *            forces of specified tetrads, sum them up and reduce them to master
+     *
+     * Parameter: None
+     *
+     * Return:    None
+     */
+    void force_Calculation();
     
     /**
      * Function:  Set the NB forces of tetrads to 0.

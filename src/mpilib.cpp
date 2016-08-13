@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  mpilib.cpp
- * Brief: Implementation of class functions for the MPI library for this code
+ * Brief: The implementation of the MPI_Lib class functions
  */
 
 #include "mpilib.hpp"
@@ -73,22 +73,21 @@ void MPI_Lib::free_MPI_Tetrad(MPI_Datatype* MPI_Tetrad) {
 
 void MPI_Lib::create_MPI_ED_Forces(MPI_Datatype* MPI_ED_Forces, Tetrad* tetrad) {
     
-    int i, counts[3];
-    MPI_Datatype old_Types[3] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE};
-    MPI_Aint base, displs[3];
+    int i, counts[2];
+    MPI_Datatype old_Types[2] = {MPI_DOUBLE, MPI_DOUBLE};
+    MPI_Aint base, displs[2];
     
     counts[0] = 3 * tetrad->num_Atoms + 1; // ED
-    counts[1] = 3 * tetrad->num_Atoms;     // Crds
-    counts[2] = 3 * tetrad->num_Atoms;     // random
+    counts[1] = 3 * tetrad->num_Atoms;     // random
     
     MPI_Get_address(tetrad, &base);
-    MPI_Get_address(&(tetrad->ED_Forces[0]),     &displs[0]);
-    MPI_Get_address(&(tetrad->coordinates[0]),   &displs[1]);
-    MPI_Get_address(&(tetrad->random_Forces[0]), &displs[2]);
+    MPI_Get_address(&(tetrad->ED_Forces[0]),    &displs[0]);
+    MPI_Get_address(&(tetrad->random_Terms[0]), &displs[1]);
 
-    for (i = 2; i >= 0; i--) { displs[i] -= base; }
-    
-    MPI_Type_create_struct(3, counts, displs, old_Types, MPI_ED_Forces);
+    displs[0] -= base;
+    displs[1] -= base;
+
+    MPI_Type_create_struct(2, counts, displs, old_Types, MPI_ED_Forces);
     MPI_Type_commit(MPI_ED_Forces);
     
 }

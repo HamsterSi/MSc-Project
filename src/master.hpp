@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  master.hpp
- * Brief: Declaration of the Master class
+ * Brief: The declaration of the Master class
  */
 
 #ifndef master_hpp
@@ -33,27 +33,28 @@ using namespace std;
 
 
 /**
- * Brief: The Master class is responsible for initialsation and finalisation the simulation 
- *        as well as doing the simualtion on velocities, coordinates and other calculations.
- *        It requires message pssing between worker processes.
+ * Brief: The Master class is responsible for initialsation and finalisation of the EDMD
+ *        simulation, while it also calculates the velocities and coordinates of tetrads
+ *        The IO is also called in the Master class.
+ *        Message passing required with the workers.
  */
 class Master {
     
 public:
     
-    int size;    // The number of MPI processes
+    int size;             // The number of MPI processes
    
-    EDMD edmd;   // The EDMD class for EDMD calculation
+    EDMD edmd;            // For updating velocities and coordiantes of tetrads
     
-    IO io;       // The IO class for inputs and outputs
+    IO io;                // The IO class for inputs and outputs
     
-    Array array; // For 2D array allocation & deallocation
+    Array array;          // For 2D array operations
     
-    MPI_Lib mpi; // For creating MPI_Datatype
+    MPI_Lib mpi;          // For creating MPI_Datatype
     
-    int       max_Atoms;  // The maximum number of atoms in tetrads
+    int      max_Atoms;   // The maximum number of atoms in tetrads
     
-    int       num_Pairs;  // The number of non-bonded pairs
+    int      num_Pairs;   // The number of non-bonded pairs
     
     double ** pair_Lists; // The 2D array of NB pair lists
     
@@ -69,9 +70,9 @@ public:
     
     MPI_Comm comm;        // The MPI communicator
     
-    MPI_Datatype * MPI_ED_Forces; // For receiving ED forces, the random terms & coordinates
+    MPI_Datatype * MPI_ED_Forces; // For receiving ED forces & random terms
     
-    MPI_Datatype   MPI_Crds;      // For sending all coordinates of tetrads
+    MPI_Datatype   MPI_Crds;      // For sending the coordinates of all tetrads
 
     
     
@@ -143,9 +144,8 @@ public:
     void generate_Pair_Lists(void);
     
     /**
-     * Function:  Master divides the workload (according to the pair lists) of the NB force
-     *            calculation into similar size chunk.
-     *            It is actually the displacements of the pair lists.
+     * Function:  Master divides the workload (according to the pair lists) of the ED and 
+     *            NB force calculation into similar size chunks.
      *
      * Parameter: None
      *
@@ -154,7 +154,7 @@ public:
     void generate_Indexes(void);
     
     /**
-     * Function:  Master broadcast the NB parameters (pair lsit, pair index) to all workers
+     * Function:  Master sends the pair lsit, workload index to all workers
      *
      * Parameter: None
      *
@@ -163,12 +163,11 @@ public:
     void send_Workload_Indexes(void);
 
     /**
-     * Function:  Master distrubutes the ED force calculation among worker processes, send
-     *            tetrad index & coordinates to workers and receive forces & energy back.
-     * Function:  Master distrubutes the NB force calculation among all MPI processes
-     *            , send the coordinates of all tetrads to
-     *            workers at first, then after the NB force calculation, a reduction
-     *            operation is made to sum up all NB forces.
+     * Function:  Master send the calculationg signal & the coordinates of all tetrads
+     *            to all workers, and the workers then can start the ED/NB force calculation 
+     *            according to the workload index sent before. 
+     *            The master then receive the ED forces & sum up the NB forces with
+     *            the MPI_Reduce operation.
      *
      * Parameter: None
      *
@@ -204,7 +203,7 @@ public:
     void update_Coordinate(void);
     
     /**
-     * Function:  Master merge the velocities & coordinates of tetrad together
+     * Function:  Master merges the velocities & coordinates of tetrad together
      *            & divide them by 4 (as they are fourfold overlapped)
      *
      * Parameter: None
@@ -214,7 +213,7 @@ public:
     void merge_Vels_n_Crds(void);
     
     /**
-     * Function:  Master writes the energies, temperature and trajectories.
+     * Function:  Master writes out the energies, temperature and trajectories.
      *
      * Parameter: int istep -> The iterations of simulation
      *
@@ -223,8 +222,7 @@ public:
     void write_Info(int istep);
     
     /**
-     * Function:  Master writes a new coordinate file & keeps writing out
-     *            on this file at certain frequency.
+     * Function:  Master updates the new coordinate file at a certain frequency.
      *
      * Parameter: None
      *
@@ -233,7 +231,7 @@ public:
     void write_Crds(void);
     
     /**
-     * Function:  Master terminates workers & finalisation the simualtion
+     * Function:  Master terminates all workers & finalisation the simualtion
      *
      * Parameter: None
      *

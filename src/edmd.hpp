@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  edmd.hpp
- * Brief: Declaration of a class for ED/MD simulation
+ * Brief: The declaration of the EDMD class for ED/MD simulation
  */
 
 #ifndef parameters_hpp
@@ -34,7 +34,7 @@ using namespace std;
 
 
 /*
- * Brief: Constants used in the DNA simulations.
+ * Brief: Constants used in the DNA ED/MD simulations.
  *        Merge with the global constants class, unify units
  */
 typedef struct _Constants {
@@ -48,8 +48,8 @@ typedef struct _Constants {
 
 
 /**
- * Brief: The EDMD class that implements the ED & NB forces calculation and other 
- *        calculations on velocities and coordinates.
+ * Brief: The EDMD class that implements the ED/NB force calculation, as well as
+ *        the velocity and cooridnate calculation.
  */
 class EDMD {
     
@@ -67,16 +67,16 @@ public:
     
     double scaled;       // Scale factor to scale ED forces
     
-    double mole_Cutoff;  // Molecular cutoffs
+    double mole_Cutoff;  // Molecular level cutoffs, used between tetrads
     
-    double atom_Cutoff;  // Atomic cutoffs
+    double atom_Cutoff;  // Atomic level cutoffs, used between the atoms of two tetrads
     
-    double mole_Least;   // Molecules less than NB_Cutoff won't have NB ints.
+    double mole_Least;   // Molecules farther than the mole_Least won't have NB forces
     
 public:
     
     /**
-     * Function:  The constructor of EDMD class
+     * Function:  The constructor of the EDMD class
      *
      * Parameter: None
      *
@@ -85,7 +85,7 @@ public:
     EDMD(void);
     
     /**
-     * Function:  The destructor of EDMD class
+     * Function:  The destructor of the EDMD class
      *
      * Parameter: None
      *
@@ -110,17 +110,17 @@ public:
     void initialise(double _dt, double _gamma, double _tautp, double _temperature, double _scaled, double _mole_Cutoff, double _atom_Cutoff, double _mole_Least);
     
     /**
-     * Function:  Calculate ED forces for every tetrad, the results are stored in the Tetrad class
+     * Function:  Calculate ED forces of tetrad
      *
      * Parameter: Tetrad* tetrad -> The tetrad whose ED forces to be calculated
      *
-     * Return:    None
+     * Return:    None, the ED forces are stored in the tetrad itself
      */
     void calculate_ED_Forces(Tetrad* tetrad);
     
     /**
-     * Function:  Calculate the LV random forces.
-     *            Generate the Gaussian stochastic term. Assuming unitless.
+     * Function:  Generate the Gaussian stochastic term. Assuming unitless.
+     *
      *            Part of code is adapted from the following Fortran 77 code
      *            !      ALGORITHM 712, COLLECTED ALGORITHMS FROM ACM.
      *            !      THIS WORK PUBLISHED IN TRANSACTIONS ON MATHEMATICAL SOFTWARE,
@@ -132,36 +132,36 @@ public:
      *            !  The algorithm uses the ratio of uniforms method of A.J. Kinderman
      *            !  and J.F. Monahan augmented with quadratic bounding curves.
      *
-     * Parameter: Tetrad* tetrad -> The instance of Tetrad cleass
+     * Parameter: Tetrad* tetrad -> The tetrad whose random terms to be calculated
      *            int rank       -> The rank of worker used as the random seed
      *
      * Return:    None
      */
-    void calculate_Random_Forces(Tetrad* tetrad, int rank);
+    void calculate_Random_Terms(Tetrad* tetrad, int rank);
     
     /**
-     * Function:  Calculate NB forces, results stored in Tetrad class
+     * Function:  Calculate the NB forces between two interacting tetrads
      *
      * Parameter: Tetrad* t1 -> The tetrad whose NB forces to be calculated
      *            Tetrad* t2 -> The tetrad whose NB forces to be calculated
      *
-     * Return:    None
+     * Return:    None, the NB forces are stored in two tetrads
      */
     void calculate_NB_Forces(Tetrad* t1, Tetrad* t2);
     
     /**
-     * Function:  Update velocities & Berendsen temperature control
+     * Function:  Update the velocities of tetrad (Berendsen temperature control applied)
      *
-     * Parameter: Tetrad* tetrad -> The instance of Tetrad cleass
+     * Parameter: Tetrad* tetrad -> The tetrad whose velocities to be calculated
      *
      * Return:    None
      */
     void update_Velocities(Tetrad* tetrad); 
     
     /**
-     * Function:  Update Coordinates of tetrads
+     * Function:  Update Coordinates of tetrad
      *
-     * Parameter: Tetrad* tetrad -> The instance of Tetrad cleass
+     * Parameter: Tetrad* tetrad -> The tetrad whose cooridnates to be calculated
      *
      * Return:    None
      */

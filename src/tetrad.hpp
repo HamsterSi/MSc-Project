@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  tetrad.hpp
- * Brief: Declaration of a class for DNA tetrads
+ * Brief: The declaration of the Tetrad class
  */
 
 #ifndef tetrad_hpp
@@ -26,10 +26,8 @@
 using namespace std;
 
 /**
- * Brief: A class which contains all essential parameters for tetrads
- *
- * The "Tetrad" is the basic class in the code, whose parameters are either obtained
- * from input files or calculated from simualtion.
+ * Brief: The Tetrad class that contains all the essential parameters and varialbes
+ *        of tetrads for the ED/MD simulation.
  */
 class Tetrad {
     
@@ -39,32 +37,32 @@ public:
     
     int num_Evecs;         // The number of eigenvectors & eigenvalues
     
-    double *avg;           // The reference average structure of tetrad
+    double * avg;          // The reference average structure
     
-    double *masses;        // The masses of every atom in tetrad
+    double * masses;       // The masses of every atom in tetrad
     
-    double *abq;           // The non-bonded parameters
+    double * abq;          // The non-bonded parameters
     
-    double *eigenvalues;   // The eigenvalues
+    double * eigenvalues;  // The eigenvalues calculated from PCA
     
-    double **eigenvectors; // The eigenvectors
+    double** eigenvectors; // The eigenvectors obtained from PCA
 
-    double *ED_Forces;     // The ED forces (Laset element: ED energy)
+    double * ED_Forces;    // The ED forces (Laset element: ED energy)
     
-    double *random_Forces; // The random forces
+    double * random_Terms; // The random terms for Langevin dynamics
     
-    double *NB_Forces;     // The NB forces (Laset two elements: NB energy & Electrostatic Energy)
+    double * NB_Forces;    // The NB forces (Laset two elements: NB energy & Electrostatic Energy)
     
     double temperature;    // The temperature of tetrad
     
-    double *velocities;    // The velocities of tetrad
+    double * velocities;   // The velocities of tetrad
     
-    double *coordinates;   // The coordinates of tetrad
+    double * coordinates;  // The coordinates of tetrad
    
 public:
     
     /**
-     * Function:  Allocate memory space for all arrays in tetrad
+     * Function:  Allocate memory space for all the arrays in tetrad
      *
      * Parameter: None
      *
@@ -73,7 +71,7 @@ public:
     void allocate_Tetrad_Arrays(void);
     
     /**
-     * Function:  Deallocate the memory space  of all arrays in tetrad
+     * Function:  Deallocate the memory space of the arrays in tetrad
      *
      * Parameter: None
      *

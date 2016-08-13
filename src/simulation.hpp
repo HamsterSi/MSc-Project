@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  simulation.hpp
- * Brief: Declaration of two functions for the master process and worker processes
+ * Brief: Contains two functions for the master and the workers respectively.
  */
 
 #ifndef simulation_hpp
@@ -31,7 +31,8 @@
 using namespace std;
 
 /**
- * Function:  Define a Master class and manage the master working progress.
+ * Function:  
+ Define a Master class and manage the master working progress.
  *            It contorls the iteration structres of the simulation.
  *
  * Parameter: None

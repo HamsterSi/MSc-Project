@@ -7,14 +7,14 @@
  *              EPCC supervisors: Elena Breitmoser, Iain Bethune                *
  *     External supervisor: Charlie Laughton (The University of Nottingham)     *
  *                                                                              *
- *                 MSc in High Performance Computing, EPCC                      *
- *                      The University of Edinburgh                             *
+ *                  MSc in High Performance Computing, EPCC                     *
+ *                       The University of Edinburgh                            *
  *                                                                              *
  *******************************************************************************/
 
 /**
  * File:  io.cpp
- * Brief: Implementation of IO class functions for input/output
+ * Brief: The implementation of the IO class functions for input/output
  */
 
 #include "io.hpp"
@@ -22,7 +22,8 @@
 
 IO::IO(void) {
 
-    // Default parameters that can be read from configuartion file
+    // Set default values for the parameters
+    // Can be changed by the values read from the configuartion file
     irest  = 0;
     nsteps = 100000;
     ntsync = 100;
@@ -41,13 +42,13 @@ IO::IO(void) {
 
 IO::~IO(void) {
     
-    // Deallocate memory of crd
+    // Deallocate the memory space of in the IO class
     delete []displs;
     delete []crd.BP_Atoms;
     delete []crd.BP_Crds;
     delete []crd.BP_Vels;
     
-    // Deallocate memory spaces for all arrays in tetrads
+    // Deallocate memory spaces of all tetrads
     for (int i = 0; i < prm.num_Tetrads; i++) {
         tetrad[i].deallocate_Tetrad_Arrays();
     }
@@ -79,6 +80,7 @@ void IO::read_Cofig(EDMD* edmd) {
                 case  3: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> ntsync; break;
                 case  4: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> ntwt;   break;
                 case  5: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> ntpr;   break;
+                    
                 case  6: data_Line >> s1 >> s2 >> s3; iss.str(s3);
                     iss >> edmd->dt   ; edmd->dt    *= edmd->constants.timefac; break;
                 case  7: data_Line >> s1 >> s2 >> s3; iss.str(s3);
@@ -90,6 +92,7 @@ void IO::read_Cofig(EDMD* edmd) {
                 case 10: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Cutoff; break;
                 case 11: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->atom_Cutoff; break;
                 case 12: data_Line >> s1 >> s2 >> s3; iss.str(s3); iss >> edmd->mole_Least ; break;
+                    
                 case 13: data_Line >> s1 >> s2 >> prm_File;     break;
                 case 14: data_Line >> s1 >> s2 >> crd_File;     break;
                 case 15: data_Line >> s1 >> s2 >> energy_File;  break;
@@ -198,7 +201,7 @@ void IO::read_Crd(void) {
         crd.BP_Atoms = new int[crd.num_BP];
         for (crd.total_Atoms = 0, i = 0; i < crd.num_BP; i++) {
             fin >> crd.BP_Atoms[i];
-            crd.total_Atoms += crd.BP_Atoms[i]; // Calculate the total atoms of the DNA
+            crd.total_Atoms += crd.BP_Atoms[i]; // Calculate the total number of atoms of the DNA
         }
         
         // Allcoate memory for the whole array of velocities & coordinates.
@@ -232,11 +235,10 @@ void IO::read_Crd(void) {
 
 void IO::generate_Displacements(void) {
 
-    // Initialise the displacement array
     displs = new int[crd.num_BP + 1];
-    
-    // Generate diplacements of BP
     displs[0] = 0;
+    
+    // Generate the diplacements of base pairs
     for (int i = 1; i < crd.num_BP + 1; i++) {
         displs[i] = displs[i - 1] + 3 * crd.BP_Atoms[i - 1];
         
@@ -254,7 +256,8 @@ void IO::initialise_Tetrad_Crds(void) {
     for (i = 0; i < prm.num_Tetrads; i++) {
         
         // Sum the number of atoms in 4 base pairs of one tetrad
-        num_Atoms = crd.BP_Atoms[i] + crd.BP_Atoms[i + 1] + crd.BP_Atoms[i + 2] + crd.BP_Atoms[i + 3];
+        num_Atoms = crd.BP_Atoms[i] + crd.BP_Atoms[i + 1]
+            + crd.BP_Atoms[i + 2] + crd.BP_Atoms[i + 3];
         
         // Get the start & end displacement of tetrads
         start_Index = displs[i];
@@ -271,12 +274,13 @@ void IO::initialise_Tetrad_Crds(void) {
         
         // Read in the initial coordinates & velocities, initialise forces to 0
         for (j = 0; j < 3 * tetrad[i].num_Atoms; j++) {
+            
             if (irest == 0) tetrad[i].velocities[j] = 0.0;
             else tetrad[i].velocities[j] = crd.BP_Vels[start_Index];
             
             tetrad[i].coordinates[j]   = crd.BP_Crds[start_Index++];
             tetrad[i].ED_Forces[j]     = 0.0;
-            tetrad[i].random_Forces[j] = 0.0;
+            tetrad[i].random_Terms[j]  = 0.0;
             tetrad[i].NB_Forces[j]     = 0.0;
         }
     }
@@ -295,8 +299,10 @@ void IO::write_Energies(int istep, double energies[]) {
         // Write out energies & temperature
         fout << "Iteration, ED Energy, NB_Energy, ELE_Energy, Temperature: ";
         fout << istep << ", ";
-        fout << setprecision(8) << energies[0] << ", " << setprecision(8) << energies[1] << ", ";
-        fout << setprecision(8) << energies[2] << ", " << setprecision(8) << energies[3] << endl;
+        fout << setprecision(8) << energies[0] << ", ";
+        fout << setprecision(8) << energies[1] << ", ";
+        fout << setprecision(8) << energies[2] << ", ";
+        fout << setprecision(8) << energies[3] << endl;
         
         fout.close();
         
@@ -316,7 +322,7 @@ void IO::write_Trajectory(int istep, int index, double* coordinates) {
     
     if (fout.is_open()) {
         
-        // Write out the total atoms in the DNA
+        // Write out the number of total atoms of the DNA
         if (istep == 0) { fout << crd.total_Atoms << endl; }
 
         // Write out the coordinates
@@ -352,7 +358,7 @@ void IO::update_Crd_File(double* velocities, double* coordinates) {
             fout << crd.BP_Atoms[i] << endl;
         }
         
-        // Write out coordinates & velocities
+        // Write out the coordinates & velocities of all base pairs
         for (i = 0; i < crd.num_BP; i++) {
             for (j = displs[i]; j < displs[i] + 3 * crd.BP_Atoms[i]; j++) {
                 fout << fixed << setw(10) << setprecision(4) << coordinates[j] << " ";
