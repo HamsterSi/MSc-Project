@@ -41,6 +41,5 @@ Two implementations of the EDMD method exist: A serial Python code with poor per
 2. The random number generator in `calculate_Random_Forces(Tetrad* tetrad)` in src/edmd.cpp <br>  
   Adapted from the following Fortran 77 code:
   ALGORITHM 712, COLLECTED ALGORITHMS FROM ACM. THIS WORK PUBLISHED IN TRANSACTIONS ON MATHEMATICAL SOFTWARE, VOL. 18, NO. 4, DECEMBER, 1992, PP. 434-435. <br>  
-
-[The function returns a normally distributed pseudo-random number with zero mean and unit variance.
-The algorithm uses the ratio of uniforms method of A.J. Kinderman and J.F. Monahan augmented with quadratic bounding curves.]
+  The function returns a normally distributed pseudo-random number with zero mean and unit variance.
+The algorithm uses the ratio of uniforms method of A.J. Kinderman and J.F. Monahan augmented with quadratic bounding curves.
