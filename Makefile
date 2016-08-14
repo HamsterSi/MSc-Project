@@ -1,7 +1,7 @@
 EXE = edmddna
 
-CXX = mpicxx
-CC = mpicc
+CXX = CC
+CC = cc
 CFLAGS = -pg -O3
 LIBS = #-lm
 
