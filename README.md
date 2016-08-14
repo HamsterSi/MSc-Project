@@ -19,25 +19,24 @@ Two implementations of the EDMD method exist: A serial Python code with poor per
 
 ### Code Introduction
 1. tetrad.hpp, tetrad.cpp: The Tetrad class that contains all the parameters to be used in the ED/MD simulation;
-2. edmd.hpp, edmd.cpp: The EDMD class with all essential functions to calculate the ED/NB forces, the velocities and the coordinates;
+2. edmd.hpp, edmd.cpp: The EDMD class with all essential functions to calculate the ED/NB forces, velocities and coordinates;
 3. arrray.cpp, array.hpp: For 2D (double or integer) array allocation & deallocation;
 4. mpilib.hpp, mpilib.cpp: Define the functions to create and free the MPI derived data type;
 5. io.hpp, io.cpp: The IO class for input and output;
 6. master.hpp, master.cpp: Define a Master class which is responsible for the master work such as simulation initialisation & finalisation, force calculation distribution, velocity and coordinate calculation;
 7. worker.hpp, worker.cpp: The Worker class that is specifically created for ED/NB force calculation;
-8. simulation.hpp, simulation.cpp: Contains two fucntions for the master and the workers respecitvely to do the ED/MD simulation;
+8. simulation.hpp, simulation.cpp: Contains two fucntions for the master and workers respecitvely for the ED/MD simulation;
 9. main.cpp: The entry of the code.
 
 ### Compile and Run
-1. To compile the code on ARCHER, just run the command at the code directory: make
-   To compile the code using the PGI compiler, simply change the original Makefile to: CXX = mpicxx, CC = mpicc, and then type "make"
+1. To compile the code on ARCHER, just run the command at the code directory: make. To compile the code using the PGI compiler, simply change the original Makefile to: CXX = mpicxx, CC = mpicc, and then type "make"
 
 2. To run the code on the back end of ARCHER, needs to submit the jobs: qsub edmddna.pbs
 
 ### Reference
-1. [The QCP rotation calculation method](http://theobald.brandeis.edu/qcp/) in src/qcprot/
-* Douglas L. Theobald (2005), "Rapid calculation of RMSD using a quaternion-based characteristic polynomial.", Acta Crystallographica A 61(4):478-480.
-* Pu Liu, Dmitris K. Agrafiotis, and Douglas L. Theobald (2009), "Fast determination of the optimal rotational matrix for macromolecular superpositions.", in press, Journal of Computational Chemistry 
+1. [The QCP rotation calculation method](http://theobald.brandeis.edu/qcp/) in src/qcprot/. Developed by <br>  
+ Douglas L. Theobald (2005), "Rapid calculation of RMSD using a quaternion-based characteristic polynomial.", Acta Crystallographica A 61(4):478-480. <br>  
+ Pu Liu, Dmitris K. Agrafiotis, and Douglas L. Theobald (2009), "Fast determination of the optimal rotational matrix for macromolecular superpositions.", in press, Journal of Computational Chemistry 
 
 2. The random number generator in `calculate_Random_Forces(Tetrad* tetrad)` in src/edmd.cpp
 * Adapted from the following Fortran 77 code:
