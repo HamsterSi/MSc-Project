@@ -31,15 +31,13 @@ void master_Code(void) {
     master.send_Parameters();
     master.send_Tetrads();
     
-    //for (int istep = 0; istep < master.io.nsteps; istep += master.io.ntsync) {
-    for (int istep = 0; istep < 100; istep += master.io.ntsync) {
+    for (int istep = 0; istep < master.io.nsteps; istep += master.io.ntsync) {
 
         master.generate_Pair_Lists(); // For NB force calculation
         master.generate_Indexes();
         master.send_Workload_Indexes();
         
-        //for (int i = 0; i < master.io.ntsync; i++) {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < master.io.ntsync; i++) {
             
             master.calculate_Forces();
             master.update_Velocity();
@@ -74,30 +72,6 @@ void worker_Code(void) {
     
 }
 
-
-  
-/*
-                   _ooOoo_
-                  o8888888o
-                  88" . "88
-                  (| -_- |)
-                  O\  =  /O
-               ____/`---'\____
-             .'  \\|     |//  `.
-            /  \\|||  :  |||//  \
-           /  _||||| -:- |||||-  \
-           |   | \\\  -  /// |   |
-           | \_|  ''\---/''  |   |
-           \  .-\__  `-`  ___/-. /
-         ___`. .'  /--.--\  `. . __
-      ."" '<  `.___\_<|>_/___.'  >'"".
-     | | :  `- \`.;`\ _ /`;.`/ - ` : | |
-     \  \ `-.   \_ __\ /__ _/   .-` /  /
-======`-.____`-.___\_____/___.-`____.-'======
-                   `=---='
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            佛祖保佑       永无BUG
- */
 
 
 
