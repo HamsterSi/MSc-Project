@@ -1,0 +1,23 @@
+#PBS -A d89
+#PBS -j oe
+#PBS -l select=5
+#PBS -l walltime=00:20:00
+
+export PAT_RT_SUMMARY=0
+
+cd $PBS_O_WORKDIR
+
+MPIPROG=`basename $PBS_JOBNAME .pbs`
+MPISIZE=91
+
+echo '--------------------------------------------------------------------------------'
+
+echo 'Running MPI program' $MPIPROG 'on' $MPISIZE 'processes'
+
+echo 'Started at' `date`
+echo '--------------------------------------------------------------------------------'
+
+(time aprun -n $MPISIZE edmddna) 2>&1
+
+echo '--------------------------------------------------------------------------------'
+echo 'Finished at' `date`
