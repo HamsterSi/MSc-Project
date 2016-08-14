@@ -16,6 +16,7 @@ Two implementations of the EDMD method exist: A serial Python code with poor per
 4. "config.txt" : The configuration file contains parameters to be initialised at the beginning of the ED/MD simulation;
 5. "Makefile"   : The Makefile to compile the code on ARCHER;
 6. "README.md"  : The simple instruction of this code.
+7. "edmddna.pbs": The script to submit the job to the back end of ARCHER
 
 ### Code Introduction
 1. tetrad.hpp, tetrad.cpp: The Tetrad class that contains all the parameters to be used in the ED/MD simulation;
