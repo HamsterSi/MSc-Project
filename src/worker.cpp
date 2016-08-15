@@ -147,18 +147,17 @@ void Worker::recv_Messages(void) {
 void Worker::force_Calculation() {
     
     int i, j, i1, i2;
-    int index = ED_Index[rank - 1][0];
     int workload = ED_Index[rank - 1][1];
     MPI_Request send_Request[workload];
     MPI_Status send_Status[workload];
     
     // Calculate the ED forces and the random terms
-    for (i = index; i < index + workload; i++) {
+    for (i = ED_Index[rank - 1][0]; i < ED_Index[rank - 1][0] + ED_Index[rank - 1][1]; i++) {
         
         edmd.calculate_ED_Forces(&(tetrad[i]));
         edmd.calculate_Random_Terms(&(tetrad[i]), rank);
         
-        MPI_Isend(&(tetrad[i]), 1, MPI_ED_Forces[i], 0, TAG_ED + i, comm, &(send_Request[i - index]));
+        MPI_Isend(&(tetrad[i]), 1, MPI_ED_Forces[i], 0, TAG_ED + i, comm, &(send_Request[i - ED_Index[rank - 1][0]]));
         
     }
     
