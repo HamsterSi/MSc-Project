@@ -164,10 +164,7 @@ void Worker::force_Calculation() {
     
     // Calculate the NB forces
     empty_NB_Forces();
-    
-    index = NB_Index[rank - 1][0];
-    workload = NB_Index[rank - 1][1];
-    for (i = index; i < index + workload; i++) {
+    for (i = NB_Index[rank - 1][0]; i < NB_Index[rank - 1][0] + NB_Index[rank - 1][1]; i++) {
         
         i1 = pair_Lists[i][0];
         i2 = pair_Lists[i][1];
