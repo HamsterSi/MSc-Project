@@ -18,21 +18,10 @@ Two implementations of the EDMD method exist: A serial Python code with poor per
 6. "README.md"  : The simple instruction of this code.
 7. "edmddna.pbs": The script to submit the job to the back end of ARCHER
 
-### Code Introduction
-1. tetrad.hpp, tetrad.cpp: The Tetrad class that contains all the parameters to be used in the ED/MD simulation;
-2. edmd.hpp, edmd.cpp: The EDMD class with all essential functions to calculate the ED/NB forces, velocities and coordinates;
-3. arrray.cpp, array.hpp: For 2D (double or integer) array allocation & deallocation;
-4. mpilib.hpp, mpilib.cpp: Define the functions to create and free the MPI derived data type;
-5. io.hpp, io.cpp: The IO class for input and output;
-6. master.hpp, master.cpp: Define a Master class which is responsible for the master work such as simulation initialisation & finalisation, force calculation distribution, velocity and coordinate calculation;
-7. worker.hpp, worker.cpp: The Worker class that is specifically created for ED/NB force calculation;
-8. simulation.hpp, simulation.cpp: Contains two fucntions for the master and workers respecitvely for the ED/MD simulation;
-9. main.cpp: The entry of the code.
-
 ### Compile and Run
-1. To compile the code on ARCHER, just run the command at the code directory: make. To compile the code using the PGI compiler, simply change the original Makefile to: CXX = mpicxx, CC = mpicc, and then type "make"
+1. To compile the code on ARCHER, just type the command at the code directory: make.
 
-2. To run the code on the back end of ARCHER, needs to submit the jobs: qsub edmddna.pbs
+2. To run the code on the back end of ARCHER, the code needs to be submitted: qsub edmddna.pbs
 
 ### Reference
 1. [The QCP rotation calculation method](http://theobald.brandeis.edu/qcp/) in src/qcprot/. Developed by <br>  

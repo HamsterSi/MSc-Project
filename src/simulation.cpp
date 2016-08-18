@@ -33,11 +33,15 @@ void master_Code(void) {
     
     for (int istep = 0; istep < master.io.nsteps; istep += master.io.ntsync) {
 
-        master.generate_Pair_Lists(); // For NB force calculation
+        cout << "istep: " << istep << endl;
+        
+        master.generate_Pair_Lists(); 
         master.generate_Indexes();
         master.send_Workload_Indexes();
         
         for (int i = 0; i < master.io.ntsync; i++) {
+            
+            cout << i << endl;
             
             master.calculate_Forces();
             master.update_Velocity();
