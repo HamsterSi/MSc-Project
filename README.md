@@ -13,7 +13,7 @@ Two implementations of the EDMD method exist: A serial Python code with poor per
 1. ./src : The folder contains all the source code inside;
 2. ./test: The folder with two testing input file: the coordinate file and the tetrad parameter file;
 3. ./data: The folder where the simulation results will be stored.
-4. "config.txt" : The configuration file contains parameters to be initialised at the beginning of the ED/MD simulation;
+4. "config.txt" : The configuration file contains parameters to be initialised before the ED/MD simulation starts;
 5. "Makefile"   : The Makefile to compile the code on ARCHER;
 6. "README.md"  : The simple instruction of this code.
 7. "edmddna.pbs": The script to submit the job to the back end of ARCHER
