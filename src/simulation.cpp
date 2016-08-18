@@ -41,8 +41,6 @@ void master_Code(void) {
         
         for (int i = 0; i < master.io.ntsync; i++) {
             
-            cout << i << endl;
-            
             master.calculate_Forces();
             master.update_Velocity();
             master.update_Coordinate();
