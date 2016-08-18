@@ -2,7 +2,7 @@ EXE = edmddna
 
 CXX = CC
 CC = cc
-CFLAGS = -pg -O3
+CFLAGS = #-pg -O3
 LIBS = #-lm
 
 DEP = src/qcprot/qcprot.c
